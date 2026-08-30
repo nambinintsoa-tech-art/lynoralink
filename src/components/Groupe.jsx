@@ -136,26 +136,26 @@ const Compass = makeFaIcon(faBullseye);
 /*  COULEURS & CONSTANTES                                              */
 /* ================================================================== */
 const C = {
-  navy900: "#1C1E21", navy800: "#1877F2", navy700: "#1564C0",
-  navy100: "#E4E6EB", navy50: "#F0F2F5",
-  gold400: "#F7931E", gold600: "#E67E22",
-  ink: "#1C1E21", muted: "#65676B", mutedLight: "#8A8D91",
-  line: "#E4E6EB", white: "#FFFFFF",
+  navy900: "#081428", navy800: "#0F2A55", navy700: "#173C74",
+  navy100: "#E3E8F0", navy50: "#F1F4F9",
+  gold400: "#F2C14E", gold600: "#C9971F",
+  ink: "#0F2A44", muted: "#5C6B82", mutedLight: "#8B96A8",
+  line: "#E3E8F0", white: "#FFFFFF",
   danger: "#E41E3F", danger50: "#FDE8EA",
   success: "#31A24C", success50: "#E6F6EC",
-  warn: "#F7931E", warn50: "#FEF3E2",
-  paper: "#F0F2F5", surfaceAlt: "#F0F2F5",
+  warn: "#F2C14E", warn50: "#FDF4E0",
+  paper: "#F1F4F9", surfaceAlt: "#F1F4F9",
 };
 
 const goldGrad = `linear-gradient(135deg, ${C.gold400} 0%, ${C.gold600} 100%)`;
-const navyGrad = `linear-gradient(135deg, ${C.navy800} 0%, ${C.navy700} 100%)`;
+const navyGrad = `linear-gradient(135deg, ${C.navy800} 0%, ${C.navy900} 100%)`;
 const shadow = {
   xs: "0 1px 2px rgba(0,0,0,.1)",
   sm: "0 2px 8px rgba(0,0,0,.08)",
   md: "0 8px 24px rgba(0,0,0,.12)",
   lg: "0 20px 44px rgba(0,0,0,.16)",
-  brand: "0 14px 30px rgba(24,119,242,.20)",
-  gold: "0 10px 24px rgba(247,147,30,.28)",
+  brand: "0 14px 30px rgba(15,42,85,.28)",
+  gold: "0 10px 24px rgba(201,151,31,.32)",
 };
 
 const getGroupCoverStyle = (group) => group?.coverUrl
@@ -181,11 +181,11 @@ const REACTIONS = [
 const GROUP_EMOJIS = ["🌐","🚀","🎨","📊","💰","💼","🤖","🎓","🔬","📱","🎮","🏗️","🌱","⚡","💡","🎯","🏆","📡"];
 
 const COVER_GRADIENTS = [
-  { id: "navy", label: "Navy", value: "linear-gradient(160deg, #1F6F4C 0%, #122318 100%)" },
-  { id: "ocean", label: "Océan", value: "linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%)" },
-  { id: "gold", label: "Or", value: "linear-gradient(135deg, #E4B65A 0%, #A5701F 100%)" },
-  { id: "sunset", label: "Coucher de soleil", value: "linear-gradient(135deg, #F97316 0%, #BE185D 100%)" },
-  { id: "forest", label: "Forêt", value: "linear-gradient(135deg, #34D399 0%, #047857 100%)" },
+  { id: "navy", label: "Navy", value: "linear-gradient(160deg, #173C74 0%, #081428 100%)" },
+  { id: "ocean", label: "Océan", value: "linear-gradient(135deg, #4EA1FF 0%, #0F2A55 100%)" },
+  { id: "gold", label: "Or", value: "linear-gradient(135deg, #F2C14E 0%, #C9971F 100%)" },
+  { id: "sunset", label: "Coucher de soleil", value: "linear-gradient(135deg, #F59E0B 0%, #F97316 100%)" },
+  { id: "forest", label: "Forêt", value: "linear-gradient(135deg, #F4B942 0%, #D97706 100%)" },
   { id: "violet", label: "Violet", value: "linear-gradient(135deg, #A78BFA 0%, #4C1D95 100%)" },
   { id: "rose", label: "Rose", value: "linear-gradient(135deg, #F472B6 0%, #9D174D 100%)" },
   { id: "slate", label: "Ardoise", value: "linear-gradient(135deg, #94A3B8 0%, #1E293B 100%)" },
@@ -317,6 +317,47 @@ const FontImports = () => (
       max-width: 1100px !important;
       padding: 16px !important;
       align-items: flex-start !important;
+    }
+    .lynora-groupes .fb-page {
+      position: relative;
+      width: 100%;
+      height: calc(100dvh - var(--lynora-header-offset, 0px));
+      min-height: calc(100dvh - var(--lynora-header-offset, 0px));
+      overflow: hidden;
+      box-sizing: border-box;
+      background: ${C.navy50};
+    }
+    .lynora-groupes .fb-shell {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      height: calc(100dvh - var(--lynora-header-offset, 0px));
+      min-height: calc(100dvh - var(--lynora-header-offset, 0px));
+      min-height: 0;
+    }
+    .lynora-groupes .fb-sidebar {
+      position: sticky;
+      top: var(--lynora-header-offset, 0px);
+      flex: 0 0 360px;
+      width: 360px;
+      height: calc(100dvh - var(--lynora-header-offset, 0px));
+      background: ${C.white};
+      border-right: 1px solid ${C.line};
+      overflow-y: auto;
+      padding: 18px 12px 24px;
+      align-self: stretch;
+      z-index: 3;
+      box-sizing: border-box;
+    }
+    .lynora-groupes .fb-content {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      width: calc(100% - 360px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 28px 64px;
+      box-sizing: border-box;
     }
     .lynora-groups-sidebar {
       width: 360px;
@@ -895,7 +936,7 @@ const InviteModal = ({ open, group, currentUserId, onClose, onToast, onUpdateGro
   return (
     <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998, padding: 16 }} onClick={onClose}>
       <div className="lynora-share-modal" style={{ background: C.white, borderRadius: 22, width: "95%", maxWidth: 460, maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: "0 30px 60px rgba(0,0,0,.22)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "20px 24px", background: "linear-gradient(135deg, #1B5E40 0%, #122318 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ padding: "20px 24px", background: "linear-gradient(135deg, #173C74 0%, #081428 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <UserGroup size={18} style={{ color: C.gold400 }} />
             <h2 style={{ fontFamily: S.display, fontSize: 18, fontWeight: 600, color: C.white, margin: 0 }}>Inviter dans {group.name}</h2>
@@ -1144,11 +1185,12 @@ const CreateGroupModal = ({ open, onClose, onCreate }) => {
   });
   const [showEmojis, setShowEmojis] = useState(false);
   const [attemptedNext, setAttemptedNext] = useState(false);
-  const [isWide, setIsWide] = useState(typeof window !== "undefined" ? window.innerWidth >= 900 : true);
+  const [isWide, setIsWide] = useState(false);
   const [showPreviewMobile, setShowPreviewMobile] = useState(false);
 
   useEffect(() => {
     const onResize = () => setIsWide(window.innerWidth >= 900);
+    onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -1335,7 +1377,7 @@ const CreateGroupModal = ({ open, onClose, onCreate }) => {
         {step < steps.length - 1 ? (
           <button onClick={goNext} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: C.navy800, color: C.white, fontWeight: 600, fontFamily: S.font, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>Suivant <ChevronRight size={15} /></button>
         ) : (
-          <button onClick={handleCreate} disabled={!nameValid} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: nameValid ? "linear-gradient(135deg, #1F6F4C 0%, #122318 100%)" : C.mutedLight, color: C.white, fontWeight: 700, fontFamily: S.font, fontSize: 14, cursor: nameValid ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: 8, boxShadow: nameValid ? "0 10px 22px rgba(18,38,24,0.24)" : "none" }}><Sparkles size={15} /> Créer le groupe</button>
+          <button onClick={handleCreate} disabled={!nameValid} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: nameValid ? "linear-gradient(135deg, #173C74 0%, #081428 100%)" : C.mutedLight, color: C.white, fontWeight: 700, fontFamily: S.font, fontSize: 14, cursor: nameValid ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: 8, boxShadow: nameValid ? "0 10px 22px rgba(15,42,85,0.28)" : "none" }}><Sparkles size={15} /> Créer le groupe</button>
         )}
       </div>
     </div>
@@ -1358,7 +1400,7 @@ const CreateGroupModal = ({ open, onClose, onCreate }) => {
     <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998, padding: 16 }} onClick={onClose}>
       <div className="lynora-create-modal" style={{ background: C.white, borderRadius: 8, width: "95%", maxWidth: isWide ? 880 : 560, maxHeight: "92vh", overflow: "auto", boxShadow: "0 30px 60px rgba(0,0,0,.22)" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="lynora-create-header" style={{ padding: "22px 28px", background: "linear-gradient(135deg, #1B5E40 0%, #122318 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 5 }}>
+        <div className="lynora-create-header" style={{ padding: "22px 28px", background: "linear-gradient(135deg, #173C74 0%, #081428 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 5 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Users2 size={19} style={{ color: C.gold400 }} />
@@ -1591,7 +1633,7 @@ const GroupsGrid = ({ groups, onCreateGroup, onSelectGroup, onJoinGroup, onDismi
                 </>
               )}
             </div>
-            <button onClick={onCreateGroup} style={{ padding: "12px 22px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #1B5E40 0%, #122318 100%)", color: C.white, fontFamily: S.font, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 10px 22px rgba(18,38,24,0.20)" }}><Plus size={18} /> Créer un groupe</button>
+            <button onClick={onCreateGroup} style={{ padding: "12px 22px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #173C74 0%, #081428 100%)", color: C.white, fontFamily: S.font, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 10px 22px rgba(15,42,85,0.24)" }}><Plus size={18} /> Créer un groupe</button>
           </div>
         </div>
       </div>
@@ -1615,7 +1657,19 @@ const GroupsGrid = ({ groups, onCreateGroup, onSelectGroup, onJoinGroup, onDismi
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
           <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedLight }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un groupe" style={{ width: "100%", padding: "12px 16px 12px 38px", borderRadius: 14, border: `1px solid ${C.line}`, fontFamily: S.font, fontSize: 14, color: C.ink, outline: "none", boxSizing: "border-box", background: "#FFFFFF", boxShadow: "inset 0 1px 2px rgba(18,38,24,0.03)" }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            placeholder="Rechercher un groupe"
+            style={{ width: "100%", padding: "12px 16px 12px 38px", borderRadius: 14, border: `1px solid ${C.line}`, fontFamily: S.font, fontSize: 14, color: C.ink, outline: "none", boxSizing: "border-box", background: "#FFFFFF", boxShadow: "inset 0 1px 2px rgba(18,38,24,0.03)" }}
+          />
         </div>
         <button onClick={() => setShowFavOnly(v => !v)} style={{ padding: "11px 16px", borderRadius: 14, border: `1px solid ${showFavOnly ? C.gold600 : C.line}`, background: showFavOnly ? C.warn50 : "#FFFFFF", fontFamily: S.font, fontSize: 13, fontWeight: 700, color: showFavOnly ? C.gold600 : C.muted, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Star size={14} style={{ color: showFavOnly ? C.gold600 : C.mutedLight }} /> Favoris
@@ -1634,7 +1688,7 @@ const GroupsGrid = ({ groups, onCreateGroup, onSelectGroup, onJoinGroup, onDismi
 
       {/* Category pills */}
       <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
-        <button onClick={() => setCatFilter("all")} style={{ padding: "7px 16px", borderRadius: 999, border: "none", background: catFilter === "all" ? "linear-gradient(135deg, #1B5E40 0%, #122318 100%)" : "#EDEAE0", color: catFilter === "all" ? C.white : C.muted, fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", boxShadow: catFilter === "all" ? "0 8px 18px rgba(18,38,24,0.18)" : "none" }}>Tous les groupes</button>
+        <button onClick={() => setCatFilter("all")} style={{ padding: "7px 16px", borderRadius: 999, border: "none", background: catFilter === "all" ? "linear-gradient(135deg, #173C74 0%, #081428 100%)" : "#EDEAE0", color: catFilter === "all" ? C.white : C.muted, fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", boxShadow: catFilter === "all" ? "0 8px 18px rgba(15,42,85,0.22)" : "none" }}>Tous les groupes</button>
         {CATEGORIES.map(cat => (
           <button key={cat.id} onClick={() => setCatFilter(cat.id)} style={{ padding: "7px 16px", borderRadius: 999, border: "none", background: catFilter === cat.id ? cat.color : "#F2F0E7", color: catFilter === cat.id ? C.white : cat.color, fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", boxShadow: catFilter === cat.id ? `0 8px 18px ${cat.color}25` : "none" }}>{cat.label}</button>
         ))}
@@ -2282,7 +2336,7 @@ const JoinRequestModal = ({ open, group, onClose, onSubmitted, onToast }) => {
 /* ================================================================== */
 /*  GROUP DETAIL (sidebar gauche + onglets enrichis)                   */
 /* ================================================================== */
-const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateGroup, onPostCreated }) => {
+const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateGroup, onPostCreated, initialComposerMode = null, onComposerHandled = () => {}, composerOnly = false }) => {
   const { data: session } = useSession();
   const me = currentUserId ? { id: currentUserId, name: 'Vous', avatar: '', title: '' } : { id: '', name: 'Invité', avatar: '', title: '' };
   const userRole = getUserRoleInGroup(group, currentUserId);
@@ -2425,6 +2479,124 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     setRsvpdEvents((group.events || []).filter((event) => (event.attendeeIds || []).includes(userId)).map((event) => event.id));
   }, [group.events, currentUserId, session?.user?.id]);
 
+  const activeComposerMode = modalMode ?? initialComposerMode;
+  const isFileUploadMode = activeComposerMode === "file";
+
+  const closeComposer = useCallback(() => {
+    setModalMode(null);
+    if (composerOnly) onComposerHandled();
+  }, [composerOnly, onComposerHandled]);
+
+  const openComposer = useCallback((mode) => {
+    setModalMode(mode);
+    setActiveTab("posts");
+  }, []);
+
+  useEffect(() => {
+    if (!initialComposerMode) return;
+    setModalMode((current) => current ?? initialComposerMode);
+  }, [initialComposerMode]);
+
+  const handleAddFile = async (fileData) => {
+    const createdAt = new Date().toISOString();
+    const requiresApproval = group.privacy === "private" && !isGroupAdmin;
+    const filePost = {
+      id: `file_post_${fileData.id || Date.now()}`,
+      type: "file",
+      isFile: true,
+      file: fileData,
+      fileDescription: fileData.description || "",
+      authorId: currentUserId || session?.user?.id || null,
+      author: currentMemberName,
+      initials: currentMemberInitials,
+      avatarUrl: currentMemberAvatar,
+      authorTitle: "Membre",
+      title: "Membre",
+      role: "Membre",
+      status: requiresApproval ? "pending_review" : "published",
+      createdAt,
+      time: createdAt,
+      text: "",
+      media: [],
+      images: [],
+      visibility: group.privacy === "private" ? "Privé" : "Public",
+      reactions: {},
+      comments: [],
+      shares: 0,
+      groupId: group.id,
+      group: {
+        id: group.id,
+        ownerId: group.ownerId,
+        name: group.name,
+        coverUrl: group.coverUrl || null,
+        coverGradient: group.coverGradient || null,
+        memberIds: (group.members || []).map(member => member.id),
+      },
+    };
+
+    await onUpdateGroup(group.id, g => {
+      const nextPosts = [filePost, ...(g.posts || [])].filter((post) => String(post?.groupId || post?.group?.id || g.id) === String(g.id));
+      return {
+        ...g,
+        files: [fileData, ...(g.files || [])],
+        posts: nextPosts,
+        postsCount: nextPosts.length,
+      };
+    });
+    setShowAddFile(false);
+    setModalMode(null);
+    if (composerOnly) onComposerHandled();
+    onToast(requiresApproval ? "Fichier envoyé pour approbation par les administrateurs" : "Fichier ajouté avec succès", "success");
+  };
+
+  if (composerOnly) {
+    if (isFileUploadMode) {
+      return (
+        <AddFileModal
+          open={true}
+          group={group}
+          onClose={closeComposer}
+          onAdd={handleAddFile}
+          currentUser={{ name: currentMemberName, initials: currentMemberInitials, avatarUrl: currentMemberAvatar }}
+        />
+      );
+    }
+
+    return (
+      <>
+        {activeComposerMode && (
+          activeComposerMode === "visuelfocus" ? (
+            <AIVisualEditorModal
+              onClose={closeComposer}
+              onPublish={handlePublish}
+              currentUser={{
+                name: session?.user?.name || CURRENT_USER.name,
+                title: session?.user?.title || CURRENT_USER.title,
+                avatar: session?.user?.image || CURRENT_USER.avatar,
+                avatarUrl: session?.user?.image || null,
+              }}
+            />
+          ) : (
+            <CreatePostModal
+              initialMode={activeComposerMode}
+              initialVisibility={group.privacy === "private" ? "Privé" : "Public"}
+              onClose={closeComposer}
+              onOpenVisualFocus={() => setModalMode("visuelfocus")}
+              onPublish={handlePublish}
+              group={group}
+              currentUser={{
+                name: currentMemberName,
+                title: currentMember?.title || session?.user?.title || CURRENT_USER.title,
+                avatar: currentMemberInitials,
+                avatarUrl: currentMemberAvatar,
+              }}
+            />
+          )
+        )}
+      </>
+    );
+  }
+
   useEffect(() => {
     document.querySelector(".lynora-groupes")?.scrollTo({ top: 0, behavior: "auto" });
   }, [activeTab]);
@@ -2438,7 +2610,10 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     { id: "members", label: "Membres", icon: Users, count: group.members.length },
   ];
 
-  const updatePosts = (updater) => onUpdateGroup(group.id, g => ({ ...g, posts: updater(g.posts) }));
+  const updatePosts = (updater) => onUpdateGroup(group.id, g => {
+    const nextPosts = (updater(g.posts || []) || []).filter((post) => String(post?.groupId || post?.group?.id || g.id) === String(g.id));
+    return { ...g, posts: nextPosts, postsCount: nextPosts.length };
+  });
 
   const handleReaction = (postId, emoji) => {
     updatePosts(posts => posts.map(p => {
@@ -2505,7 +2680,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     onToast(!bookmarked[postId] ? "Post sauvegardé" : "Post retiré des favoris", "success");
   };
 
-  const handlePublish = async (postData = {}) => {
+  async function handlePublish(postData = {}) {
     const member = (group.members || []).find(m => m.id === me?.id || m.id === session?.user?.id);
     const requiresApproval = group.privacy === "private" && !isGroupAdmin;
     const roleLabel = member?.role === "admin" ? "Admin" : member?.role === "moderator" ? "Modérateur" : "Membre";
@@ -2548,6 +2723,15 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
       reactions: {}, 
       comments: [], 
       shares: 0,
+      groupId: group.id,
+      group: {
+        id: group.id,
+        ownerId: group.ownerId,
+        name: group.name,
+        coverUrl: group.coverUrl || null,
+        coverGradient: group.coverGradient || null,
+        memberIds: (group.members || []).map((memberData) => memberData?.id).filter(Boolean),
+      },
     };
     try {
       if (group.privacy !== "private") {
@@ -2570,18 +2754,21 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data?.error || "La publication n’a pas pu être enregistrée");
         const savedPost = data.post || {};
-        const publishedPost = { ...newPost, id: savedPost.id || newPost.id, status: "published", time: savedPost.createdAt || createdAt };
-        onUpdateGroup(group.id, g => ({ ...g, posts: [publishedPost, ...(g.posts || [])], postsCount: (g.postsCount || 0) + 1 }));
+        const publishedPost = { ...newPost, id: savedPost.id || newPost.id, status: "published", time: savedPost.createdAt || createdAt, groupId: group.id };
+        onUpdateGroup(group.id, g => {
+          const nextPosts = [publishedPost, ...(g.posts || [])].filter((post) => String(post?.groupId || post?.group?.id || g.id) === String(g.id));
+          return { ...g, posts: nextPosts, postsCount: nextPosts.length };
+        });
         onPostCreated?.(publishedPost);
         setModalMode(null);
+        if (composerOnly) onComposerHandled();
         onToast("Publication partagée avec le groupe", "success");
         return;
       }
-      onUpdateGroup(group.id, g => ({
-        ...g,
-        posts: [newPost, ...(g.posts || [])],
-        postsCount: (g.postsCount || 0) + 1,
-      }));
+      onUpdateGroup(group.id, g => {
+        const nextPosts = [newPost, ...(g.posts || [])].filter((post) => String(post?.groupId || post?.group?.id || g.id) === String(g.id));
+        return { ...g, posts: nextPosts, postsCount: nextPosts.length };
+      });
       if (requiresApproval) {
         const adminIds = new Set([
           ...(group.ownerId ? [group.ownerId] : []),
@@ -2618,6 +2805,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
         }));
       }
       setModalMode(null);
+      if (composerOnly) onComposerHandled();
       onToast(requiresApproval ? "Votre publication a été envoyée pour approbation par les administrateurs" : "Publication partagée avec le groupe", "success");
     } catch (error) {
       console.error("handlePublish", error);
@@ -2742,51 +2930,6 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     onToast("Événement créé avec succès", "success");
   };
 
-  const handleAddFile = async (fileData) => {
-    const createdAt = new Date().toISOString();
-    const requiresApproval = group.privacy === "private" && !isGroupAdmin;
-    const filePost = {
-      id: `file_post_${fileData.id || Date.now()}`,
-      type: "file",
-      isFile: true,
-      file: fileData,
-      fileDescription: fileData.description || "",
-      authorId: currentUserId || session?.user?.id || null,
-      author: currentMemberName,
-      initials: currentMemberInitials,
-      avatarUrl: currentMemberAvatar,
-      authorTitle: "Membre",
-      title: "Membre",
-      role: "Membre",
-      status: requiresApproval ? "pending_review" : "published",
-      createdAt,
-      time: createdAt,
-      text: "",
-      media: [],
-      images: [],
-      visibility: group.privacy === "private" ? "Privé" : "Public",
-      reactions: {},
-      comments: [],
-      shares: 0,
-      group: {
-        id: group.id,
-        ownerId: group.ownerId,
-        name: group.name,
-        coverUrl: group.coverUrl || null,
-        coverGradient: group.coverGradient || null,
-        memberIds: (group.members || []).map(member => member.id),
-      },
-    };
-
-    await onUpdateGroup(group.id, g => ({
-      ...g,
-      files: [fileData, ...(g.files || [])],
-      posts: [filePost, ...(g.posts || [])],
-      postsCount: (g.postsCount || 0) + 1,
-    }));
-    setShowAddFile(false);
-    onToast(requiresApproval ? "Fichier envoyé pour approbation par les administrateurs" : "Fichier ajouté avec succès", "success");
-  };
 
   const handleJoinRequestSubmitted = (request) => {
     onUpdateGroup(group.id, g => ({ ...g, joinRequests: [request, ...(g.joinRequests || [])] }), false);
@@ -2835,35 +2978,6 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
       </div>
 
       <InviteModal open={showInvite} group={group} currentUserId={currentUserId} onClose={() => setShowInvite(false)} onToast={onToast} onUpdateGroup={onUpdateGroup} />
-      {modalMode && (
-        modalMode === "visuelfocus" ? (
-          <AIVisualEditorModal
-            onClose={() => setModalMode(null)}
-            onPublish={handlePublish}
-            currentUser={{
-              name: session?.user?.name || CURRENT_USER.name,
-              title: session?.user?.title || CURRENT_USER.title,
-              avatar: session?.user?.image || CURRENT_USER.avatar,
-              avatarUrl: session?.user?.image || null,
-            }}
-          />
-        ) : (
-          <CreatePostModal
-            initialMode={modalMode}
-            initialVisibility={group.privacy === "private" ? "Privé" : "Public"}
-            onClose={() => setModalMode(null)}
-            onOpenVisualFocus={() => setModalMode("visuelfocus")}
-            onPublish={handlePublish}
-            group={group}
-            currentUser={{
-              name: currentMemberName,
-              title: currentMember?.title || session?.user?.title || CURRENT_USER.title,
-              avatar: currentMemberInitials,
-              avatarUrl: currentMemberAvatar,
-            }}
-          />
-        )
-      )}
       <CreateEventModal open={showCreateEvent} group={group} onClose={() => setShowCreateEvent(false)} onCreate={handleCreateEvent} />
       <AddFileModal
         open={showAddFile}
@@ -2883,7 +2997,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
         open={showCoverUpload}
         group={group}
         onClose={() => setShowCoverUpload(false)}
-        onSave={(coverUrl) => onUpdateGroup(group.id, g => ({ ...g, coverUrl, coverGradient: g.coverGradient || "linear-gradient(160deg, #1F6F4C 0%, #122318 100%)" }))}
+        onSave={(coverUrl) => onUpdateGroup(group.id, g => ({ ...g, coverUrl, coverGradient: g.coverGradient || "linear-gradient(160deg, #173C74 0%, #081428 100%)" }))}
       />
 
       {/* En-tête du groupe — cover + carte d'identité unifiées */}
@@ -3103,26 +3217,61 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
           {/* Tab content */}
           {activeTab === "posts" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", maxWidth: 900, minWidth: 0 }}>
-          {/* Bouton pour créer une publication */}
-          {canPublish && (
+          {activeComposerMode && (
+            activeComposerMode === "visuelfocus" ? (
+              <AIVisualEditorModal
+                onClose={() => setModalMode(null)}
+                onPublish={handlePublish}
+                currentUser={{
+                  name: session?.user?.name || CURRENT_USER.name,
+                  title: session?.user?.title || CURRENT_USER.title,
+                  avatar: session?.user?.image || CURRENT_USER.avatar,
+                  avatarUrl: session?.user?.image || null,
+                }}
+              />
+            ) : (
+              <CreatePostModal
+                initialMode={activeComposerMode}
+                initialVisibility={group.privacy === "private" ? "Privé" : "Public"}
+                onClose={() => setModalMode(null)}
+                onOpenVisualFocus={() => setModalMode("visuelfocus")}
+                onPublish={handlePublish}
+                group={group}
+                currentUser={{
+                  name: currentMemberName,
+                  title: currentMember?.title || session?.user?.title || CURRENT_USER.title,
+                  avatar: currentMemberInitials,
+                  avatarUrl: currentMemberAvatar,
+                }}
+              />
+            )
+          )}
+
+          {/* Composer réel du fil du groupe */}
+          {canPublish && !modalMode && (
             <Card style={{ padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Avatar name={currentMemberName} initials={currentMemberInitials} src={currentMemberAvatar} size={42} />
                 <button
-                  onClick={() => setModalMode("post")}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openComposer("post");
+                  }}
                   style={{ flex: 1, textAlign: "left", padding: "11px 16px", borderRadius: 22, border: `1.5px solid ${C.line}`, background: C.navy50, color: C.muted, fontSize: 14, cursor: "pointer" }}
                 >
                   Partagez une actualité avec les membres du groupe...
                 </button>
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
-                <GroupTriggerAction icon={MediaIcon} label="Médias" color="#2E9E5B" onClick={() => setModalMode("image")} />
+                <GroupTriggerAction icon={MediaIcon} label="Médias" color="#2E9E5B" onClick={() => openComposer("image")} />
                 <GroupTriggerDivider />
-                <GroupTriggerAction icon={ArticleIcon} label="Article" color="#1B5386" onClick={() => setModalMode("article")} />
+                <GroupTriggerAction icon={ArticleIcon} label="Article" color="#1B5386" onClick={() => openComposer("article")} />
                 <GroupTriggerDivider />
                 <GroupTriggerAction icon={Paperclip} label="Fichier" color="#0A66C2" onClick={() => setShowAddFile(true)} />
                 <GroupTriggerDivider />
-                <GroupTriggerAction icon={Sparkles} label="VisuelFocus" color="#D9A536" onClick={() => setModalMode("visuelfocus")} />
+                <GroupTriggerAction icon={Sparkles} label="VisuelFocus" color="#D9A536" onClick={() => openComposer("visuelfocus")} />
               </div>
             </Card>
           )}
@@ -3752,10 +3901,11 @@ const GroupAdminPanel = ({ group, onBack, onToast, onDeleteGroup, onUpdateGroup 
   const [confirmRemoveMember, setConfirmRemoveMember] = useState(null);
   const [confirmDeleteGroup, setConfirmDeleteGroup] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ name: group.name, description: group.description, privacy: group.privacy, postPermission: group.postPermission, joinQuestions: getGroupJoinQuestions(group) });
-  const [isWide, setIsWide] = useState(typeof window !== "undefined" ? window.innerWidth >= 860 : true);
+  const [isWide, setIsWide] = useState(false);
 
   useEffect(() => {
     const onResize = () => setIsWide(window.innerWidth >= 860);
+    onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -4439,10 +4589,12 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   const [feedTab, setFeedTab] = useState("feed");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
+  const [composerTarget, setComposerTarget] = useState(null);
+  const [openGridPost, setOpenGridPost] = useState(null);
 
   const showToast = useCallback((message, type = "success") => setToast({ message, type }), []);
 
-  const loadGroups = useCallback(async () => {
+  const loadGroups = useCallback(async (query = groupSearch) => {
     if (!session?.user?.id) {
       setGroups([]);
       setLoadingGroups(false);
@@ -4451,7 +4603,10 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
 
     try {
       setLoadingGroups(true);
-      const res = await fetch("/api/groups");
+      const url = new URL("/api/groups", window.location.origin);
+      const q = String(query || "").trim();
+      if (q) url.searchParams.set("search", q);
+      const res = await fetch(url.toString(), { cache: "no-store" });
       if (!res.ok) throw new Error("Erreur lors du chargement des groupes");
       const data = await res.json();
       setGroups(Array.isArray(data.groups) ? data.groups : []);
@@ -4462,12 +4617,12 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
     } finally {
       setLoadingGroups(false);
     }
-  }, [session?.user?.id, showToast]);
+  }, [groupSearch, session?.user?.id, showToast]);
 
   useEffect(() => {
     if (status === "loading") return;
-    loadGroups();
-  }, [status, loadGroups]);
+    loadGroups(groupSearch);
+  }, [status, groupSearch, loadGroups]);
 
   useEffect(() => {
     if (!initialGroupId || !groups.some((group) => String(group.id) === String(initialGroupId))) return;
@@ -4493,17 +4648,43 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   const managedGroups = useMemo(() => groups.filter(g => g.ownerId === session?.user?.id || (g.members || []).some(m => m?.id === session?.user?.id && (m.role === "admin" || m.role === "moderator"))), [groups, session?.user?.id]);
   const memberGroups = useMemo(() => groups.filter(g => g.ownerId !== session?.user?.id && (g.members || []).some(m => m?.id === session?.user?.id)), [groups, session?.user?.id]);
   const discoverGroups = useMemo(() => {
-    const q = groupSearch.trim().toLowerCase();
     const base = groups.filter(g => g.ownerId !== session?.user?.id && !(g.members || []).some(m => m?.id === session?.user?.id));
-    if (!q) return base;
-    return base.filter(g => g.name.toLowerCase().includes(q) || (g.description || "").toLowerCase().includes(q));
-  }, [groups, session?.user?.id, groupSearch]);
+    return base;
+  }, [groups, session?.user?.id]);
+  const filterGroupScopedPosts = useCallback((groupItem, posts = []) => {
+    const groupId = String(groupItem?.id ?? "");
+    const currentUserId = session?.user?.id;
+    const isAdmin = (groupItem?.members || []).some((member) => member?.id === currentUserId && ["admin", "moderator"].includes(member?.role));
+
+    return (posts || []).filter((post) => {
+      if (!post || typeof post !== "object") return false;
+      const postGroupId = post.groupId || post.group?.id || groupId;
+      if (String(postGroupId) !== groupId) return false;
+      if (post.status === "pending_review" && post.authorId !== currentUserId && !isAdmin && groupItem.ownerId !== currentUserId) {
+        return false;
+      }
+      return true;
+    });
+  }, [session?.user?.id]);
+
   const allGroupPosts = useMemo(() => {
     return groups
-      .filter(g => (g.members || []).some(m => m?.id === session?.user?.id))
-      .flatMap(g => (g.posts || []).filter(p => p.status !== "pending_review").map(p => ({ ...p, group: { id: g.id, name: g.name, coverUrl: g.coverUrl } })))
+      .filter(g => (g.members || []).some(m => m?.id === session?.user?.id) || g.ownerId === session?.user?.id)
+      .flatMap(g => filterGroupScopedPosts(g, g.posts || []).map(p => ({
+        ...p,
+        group: {
+          id: g.id,
+          name: g.name,
+          coverUrl: g.coverUrl || null,
+          coverGradient: g.coverGradient || null,
+          ownerId: g.ownerId,
+          memberIds: (g.members || []).map((member) => member?.id).filter(Boolean),
+          members: g.members || [],
+        },
+        groupId: p.groupId || g.id,
+      })))
       .sort((a, b) => new Date(b.createdAt || b.time) - new Date(a.createdAt || a.time));
-  }, [groups, session?.user?.id]);
+  }, [filterGroupScopedPosts, groups, session?.user?.id]);
 
   // Point d'écriture unique pour toute mutation d'un groupe (posts, membres,
   // annonces, paramètres...). updater peut être un objet (merge partiel) ou
@@ -4535,7 +4716,12 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   }, [groups, showToast]);
 
   const handleSelectGroup = useCallback((g) => { setSelectedGroupId(g.id); setView("detail"); }, []);
-  const handleBack = useCallback(() => { setView("grid"); setSelectedGroupId(null); }, []);
+  const handleOpenComposer = useCallback((g, mode = "post") => {
+    setSelectedGroupId(g.id);
+    setComposerTarget({ groupId: g.id, mode });
+    setView("grid");
+  }, []);
+  const handleBack = useCallback(() => { setView("grid"); setSelectedGroupId(null); setComposerTarget(null); }, []);
   const handleAdmin = useCallback(() => setView("admin"), []);
   const handleAdminBack = useCallback(() => setView("detail"), []);
 
@@ -4629,244 +4815,324 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
               Veuillez vous connecter pour voir les groupes.
             </div>
           ) : (
-            <div className="lynora-page lynora-groups-index" style={{ margin: "0 auto", background: C.navy50, minHeight: "100vh" }}>
-              {/* Mobile sidebar toggle */}
-              <button className="lynora-groups-sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                <Bars size={18} /> Menu des groupes
-              </button>
-              {sidebarOpen && <div className="lynora-groups-sidebar-backdrop is-open" onClick={() => setSidebarOpen(false)} />}
-
-              {/* ===== SIDEBAR ===== */}
-              <aside className={`lynora-groups-sidebar${sidebarOpen ? " is-open" : ""}`}>
-                {/* Header: Groupes title + settings */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 12 }}>
-                  <h2 style={{ fontFamily: S.font, fontSize: 24, fontWeight: 700, color: C.ink, margin: 0 }}>Groupes</h2>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.line, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Settings size={14} style={{ color: C.muted }} />
-                  </div>
-                </div>
-
-                {/* Search bar */}
-                <div className="fb-search-bar" style={{ marginBottom: 12 }}>
-                  <Search size={16} style={{ color: C.mutedLight, flexShrink: 0 }} />
-                  <input type="text" placeholder="Rechercher des groupes" value={groupSearch} onChange={e => setGroupSearch(e.target.value)} />
-                </div>
-
-                {/* Navigation items */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 12 }}>
-                  <button className={`fb-nav-item${feedTab === "feed" ? "" : " inactive"}`} onClick={() => setFeedTab("feed")}>
-                    <span className="fb-nav-icon"><Newspaper size={16} /></span>
-                    Votre fil
-                  </button>
-                  <button className={`fb-nav-item${feedTab === "discover" ? "" : " inactive"}`} onClick={() => setFeedTab("discover")}>
-                    <span className="fb-nav-icon"><Compass size={16} /></span>
-                    Découvrir
-                  </button>
-                  <button className={`fb-nav-item${feedTab === "your-groups" ? "" : " inactive"}`} onClick={() => setFeedTab("your-groups")}>
-                    <span className="fb-nav-icon"><Users size={16} /></span>
-                    Vos groupes
-                  </button>
-                </div>
-
-                {/* Create button */}
-                <button className="fb-create-btn" onClick={() => setShowCreate(true)}>
-                  <Plus size={16} /> Créer un nouveau groupe
+            <div className="fb-page" style={{ background: C.navy50 }}>
+              <div className="fb-shell">
+                {/* Mobile sidebar toggle */}
+                <button className="lynora-groups-sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                  <Bars size={18} /> Menu des groupes
                 </button>
+                {sidebarOpen && <div className="lynora-groups-sidebar-backdrop is-open" onClick={() => setSidebarOpen(false)} />}
 
-                {/* Groupes que vous gérez */}
-                {managedGroups.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="fb-section-title">Groupes que vous gérez</div>
-                    {managedGroups.slice(0, 3).map(g => (
-                      <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
-                        <div className="fb-group-avatar">
-                          {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
-                        </div>
-                        <div className="fb-group-info">
-                          <div className="fb-group-name" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            {g.name}
-                            {g.privacy === "private" ? <Lock size={11} style={{ color: C.muted }} /> : <Globe size={11} style={{ color: C.muted }} />}
+                {/* ===== SIDEBAR ===== */}
+                <aside className={`fb-sidebar lynora-groups-sidebar${sidebarOpen ? " is-open" : ""}`}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 12 }}>
+                    <h2 style={{ fontFamily: S.font, fontSize: 24, fontWeight: 700, color: C.ink, margin: 0 }}>Groupes</h2>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.line, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Settings size={14} style={{ color: C.muted }} />
+                    </div>
+                  </div>
+
+                  <div className="fb-search-bar" style={{ marginBottom: 12 }}>
+                    <Search size={16} style={{ color: C.mutedLight, flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      placeholder="Rechercher des groupes"
+                      value={groupSearch}
+                      onChange={e => setGroupSearch(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 12 }}>
+                    <button className={`fb-nav-item${feedTab === "feed" ? "" : " inactive"}`} onClick={() => setFeedTab("feed")}>
+                      <span className="fb-nav-icon"><Newspaper size={16} /></span>
+                      Votre fil
+                    </button>
+                    <button className={`fb-nav-item${feedTab === "discover" ? "" : " inactive"}`} onClick={() => setFeedTab("discover")}>
+                      <span className="fb-nav-icon"><Compass size={16} /></span>
+                      Découvrir
+                    </button>
+                    <button className={`fb-nav-item${feedTab === "your-groups" ? "" : " inactive"}`} onClick={() => setFeedTab("your-groups")}>
+                      <span className="fb-nav-icon"><Users size={16} /></span>
+                      Vos groupes
+                    </button>
+                  </div>
+
+                  <button className="fb-create-btn" onClick={() => setShowCreate(true)}>
+                    <Plus size={16} /> Créer un nouveau groupe
+                  </button>
+
+                  {managedGroups.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div className="fb-section-title">Groupes que vous gérez</div>
+                      {managedGroups.slice(0, 3).map(g => (
+                        <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
+                          <div className="fb-group-avatar">
+                            {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
                           </div>
-                          <div className="fb-group-meta">En ligne récemment</div>
+                          <div className="fb-group-info">
+                            <div className="fb-group-name" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              {g.name}
+                              {g.privacy === "private" ? <Lock size={11} style={{ color: C.muted }} /> : <Globe size={11} style={{ color: C.muted }} />}
+                            </div>
+                            <div className="fb-group-meta">En ligne récemment</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {managedGroups.length > 3 && (
-                      <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
-                        Voir plus <ChevronDown size={12} />
-                      </button>
+                      ))}
+                      {managedGroups.length > 3 && (
+                        <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
+                          Voir plus <ChevronDown size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {memberGroups.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      <div className="fb-section-title">Groupes dont vous êtes membre</div>
+                      {memberGroups.slice(0, 5).map(g => (
+                        <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
+                          <div className="fb-group-avatar">
+                            {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
+                          </div>
+                          <div className="fb-group-info">
+                            <div className="fb-group-name">{g.name}</div>
+                            <div className="fb-group-meta">En ligne récemment</div>
+                          </div>
+                        </div>
+                      ))}
+                      {memberGroups.length > 5 && (
+                        <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
+                          Voir plus <ChevronDown size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </aside>
+
+                <main className="fb-content">
+                  <div className="lynora-groups-feed">
+                    {feedTab === "feed" && (
+                      <>
+                        <div className="fb-post-card" style={{ padding: 16 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <Avatar name={session?.user?.name || "Vous"} initials={(session?.user?.name || "V").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase()} src={session?.user?.image} size={42} />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (visibleGridGroups.length > 0) handleOpenComposer(visibleGridGroups[0], "post");
+                              }}
+                              style={{ flex: 1, textAlign: "left", padding: "11px 16px", borderRadius: 22, border: `1.5px solid ${C.line}`, background: C.navy50, color: C.muted, fontSize: 14, cursor: "pointer" }}
+                            >
+                              Partagez une actualité avec les membres du groupe...
+                            </button>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
+                            <GroupTriggerAction icon={MediaIcon} label="Médias" color="#2E9E5B" onClick={() => { if (visibleGridGroups.length > 0) handleOpenComposer(visibleGridGroups[0], "image"); }} />
+                            <GroupTriggerDivider />
+                            <GroupTriggerAction icon={ArticleIcon} label="Article" color="#1B5386" onClick={() => { if (visibleGridGroups.length > 0) handleOpenComposer(visibleGridGroups[0], "article"); }} />
+                            <GroupTriggerDivider />
+                            <GroupTriggerAction icon={Paperclip} label="Fichier" color="#0A66C2" onClick={() => { if (visibleGridGroups.length > 0) handleOpenComposer(visibleGridGroups[0], "file"); }} />
+                            <GroupTriggerDivider />
+                            <GroupTriggerAction icon={Sparkles} label="VisuelFocus" color="#D9A536" onClick={() => { if (visibleGridGroups.length > 0) handleOpenComposer(visibleGridGroups[0], "visuelfocus"); }} />
+                          </div>
+                        </div>
+
+                        {allGroupPosts.length > 0 ? allGroupPosts.map(post => (
+                          <PostCard
+                            key={post.id}
+                            post={{
+                              ...post,
+                              liked: Boolean(post.liked || post.reaction),
+                              bookmarked: false,
+                              likes: post.reactions ? Object.values(post.reactions).reduce((s, c) => s + c, 0) : 0,
+                              comments: post.comments || [],
+                              shares: post.shares || 0,
+                              reaction: post.reaction || null,
+                            }}
+                            group={post.group || null}
+                            currentUser={{
+                              id: session?.user?.id,
+                              name: session?.user?.name || CURRENT_USER.name,
+                              initials: (session?.user?.name || CURRENT_USER.name).split(" ").slice(0,2).map(p=>p[0]).join("").toUpperCase() || "?",
+                              avatarUrl: session?.user?.image || null,
+                            }}
+                            onToggleLike={() => {}}
+                            onSelectReaction={() => {}}
+                            onToggleBookmark={() => {}}
+                            onAddComment={() => {}}
+                            onShare={() => {}}
+                            onOpenPost={(p) => setOpenGridPost(p)}
+                            isOwn={false}
+                          />
+                        )) : (
+                          <div className="fb-empty-feed">
+                            <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                            <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Votre fil est vide</div>
+                            <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Rejoignez des groupes ou publiez dans vos groupes pour voir leurs actualités ici.</div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {feedTab === "discover" && (
+                      <>
+                        {discoverGroups.length === 0 ? (
+                          <div className="fb-empty-feed">
+                            <Compass size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                            <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe à découvrir</div>
+                            <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez le premier groupe pour commencer à bâtir votre communauté.</div>
+                          </div>
+                        ) : (
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
+                            {discoverGroups.map((group, idx) => {
+                              const memberCount = (group.members || []).length;
+                              return (
+                                <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
+                                  <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
+                                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
+                                    <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 12, background: "rgba(0,0,0,.4)", color: "#fff", fontSize: 10.5, fontWeight: 600 }}>
+                                      {group.privacy === "private" ? <Lock size={9} /> : <Globe size={9} />}
+                                      {group.privacy === "private" ? "Privé" : "Public"}
+                                    </div>
+                                  </div>
+                                  <div style={{ padding: "12px 14px 14px", flex: 1 }}>
+                                    <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
+                                    <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                      <Users size={12} style={{ color: C.muted }} />
+                                      <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
+                                    </div>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (group.privacy === "private") {
+                                          handleSelectGroup(group);
+                                        } else {
+                                          handleJoinGroup(group.id);
+                                        }
+                                      }}
+                                      style={{ width: "100%", marginTop: 10, padding: "8px 12px", borderRadius: 8, border: "none", background: C.navy800, color: "#fff", fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                                    >
+                                      {group.privacy === "private" ? "Demander à rejoindre" : "Rejoindre"}
+                                    </button>
+                                  </div>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {feedTab === "your-groups" && (
+                      <>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
+                          {visibleGridGroups.map((group, idx) => {
+                            const memberCount = (group.members || []).length;
+                            const cat = CATEGORIES.find(c => c.id === group.category);
+                            return (
+                              <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
+                                <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
+                                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
+                                  {cat && <div style={{ position: "absolute", bottom: 8, left: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: cat.color }}>{cat.label}</div>}
+                                  {group.ownerId === session?.user?.id && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: C.navy800, display: "flex", alignItems: "center", gap: 3 }}><Crown size={9} /> Admin</div>}
+                                </div>
+                                <div style={{ padding: "12px 14px 14px", flex: 1 }}>
+                                  <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
+                                  <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <Users size={12} style={{ color: C.muted }} />
+                                    <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
+                                  </div>
+                                </div>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                        {visibleGridGroups.length === 0 && (
+                          <div className="fb-empty-feed">
+                            <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                            <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe</div>
+                            <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez votre premier groupe ou rejoignez-en un.</div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                )}
-
-                {/* Vos groupes (member) */}
-                {memberGroups.length > 0 && (
-                  <div style={{ marginTop: 4 }}>
-                    <div className="fb-section-title">Groupes dont vous êtes membre</div>
-                    {memberGroups.slice(0, 5).map(g => (
-                      <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
-                        <div className="fb-group-avatar">
-                          {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
-                        </div>
-                        <div className="fb-group-info">
-                          <div className="fb-group-name">{g.name}</div>
-                          <div className="fb-group-meta">En ligne récemment</div>
-                        </div>
-                      </div>
-                    ))}
-                    {memberGroups.length > 5 && (
-                      <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
-                        Voir plus <ChevronDown size={12} />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </aside>
-
-              {/* ===== FEED / CONTENT ===== */}
-              <div className="lynora-groups-feed">
-                {feedTab === "feed" && (
-                  <>
-                    {/* Create post prompt */}
-                    <div className="fb-post-card" style={{ padding: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <Avatar name={session?.user?.name || "Vous"} initials={(session?.user?.name || "V").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase()} src={session?.user?.image} size={40} />
-                        <div style={{ flex: 1, background: C.navy50, borderRadius: 8, padding: "10px 16px", color: C.mutedLight, fontSize: 14, cursor: "pointer" }} onClick={() => { if(visibleGridGroups.length > 0) { setSelectedGroupId(visibleGridGroups[0].id); setView("detail"); }}}>
-                          Publier dans un groupe...
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Aggregated posts from all groups */}
-                    {allGroupPosts.length > 0 ? allGroupPosts.map(post => (
-                      <PostCard
-                        key={post.id}
-                        post={{
-                          ...post,
-                          liked: Boolean(post.liked || post.reaction),
-                          bookmarked: false,
-                          likes: post.reactions ? Object.values(post.reactions).reduce((s, c) => s + c, 0) : 0,
-                          comments: post.comments || [],
-                          shares: post.shares || 0,
-                          reaction: post.reaction || null,
-                          group: post.group,
-                        }}
-                        currentUser={{
-                          id: session?.user?.id,
-                          name: session?.user?.name || CURRENT_USER.name,
-                          initials: (session?.user?.name || CURRENT_USER.name).split(" ").slice(0,2).map(p=>p[0]).join("").toUpperCase() || "?",
-                          avatarUrl: session?.user?.image || null,
-                        }}
-                        onToggleLike={() => {}}
-                        onSelectReaction={() => {}}
-                        onToggleBookmark={() => {}}
-                        onAddComment={() => {}}
-                        onShare={() => {}}
-                        onOpenPost={(p) => { setSelectedGroupId(p.group?.id); setView("detail"); }}
-                        isOwn={false}
-                      />
-                    )) : (
-                      <div className="fb-empty-feed">
-                        <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
-                        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Votre fil est vide</div>
-                        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Rejoignez des groupes ou publiez dans vos groupes pour voir leurs actualités ici.</div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {feedTab === "discover" && (
-                  <>
-                    {discoverGroups.length === 0 ? (
-                      <div className="fb-empty-feed">
-                        <Compass size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
-                        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe à découvrir</div>
-                        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez le premier groupe pour commencer à bâtir votre communauté.</div>
-                      </div>
-                    ) : (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
-                        {discoverGroups.map((group, idx) => {
-                          const memberCount = (group.members || []).length;
-                          return (
-                            <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
-                              <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
-                                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
-                                <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 12, background: "rgba(0,0,0,.4)", color: "#fff", fontSize: 10.5, fontWeight: 600 }}>
-                                  {group.privacy === "private" ? <Lock size={9} /> : <Globe size={9} />}
-                                  {group.privacy === "private" ? "Privé" : "Public"}
-                                </div>
-                              </div>
-                              <div style={{ padding: "12px 14px 14px", flex: 1 }}>
-                                <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
-                                <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <Users size={12} style={{ color: C.muted }} />
-                                  <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (group.privacy === "private") {
-                                      handleSelectGroup(group);
-                                    } else {
-                                      handleJoinGroup(group.id);
-                                    }
-                                  }}
-                                  style={{ width: "100%", marginTop: 10, padding: "8px 12px", borderRadius: 8, border: "none", background: C.navy800, color: "#fff", fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                                >
-                                  {group.privacy === "private" ? "Demander à rejoindre" : "Rejoindre"}
-                                </button>
-                              </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {feedTab === "your-groups" && (
-                  <>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
-                      {visibleGridGroups.map((group, idx) => {
-                        const isMember = true;
-                        const memberCount = (group.members || []).length;
-                        const cat = CATEGORIES.find(c => c.id === group.category);
-                        return (
-                          <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
-                            <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
-                              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
-                              {cat && <div style={{ position: "absolute", bottom: 8, left: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: cat.color }}>{cat.label}</div>}
-                              {group.ownerId === session?.user?.id && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: C.navy800, display: "flex", alignItems: "center", gap: 3 }}><Crown size={9} /> Admin</div>}
-                            </div>
-                            <div style={{ padding: "12px 14px 14px", flex: 1 }}>
-                              <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
-                              <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <Users size={12} style={{ color: C.muted }} />
-                                <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
-                              </div>
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                    {visibleGridGroups.length === 0 && (
-                      <div className="fb-empty-feed">
-                        <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
-                        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe</div>
-                        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez votre premier groupe ou rejoignez-en un.</div>
-                      </div>
-                    )}
-                  </>
-                )}
+                </main>
               </div>
             </div>
           )}
         </>
       )}
+      {openGridPost && (
+        <PostViewerPreview
+          post={{
+            ...openGridPost,
+            title: openGridPost.authorTitle,
+            media: openGridPost.media || openGridPost.images || [],
+            liked: Boolean(openGridPost.liked || openGridPost.reaction),
+            bookmarked: false,
+            likes: openGridPost.reactions ? Object.values(openGridPost.reactions).reduce((sum, count) => sum + count, 0) : 0,
+            comments: openGridPost.comments || [],
+            shares: openGridPost.shares || 0,
+            reaction: openGridPost.reaction || null,
+          }}
+          currentUser={{
+            id: session?.user?.id,
+            name: session?.user?.name || CURRENT_USER.name,
+            initials: (session?.user?.name || CURRENT_USER.name).split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "?",
+            avatarUrl: session?.user?.image || null,
+          }}
+          onClose={() => setOpenGridPost(null)}
+          onToggleLike={() => {}}
+          onReact={() => {}}
+          onToggleBookmark={() => {}}
+          onAddComment={() => {}}
+          onReplyComment={() => {}}
+          onToggleCommentLike={() => {}}
+          onToggleCommentReaction={() => {}}
+          onShare={() => {}}
+        />
+      )}
+      {composerTarget && (() => {
+        const composerGroup = groups.find(g => g.id === composerTarget.groupId);
+        if (!composerGroup) return null;
+        return (
+          <GroupDetail
+            group={composerGroup}
+            currentUserId={session?.user?.id}
+            onBack={handleBack}
+            onAdmin={handleAdmin}
+            onToast={showToast}
+            onUpdateGroup={updateGroup}
+            onPostCreated={onPostCreated}
+            initialComposerMode={composerTarget.mode}
+            onComposerHandled={() => setComposerTarget(null)}
+            composerOnly
+          />
+        );
+      })()}
       {view === "detail" && (selectedGroup ? (
-        <GroupDetail group={selectedGroup} currentUserId={session?.user?.id} onBack={handleBack} onAdmin={handleAdmin} onToast={showToast} onUpdateGroup={updateGroup} onPostCreated={onPostCreated} />
+        <GroupDetail
+          group={selectedGroup}
+          currentUserId={session?.user?.id}
+          onBack={handleBack}
+          onAdmin={handleAdmin}
+          onToast={showToast}
+          onUpdateGroup={updateGroup}
+          onPostCreated={onPostCreated}
+          initialComposerMode={composerTarget?.groupId === selectedGroup.id ? composerTarget.mode : null}
+          onComposerHandled={() => setComposerTarget(null)}
+        />
       ) : (
         <GroupDetailSkeleton />
       ))}

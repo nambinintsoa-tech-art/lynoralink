@@ -585,7 +585,11 @@ export const TopNav = forwardRef(function TopNav({
             {!isCompact ? (
               <button
                 type="button"
-                onClick={() => setSearchOpen(true)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setSearchOpen(true);
+                }}
                 className="tn-search-pill"
                 style={{
                   flex: "1 1 620px", maxWidth: 620, minWidth: 0, display: "flex", alignItems: "center", gap: 9,
@@ -946,21 +950,51 @@ export const TopNav = forwardRef(function TopNav({
               <FaMagnifyingGlass size={19} color={C.mutedLight} style={{ flexShrink: 0, marginLeft: 4 }} />
               <input
                 ref={inputRef}
+                type="text"
                 value={query}
                 onChange={(e) => {
+                  e.preventDefault();
                   setQuery(e.target.value);
                   onSearch(e.target.value);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
                 placeholder="Rechercher des personnes, entreprises, groupes…"
+                autoComplete="off"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.ink, fontSize: 15.5, fontWeight: 500 }}
               />
               {query && (
-                <button onClick={() => { setQuery(""); onSearch(""); }} aria-label="Effacer" style={{ background: "none", border: "none", padding: 4, cursor: "pointer", color: C.mutedLight, display: "flex" }}>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setQuery("");
+                    onSearch("");
+                  }}
+                  aria-label="Effacer"
+                  style={{ background: "none", border: "none", padding: 4, cursor: "pointer", color: C.mutedLight, display: "flex" }}
+                >
                   <X size={19} />
                 </button>
               )}
               <button
-                onClick={closeSearch}
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  closeSearch();
+                }}
                 className="tn-close-btn"
                 style={{ background: C.navy50, border: `1px solid ${C.border}`, padding: "7px 13px", cursor: "pointer", color: C.ink, fontSize: 12.5, fontWeight: 700, borderRadius: 9 }}
               >
@@ -995,7 +1029,17 @@ export const TopNav = forwardRef(function TopNav({
                     {items.map((r) => (
                       <button
                         key={r.id}
-                        onClick={() => { onSelectSearchResult ? onSelectSearchResult(r) : onNavigate(r.view || "feed"); closeSearch(); }}
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (onSelectSearchResult) {
+                            onSelectSearchResult(r);
+                          } else {
+                            onNavigate(r.view || "feed");
+                          }
+                          closeSearch();
+                        }}
                         className="tn-result"
                         style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, padding: "12px 18px", background: "transparent", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer", textAlign: "left" }}
                       >

@@ -7,7 +7,7 @@ import {
   UtensilsCrossed, Palette, SlidersHorizontal, UserRoundPlus, Clock, ExternalLink,
   CircleDot, Filter, Menu, Eye, ThumbsUp, MessageCircle, X, Check, Wand2,
   Heart, Building2, TrendingUp, CalendarDays, MoreHorizontal, Trash2, HeartPulse,
-  LayoutGrid, Compass, GraduationCap, ShoppingBag, Landmark, Wallet
+  LayoutGrid, Compass, GraduationCap, ShoppingBag, Landmark, Wallet, Bookmark
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -22,19 +22,27 @@ import { getCampaignSchedule } from "@/lib/campaignSchedule";
    Design tokens — Updated palette inspired by reference images
 ----------------------------------------------------------------*/
 const C = {
-  ink: "var(--app-text)",
-  inkSoft: "var(--app-muted)",
-  inkFaint: "var(--app-muted-light)",
-  surface: "var(--app-bg)",
-  card: "var(--app-surface)",
-  border: "var(--app-border)",
+  ink: "#1C1E21",
+  inkSoft: "#65676B",
+  inkFaint: "#8A8D91",
+  surface: "#F0F2F5",
+  card: "#FFFFFF",
+  border: "#E4E6EB",
+  /* Navy Blue palette */
+  navy: "#1D2F5C",
+  navyMid: "#2A4278",
+  navyLight: "#E7EDFB",
+  navySoft: "#F0F3FA",
+  /* Golden Yellow palette */
   gold: "#F5A623",
   goldDeep: "#D4891A",
-  goldSoft: "var(--app-bg)",
-  blue: "#3868C7",
+  goldLight: "#FFF8EB",
+  goldSoft: "#FEF3D8",
+  /* Aliases for backward compatibility */
+  blue: "#1D2F5C",
   blueDeep: "#1D2F5C",
-  blueSoft: "var(--app-bg)",
-  blueMid: "#2563EB",
+  blueSoft: "#E7EDFB",
+  blueMid: "#2A4278",
   green: "#2E9E6D",
   greenSoft: "#E8F6EF",
   red: "#D8544A",
@@ -42,6 +50,18 @@ const C = {
   orange: "#F97316",
   orangeSoft: "#FFF7ED",
 };
+
+/* Sidebar navigation items for the Pages directory */
+const SIDEBAR_NAV_PRIMARY = [
+  { id: "suite", label: "Suite Entreprise", icon: LayoutDashboard, chevron: true },
+  { id: "messagerie", label: "Messagerie", icon: MessageCircle, chevron: true },
+  { id: "statistiques", label: "Statistiques", icon: Activity, chevron: true },
+];
+const SIDEBAR_NAV_SECONDARY = [
+  { id: "decouvrir", label: "Découvrir", icon: Compass },
+  { id: "followed", label: "Pages suivies", icon: Bookmark },
+  { id: "invitations", label: "Invitations", icon: UserRoundPlus },
+];
 
 /* ---------------------------------------------------------------
    Subtle weave divider
@@ -2037,29 +2057,107 @@ const CATEGORIES = [
 
 export const PAGE_DIRECTORY = [];
 
-/* Compact directory card matching the network suggestions pattern. */
-function PageCard({ page, onOpen, followed, onFollow }) {
-  const [g1, g2] = page.tone || [C.blue, C.blueDeep];
+/* Page card matching the reference image style: avatar, name, actions, switch button. */
+function PageCard({ page, onOpen, followed, onFollow, isOwn = false }) {
+  const [g1, g2] = page.tone || [C.navy, C.gold];
   const initials = page.name.split(" ").map((w) => w[0]).slice(0, 2).join("");
   const avatarUrl = page.avatarUrl || page.logoUrl || page.image || page.photoUrl || null;
   return (
-    <article className="group flex items-center gap-3 rounded-xl p-3 transition-shadow hover:shadow-md" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 4px 14px rgba(19,28,51,0.05)" }}>
-      <button type="button" onClick={onOpen} aria-label={`Ouvrir la page ${page.name}`} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})`, boxShadow: `0 4px 12px ${g1}30` }}>
-          {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-white">{initials}</span>}
+    <article
+      className="group transition-shadow hover:shadow-md cursor-pointer"
+      style={{
+        background: C.card,
+        borderRadius: 8,
+        border: `1px solid ${C.border}`,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+        overflow: "hidden",
+      }}
+      onClick={onOpen}
+    >
+      {/* Card header row: avatar + name + notification/message links */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 0" }}>
+        <div
+          style={{
+            width: 40, height: 40, borderRadius: 8,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, overflow: "hidden",
+            background: `linear-gradient(135deg, ${g1}, ${g2})`,
+            boxShadow: `0 4px 12px ${g1}25`,
+          }}
+        >
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{initials}</span>}
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h3 className="truncate text-sm font-bold" style={{ color: C.ink }}>{page.name}</h3>
-            {page.verified && <Check size={14} style={{ color: C.blueMid, flexShrink: 0 }} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {page.name}
+            </h3>
+            {page.verified && <Check size={14} style={{ color: C.navy, flexShrink: 0 }} />}
           </div>
-          <p className="mt-0.5 truncate text-xs" style={{ color: C.inkFaint }}>{page.tag || "Page entreprise"}</p>
         </div>
-      </button>
-      <button type="button" onClick={(event) => { event.stopPropagation(); onFollow?.(page.id); }} className="shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: followed ? C.greenSoft : C.blueSoft, color: followed ? C.green : C.blueDeep }}>
-        {followed ? <Check size={13} /> : <UserPlus size={13} />}
-        {followed ? "Suivi" : "Suivre"}
-      </button>
+        {/* Notification & Message links */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, marginLeft: "auto" }}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); }}
+            style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", cursor: "pointer", color: C.inkSoft, fontSize: 14, fontFamily: "inherit", fontWeight: 500 }}
+          >
+            <Bell size={18} /> <span className="hidden sm:inline">Notifications</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); }}
+            style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", cursor: "pointer", color: C.inkSoft, fontSize: 14, fontFamily: "inherit", fontWeight: 500 }}
+          >
+            <MessageCircle size={18} /> <span className="hidden sm:inline">Messages</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Switch button (Basculer maintenant) */}
+      <div style={{ padding: "12px 16px 16px" }}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            width: "100%", padding: "12px",
+            borderRadius: 8, border: "none",
+            background: C.navyLight,
+            color: C.navy,
+            fontFamily: "inherit", fontSize: 15, fontWeight: 600,
+            cursor: "pointer",
+            transition: "background 0.15s ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#D6E0F8"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = C.navyLight; }}
+        >
+          <Globe size={18} /> Basculer maintenant
+        </button>
+      </div>
+
+      {/* Follow button for non-owned pages */}
+      {!isOwn && onFollow && (
+        <div style={{ padding: "0 16px 14px", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onFollow(page.id); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "6px 14px", borderRadius: 6, border: "none",
+              background: followed ? C.greenSoft : C.navyLight,
+              color: followed ? C.green : C.navy,
+              fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {followed ? <Check size={14} /> : <UserPlus size={14} />}
+            {followed ? "Suivi" : "Suivre"}
+          </button>
+        </div>
+      )}
     </article>
   );
 }
@@ -2229,6 +2327,8 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
   const [activeCategory, setActiveCategory] = useState("toutes");
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarActive, setSidebarActive] = useState("suite");
   const [pages, setPages] = useState(() => [
     ...PAGE_DIRECTORY,
     ...initialPages.map((page) => ({
@@ -2237,12 +2337,10 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
       tag: page.tag || page.industry || "Page entreprise",
       desc: page.desc || page.description || "Découvrez cette page entreprise.",
       followers: Number(page.followers) || 0,
-      tone: page.tone || [C.blue, C.blueDeep],
+      tone: page.tone || [C.navy, C.gold],
       managed: Boolean(page.managed),
     })),
   ]);
-  const [activeTab, setActiveTab] = useState("toutes");
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     setPages([
@@ -2253,7 +2351,7 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
         tag: page.tag || page.industry || "Page entreprise",
         desc: page.desc || page.description || "Découvrez cette page entreprise.",
         followers: Number(page.followers) || 0,
-        tone: page.tone || [C.blue, C.blueDeep],
+        tone: page.tone || [C.navy, C.gold],
         managed: Boolean(page.managed),
       })),
     ]);
@@ -2269,14 +2367,11 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
 
   const managedCount = pages.filter((p) => p.managed).length;
   const totalFollowers = pages.reduce((total, page) => total + (Number(page.followers) || 0), 0);
-  const activeCategoryLabel = activeCategory === "toutes"
-    ? "Toutes les pages"
-    : CATEGORIES.find((c) => c.id === activeCategory)?.label || "Pages entreprise";
 
   const handleCreated = (newPage) => {
     onPageCreated?.(newPage);
     setPages((prev) => [
-      { id: Date.now(), name: newPage.name || "Nouvelle page", category: newPage.category, tag: CATEGORIES.find((c) => c.id === newPage.category)?.label || "Page", followers: "0", desc: newPage.tagline || "Nouvelle page entreprise.", tone: [C.blue, C.blueDeep], managed: true },
+      { id: Date.now(), name: newPage.name || "Nouvelle page", category: newPage.category, tag: CATEGORIES.find((c) => c.id === newPage.category)?.label || "Page", followers: "0", desc: newPage.tagline || "Nouvelle page entreprise.", tone: [C.navy, C.gold], managed: true },
       ...prev,
     ]);
     setCreateOpen(false);
@@ -2291,309 +2386,284 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
     (onOpenPage || onOpenCompany)?.(page);
   };
 
-  const navTabs = [
-    { id: "toutes", label: "Toutes" },
-    { id: "recommandees", label: "Recommandées" },
-    { id: "populaires", label: "Populaires" },
-    { id: "recentes", label: "Récentes" },
-  ];
-
   return (
-    <div className="company-pages-directory min-h-full w-full" style={{ background: C.surface, fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
-      <div className="company-pages-shell w-full max-w-[1400px] mx-auto pb-16 px-4 sm:px-6">
-        {/* Page header: remains visible below the global navigation while browsing. */}
-        <div
+    <div
+      className="company-pages-directory min-h-full w-full"
+      style={{
+        background: "#F0F2F5",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      }}
+    >
+      <div style={{ display: "flex", maxWidth: 1128, margin: "0 auto", minHeight: "100%" }}>
+        {/* ===== LEFT SIDEBAR (280px) ===== */}
+        <aside
+          className={`company-sidebar ${mobileSidebarOpen ? "is-open" : ""}`}
           style={{
-            background: "rgba(255,255,255,0.96)",
-            border: `1px solid ${C.border}`,
-            borderTop: `3px solid ${C.blueMid}`,
-            borderRadius: 20,
-            boxShadow: "0 14px 32px rgba(19,28,51,0.10)",
+            width: 280, flexShrink: 0,
+            background: C.card,
+            borderRight: `1px solid ${C.border}`,
+            padding: "16px 12px",
+            height: "calc(100dvh - var(--lynora-header-offset, 0px))",
+            position: "sticky",
             top: "var(--lynora-header-offset, 0px)",
-            animation: "companyHeaderIn 480ms cubic-bezier(0.22, 1, 0.36, 1) both",
+            overflowY: "auto",
+            alignSelf: "flex-start",
           }}
-          className="group company-header-motion sticky z-20 -mt-2 px-4 sm:px-6 py-4 backdrop-blur-md overflow-hidden"
         >
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105" style={{ background: `linear-gradient(135deg, ${C.blueSoft}, #fff)`, border: `1px solid ${C.border}`, animation: "companyIconPulse 2.8s ease-in-out 600ms infinite" }}>
-                <Building2 size={19} style={{ color: C.blueMid }} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg sm:text-xl font-bold truncate" style={{ color: C.ink }}>Entreprises</h1>
-                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: C.greenSoft, color: C.green }}>Réseau actif</span>
-                </div>
-                <p className="text-xs truncate" style={{ color: C.inkFaint }}>{activeCategoryLabel} · {filtered.length} résultat{filtered.length > 1 ? "s" : ""}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="hidden sm:flex items-center gap-2 text-xs font-medium" style={{ color: C.inkFaint }}>
-                <Users size={14} style={{ color: C.blueMid }} /> {totalFollowers} abonnés
-              </div>
-              <button onClick={() => setMobileSidebarOpen(true)} type="button" aria-label="Ouvrir les filtres" title="Ouvrir les filtres" className="lg:hidden flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-semibold" style={{ background: C.blueSoft, color: C.blueMid, border: `1px solid ${C.border}` }}>
-                <SlidersHorizontal size={16} />
-                <span>Filtres</span>
-              </button>
-            </div>
+          {/* Sidebar header: "Pages" + settings */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 12 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: C.ink, margin: 0 }}>Pages</h2>
+            <button
+              type="button"
+              aria-label="Paramètres des pages"
+              style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: "#E4E6EB", border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Settings size={18} style={{ color: "#65676B" }} />
+            </button>
           </div>
-          <div className="flex items-center gap-1 mt-4 pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
-            {[
-              { id: "mine", label: "Ma page" },
-                { id: "followed", label: "Pages suivies" },
-              { id: "discover", label: "Découvrir" },
-            ].map((tab) => {
-              const active = companyTab === tab.id;
+
+          {/* Create page button */}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              if (!canCreatePage) { onUpgrade?.(); return; }
+              setCreateOpen(true);
+            }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              width: "100%", padding: "10px 12px",
+              borderRadius: 8, border: "none",
+              background: C.navyLight,
+              color: C.navy,
+              fontFamily: "inherit", fontSize: 15, fontWeight: 600,
+              cursor: "pointer",
+              marginBottom: 8,
+            }}
+          >
+            <Plus size={16} /> Créer une Page
+          </button>
+
+          {/* Separator */}
+          <div style={{ height: 1, background: C.border, margin: "4px 0" }} />
+
+          {/* Primary navigation items */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4 }}>
+            {SIDEBAR_NAV_PRIMARY.map((item) => {
+              const active = sidebarActive === item.id;
               return (
                 <button
-                  key={tab.id}
-                  onClick={() => onCompanyTabChange?.(tab.id)}
-                  className="px-3 py-2 text-sm font-semibold relative transition-colors"
-                  style={{ color: active ? C.blueMid : C.inkFaint }}
+                  key={item.id}
+                  type="button"
+                  onClick={() => { setSidebarActive(item.id); setMobileSidebarOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 12px",
+                    borderRadius: 8, border: "none",
+                    background: active ? C.navy : "transparent",
+                    color: active ? "#fff" : C.ink,
+                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 600 : 500,
+                    cursor: "pointer", width: "100%", textAlign: "left",
+                    transition: "background 0.15s ease",
+                  }}
                 >
-                  {tab.label}
-                  {active && <span className="absolute left-0 right-0 -bottom-3 h-0.5 rounded-full" style={{ background: C.blueMid }} />}
+                  <span style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                    background: active ? "rgba(255,255,255,0.2)" : "#E4E6EB",
+                  }}>
+                    <item.icon size={16} style={{ color: active ? "#fff" : C.ink }} />
+                  </span>
+                  {item.label}
+                  {item.chevron && (
+                    <ChevronRight size={14} style={{ marginLeft: "auto", color: active ? "rgba(255,255,255,0.7)" : "#8A8D91" }} />
+                  )}
                 </button>
               );
             })}
           </div>
-        </div>
-        <style>{`
-          @keyframes companyHeaderIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes companyIconPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(56,104,199,0); }
-            50% { box-shadow: 0 0 0 6px rgba(56,104,199,0.10); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .company-header-motion { animation: none !important; }
-          }
-          .company-sidebar {
-            top: var(--lynora-header-offset, 0px) !important;
-            max-height: calc(100dvh - var(--lynora-header-offset, 0px) - 24px) !important;
-          }
-          @media (max-width: 640px) {
-            .company-pages-directory {
-              width: 100vw;
-              min-height: 100dvh;
-              margin-left: 50%;
-              transform: translateX(-50%);
-              overflow-x: hidden;
-            }
-            .company-pages-shell {
-              padding-inline: 12px !important;
-              padding-top: calc(var(--lynora-header-offset, 0px) + 145px) !important;
-            }
-            .company-pages-directory .company-header-motion {
-              position: fixed !important;
-              top: var(--lynora-header-offset, 0px) !important;
-              left: 0;
-              right: 0;
-              z-index: 20;
-              margin: 0;
-              border-radius: 0 !important;
-              border-left: 0;
-              border-right: 0;
-            }
-            .company-pages-directory .company-pages-grid {
-              grid-template-columns: minmax(0, 1fr);
-              gap: 12px;
-            }
-            .company-pages-directory main {
-              padding-top: 8px;
-            }
-            .company-page-stats .company-stat-card {
-              border: 0 !important;
-              border-radius: 0 !important;
-              background: transparent !important;
-              box-shadow: none !important;
-              padding: 8px 0 !important;
-            }
-            .company-page-stats .company-stat-card + .company-stat-card {
-              border-left: 1px solid ${C.border} !important;
-              padding-left: 8px !important;
-            }
-            .company-pages-directory .company-pages-grid > button {
-              min-width: 0;
-            }
-            .company-pages-directory .company-pages-grid > button > div:first-child {
-              height: 72px;
-            }
-            .company-pages-directory .company-pages-grid > button > div:last-child {
-              padding: 36px 14px 14px;
-              gap: 10px;
-            }
-            .company-page { overflow-x: hidden; }
-            .company-sidebar {
-              top: var(--lynora-header-offset, 0px) !important;
-              left: 0 !important;
-              right: 0 !important;
-              width: 100vw !important;
-              height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
-              max-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
-              border-radius: 0 !important;
-              padding-bottom: env(safe-area-inset-bottom);
-            }
-            .company-sidebar > div {
-              min-height: 100%;
-              border-radius: 0 !important;
-              border-left: 0 !important;
-              border-right: 0 !important;
-              box-shadow: none !important;
-            }
-            .company-page [role="dialog"] { width: 100% !important; max-width: none !important; max-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important; border-radius: 0 !important; }
-            .company-page [role="dialog"] input, .company-page [role="dialog"] textarea, .company-page [role="dialog"] select { font-size: 16px !important; }
-            .company-media-modal-overlay,
-            .company-create-modal-overlay {
-              top: var(--lynora-header-offset, 0px) !important;
-              right: 0 !important;
-              bottom: 0 !important;
-              left: 0 !important;
-              padding: 0 !important;
-              align-items: flex-start !important;
-            }
-            .company-media-modal,
-            .company-create-modal {
-              width: 100vw !important;
-              max-width: none !important;
-              height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
-              max-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
-              min-height: 0 !important;
-              border-radius: 0 !important;
-              border: 0 !important;
-              box-shadow: none !important;
-            }
-            .company-media-modal > div:nth-child(3),
-            .company-create-modal > div:nth-child(3) {
-              overflow-y: auto;
-              min-height: 0;
-            }
-          }
-          @media (min-width: 1024px) {
-            .company-page-right-sidebar {
-              position: sticky;
-              top: calc(var(--lynora-header-offset, 0px) + 20px);
-              align-self: start;
-              max-height: calc(100dvh - var(--lynora-header-offset, 0px) - 40px);
-              overflow-y: auto;
-              scrollbar-width: thin;
-            }
-            .company-sidebar {
-              top: calc(var(--lynora-header-offset, 0px) + 150px) !important;
-              max-height: calc(100vh - var(--lynora-header-offset, 0px) - 174px) !important;
-            }
-          }
-        `}</style>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
-          <aside
-            className={`${mobileSidebarOpen ? "fixed" : "hidden"} company-sidebar lg:block h-fit lg:fixed lg:z-10 lg:w-[280px] overflow-y-auto z-[1200] w-screen max-w-none bg-white lg:bg-transparent shadow-2xl lg:shadow-none`}
-            style={{
-              top: 0,
-              left: "max(0px, calc((100vw - 1400px) / 2 + 24px))",
-              right: 0,
-              bottom: 0,
-              maxHeight: "none",
-            }}
-          >
-            <div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(19,28,51,0.04)" }}>
-            <div className="flex items-center justify-between gap-2 mb-3 lg:hidden">
-              <span className="text-sm font-bold" style={{ color: C.ink }}>Filtres</span>
-              <div className="flex items-center gap-2">
+          {/* Separator */}
+          <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
+
+          {/* Secondary navigation items */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {SIDEBAR_NAV_SECONDARY.map((item) => {
+              const active = sidebarActive === item.id;
+              return (
                 <button
+                  key={item.id}
                   type="button"
-                  onClick={() => {
-                    setMobileSidebarOpen(false);
-                    if (!canCreatePage) { onUpgrade?.(); return; }
-                    setCreateOpen(true);
+                  onClick={() => { setSidebarActive(item.id); setMobileSidebarOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 12px",
+                    borderRadius: 8, border: "none",
+                    background: active ? C.navy : "transparent",
+                    color: active ? "#fff" : C.ink,
+                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 600 : 500,
+                    cursor: "pointer", width: "100%", textAlign: "left",
+                    transition: "background 0.15s ease",
                   }}
-                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-white"
-                  style={{ background: C.blueMid }}
                 >
-                  <Plus size={14} /> Créer une page
+                  <span style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                    background: active ? "rgba(255,255,255,0.2)" : "#E4E6EB",
+                  }}>
+                    <item.icon size={16} style={{ color: active ? "#fff" : C.ink }} />
+                  </span>
+                  <div style={{ flex: 1, textAlign: "left" }}>
+                    {item.label}
+                    {item.id === "invitations" && (
+                      <div style={{ fontSize: 13, fontWeight: 400, color: active ? "rgba(255,255,255,0.8)" : "#65676B", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.gold, display: "inline-block" }} />
+                        203 nouvelles
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight size={14} style={{ color: active ? "rgba(255,255,255,0.7)" : "#8A8D91" }} />
                 </button>
-                <button type="button" onClick={() => setMobileSidebarOpen(false)} aria-label="Fermer les filtres" className="p-1.5 rounded-lg" style={{ color: C.inkFaint }}><X size={18} /></button>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                if (!canCreatePage) {
-                  onUpgrade?.();
-                  return;
-                }
-                setCreateOpen(true);
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Mobile sidebar backdrop */}
+        {mobileSidebarOpen && (
+          <button
+            type="button"
+            aria-label="Fermer le menu"
+            onClick={() => setMobileSidebarOpen(false)}
+            className="fixed inset-0 z-[1100] bg-black/50 lg:hidden"
+            style={{ top: "var(--lynora-header-offset, 0px)" }}
+          />
+        )}
+
+        {/* Mobile menu toggle */}
+        <button
+          type="button"
+          aria-label="Ouvrir le menu des pages"
+          onClick={() => setMobileSidebarOpen(true)}
+          className="lg:hidden"
+          style={{
+            display: "none", position: "fixed",
+            bottom: 20, right: 20, zIndex: 1000,
+            width: 48, height: 48, borderRadius: "50%",
+            background: C.navy, color: "#fff", border: "none",
+            boxShadow: "0 4px 16px rgba(29,47,92,0.35)",
+            alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <Menu size={22} />
+        </button>
+
+        {/* ===== MAIN CONTENT ===== */}
+        <main style={{ flex: 1, minWidth: 0, padding: "20px 20px 40px" }}>
+          {/* Heading */}
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: "0 0 16px" }}>
+            Pages que vous gérez
+          </h1>
+
+          {/* Search bar */}
+          <div style={{ position: "relative", maxWidth: 420, marginBottom: 16 }}>
+            <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.inkFaint }} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher des pages..."
+              aria-label="Rechercher une page"
+              style={{
+                width: "100%", paddingLeft: 36, paddingRight: 12, padding: "10px 12px 10px 36",
+                borderRadius: 20, border: "none",
+                background: "#EDF3F8",
+                fontFamily: "inherit", fontSize: 14, color: C.ink,
+                outline: "none",
               }}
-              className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity shadow-sm"
-              style={{ background: C.blueMid }}
-            >
-              <Plus size={16} /> Créer une page
-            </button>
-
-            <div className="mt-5 px-2 text-[11px] font-bold uppercase tracking-wider" style={{ color: C.inkFaint }}>Filtrer les pages</div>
-            <div className="flex flex-col gap-1 mt-2">
-              {navTabs.map((t) => {
-                const active = activeTab === t.id;
-                return (
-                  <button key={t.id} onClick={() => { setActiveTab(t.id); setMobileSidebarOpen(false); }} className="px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors" style={{ background: active ? C.blueSoft : "transparent", color: active ? C.blueDeep : C.inkSoft }}>
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="my-3" style={{ borderTop: `1px solid ${C.border}` }} />
-            <div className="px-2 text-[11px] font-bold uppercase tracking-wider" style={{ color: C.inkFaint }}>Secteur</div>
-            <div className="flex flex-col gap-1 mt-2">
-              {CATEGORIES.map((c) => {
-                const active = activeCategory === c.id;
-                return (
-                  <button key={c.id} onClick={() => { setActiveCategory(c.id); setMobileSidebarOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors" style={{ background: active ? C.blueSoft : "transparent", color: active ? C.blueDeep : C.inkSoft }}>
-                    <c.icon size={15} /> {c.label}
-                  </button>
-                );
-              })}
-            </div>
-            </div>
-          </aside>
-          {mobileSidebarOpen && (
-            <button
-              aria-label="Fermer les filtres"
-              onClick={() => setMobileSidebarOpen(false)}
-              className="fixed inset-0 z-[1100] bg-[#131C33]/40 lg:hidden"
             />
-          )}
+          </div>
 
-          <main className="min-w-0 lg:col-start-2">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="relative w-full sm:w-80">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.inkFaint }} />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une entreprise..." aria-label="Rechercher une page" className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm outline-none transition-colors" style={{ background: C.card, border: `1px solid ${C.border}`, color: C.ink }} />
-              </div>
-              <div className="flex items-center gap-4 text-xs font-medium" style={{ color: C.inkFaint }}>
-                <span><strong style={{ color: C.ink }}>{pages.length}</strong> page{pages.length > 1 ? "s" : ""}</span>
-                <span><strong style={{ color: C.ink }}>{managedCount}</strong> gérée{managedCount > 1 ? "s" : ""}</span>
-                <span><strong style={{ color: C.ink }}>{totalFollowers}</strong> abonnés</span>
-              </div>
+          {/* Stats line */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 13, fontWeight: 500, color: C.inkSoft, marginBottom: 16 }}>
+            <span><strong style={{ color: C.ink }}>{pages.length}</strong> page{pages.length > 1 ? "s" : ""}</span>
+            <span><strong style={{ color: C.ink }}>{managedCount}</strong> gérée{managedCount > 1 ? "s" : ""}</span>
+            <span><strong style={{ color: C.ink }}>{totalFollowers}</strong> abonnés</span>
+          </div>
+
+          {/* Page cards list */}
+          {filtered.length === 0 ? (
+            <div
+              style={{
+                borderRadius: 8, padding: "40px 20px", textAlign: "center",
+                background: C.card, border: `1px solid ${C.border}`,
+              }}
+            >
+              <Building2 size={36} style={{ color: C.inkFaint, marginBottom: 12 }} />
+              <p style={{ fontSize: 16, fontWeight: 600, color: C.ink, margin: "0 0 4px" }}>Aucune page trouvée</p>
+              <p style={{ fontSize: 14, color: C.inkFaint, margin: 0 }}>Essayez une autre catégorie ou un autre mot-clé.</p>
             </div>
-
-            {filtered.length === 0 ? (
-              <div className="rounded-2xl p-10 flex flex-col items-center text-center gap-2 mt-6" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-                <SlidersHorizontal size={22} style={{ color: C.inkFaint }} />
-                <p className="text-sm font-semibold" style={{ color: C.ink }}>Aucune page trouvée</p>
-                <p className="text-xs" style={{ color: C.inkFaint }}>Essayez une autre catégorie ou un autre mot-clé.</p>
-              </div>
-            ) : (
-              <div className="company-pages-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-5">
-                {filtered.map((p) => <PageCard key={p.id} page={p} followed={followedPageIds.includes(p.id)} onFollow={onFollowPage} onOpen={() => openPage(p)} />)}
-              </div>
-            )}
-          </main>
-        </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {filtered.map((p) => (
+                <PageCard
+                  key={p.id}
+                  page={p}
+                  followed={followedPageIds.includes(p.id)}
+                  onFollow={onFollowPage}
+                  onOpen={() => openPage(p)}
+                  isOwn={p.managed || (currentUserId && p.ownerId && String(p.ownerId) === String(currentUserId))}
+                />
+              ))}
+            </div>
+          )}
+        </main>
       </div>
+
+      {/* Responsive styles */}
+      <style>{`
+        @media (max-width: 1023px) {
+          .company-sidebar {
+            position: fixed !important;
+            top: var(--lynora-header-offset, 0px) !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 85vw !important;
+            max-width: 320px !important;
+            z-index: 1200 !important;
+            border-radius: 0 !important;
+            border-right: 0 !important;
+            box-shadow: 8px 0 30px rgba(0,0,0,0.2) !important;
+            transform: translateX(-106%);
+            transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+          }
+          .company-sidebar.is-open {
+            transform: translateX(0);
+          }
+          .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 1024px) {
+          .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
+            display: none !important;
+          }
+        }
+        .company-pages-directory {
+          width: 100%;
+          min-height: 100dvh;
+          overflow-x: hidden;
+        }
+        .company-page { overflow-x: hidden; }
+      `}</style>
+
       {createOpen && <CreateCompanyPageModal onClose={() => setCreateOpen(false)} onCreated={handleCreated} />}
     </div>
   );

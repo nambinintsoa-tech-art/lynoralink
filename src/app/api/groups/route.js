@@ -229,7 +229,9 @@ export async function GET(req) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
-  const targetUserId = new URL(req.url).searchParams.get("userId");
+  const url = new URL(req.url);
+  const targetUserId = url.searchParams.get("userId");
+  const search = String(url.searchParams.get("search") || "").trim().toLowerCase();
   if (targetUserId && targetUserId !== session.user.id) {
     return NextResponse.json({ groups: [] });
   }
@@ -239,9 +241,14 @@ export async function GET(req) {
   });
 
   const visibleGroups = groups.filter((group) => {
-    // Les groupes privés sont découvrables, mais leur contenu reste masqué
-    // pour les utilisateurs qui n'en sont pas membres.
-    return true;
+    if (!search) return true;
+    const haystack = [
+      group.name || "",
+      group.description || "",
+      group.category || "",
+      group.privacy || "",
+    ].join(" ").toLowerCase();
+    return haystack.includes(search);
   });
 
   return NextResponse.json({
