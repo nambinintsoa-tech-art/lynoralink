@@ -1,0 +1,112 @@
+/* ================================================================== */
+
+// Constantes UI uniquement
+const DEFAULT_PLATFORM_SETTINGS = {
+  maintenanceMode: false,
+  allowRegistration: true,
+  requireEmailVerification: true,
+  maxPostsPerDay: 10,
+  maxGroupMembers: 50000,
+  autoApprovePosts: true,
+  enableArticles: true,
+  enableGroups: true,
+  enableMessages: true,
+  enablePages: true,
+  contentFilterLevel: "medium",
+  defaultGroupPrivacy: "public",
+  allowedFileTypes: "jpg, png, gif, pdf, mp4",
+  maxFileSize: 25,
+};-07-20", posts: 0, connections: 3 },
+  { id: "u7", name: "Tiana Rasoanaivo", title: "Head of Growth @ Orion", initials: "TR", email: "tiana.r@orion.mg", location: "Toamasina", role: "user", status: "active", joined: "2021-11-05", lastActive: "2025-08-05", posts: 2, connections: 15 },
+  { id: "u8", name: "Hasina Randrianja", title: "Designer Produit @ Zetra", initials: "HR", email: "hasina.r@zetra.mg", location: "Antananarivo", role: "user", status: "active", joined: "2023-02-14", lastActive: "2025-08-01", posts: 0, connections: 8 },
+  { id: "u9", name: "Voahangy Ratsimba", title: "PM Senior @ Fintra", initials: "VR", email: "voahangy.r@fintra.mg", location: "Mahajanga", role: "user", status: "active", joined: "2022-10-10", lastActive: "2025-07-30", posts: 1, connections: 11 },
+  { id: "u10", name: "Ny Aina Rakotondrabe", title: "Ingenieur ML @ Vantara", initials: "NR", email: "nyaina.r@vantara.mg", location: "Antananarivo", role: "user", status: "banned", joined: "2023-05-20", lastActive: "2025-06-15", posts: 1, connections: 4 },
+  { id: "u11", name: "Jean Pierre Razafy", title: "Developpeur Fullstack", initials: "JR", email: "jp.razafy@gmail.com", location: "Toliara", role: "user", status: "active", joined: "2023-08-01", lastActive: "2025-08-04", posts: 0, connections: 2 },
+  { id: "u12", name: "Marie Noelle Andria", title: "Content Manager @ Vantara", initials: "MN", email: "marie.a@vantara.mg", location: "Antananarivo", role: "user", status: "active", joined: "2023-11-15", lastActive: "2025-08-05", posts: 3, connections: 7 },
+];
+
+const ALL_POSTS = [
+  { id: "p1", isArticle: true, author: "Fanja Rasolofoson", authorId: "u3", title: "Directrice Produit @ Vantara", initials: "FR", time: "2025-08-05T10:00:00", headline: "Ce que nous avons appris en levant notre serie A", likes: 214, comments: 1, shares: 12, status: "published", reported: false, featured: true },
+  { id: "p2", isArticle: false, author: "Tiana Rasoanaivo", authorId: "u7", title: "Head of Growth @ Orion", initials: "TR", time: "2025-08-05T07:00:00", text: "Petit retour d'experience sur notre dernier lancement produit...", likes: 89, comments: 0, shares: 4, status: "published", reported: false, featured: false },
+  { id: "p3", isArticle: false, author: "Naina Andriamampianina", authorId: "u1", title: "CTO @ Nexcore", initials: "NA", time: "2025-08-04T14:00:00", text: "On a tourne une courte demo de notre nouveau moteur de recommandation...", likes: 356, comments: 2, shares: 27, status: "published", reported: false, featured: true },
+  { id: "p4", isArticle: false, author: "Marie Noelle Andria", authorId: "u12", title: "Content Manager @ Vantara", initials: "MN", time: "2025-08-04T09:00:00", text: "Comment structurer une strategie de contenu B2B efficace en Afrique...", likes: 45, comments: 3, shares: 8, status: "published", reported: true, featured: false },
+  { id: "p5", isArticle: true, author: "Hery Rakoto", authorId: "u0", title: "Product Designer @ LynoraLink", initials: "HR", time: "2025-08-03T16:00:00", headline: "Design systems pour startups : quand commencer ?", likes: 178, comments: 5, shares: 15, status: "published", reported: false, featured: false },
+  { id: "p6", isArticle: false, author: "Ny Aina Rakotondrabe", authorId: "u10", title: "Ingenieur ML @ Vantara", initials: "NR", time: "2025-08-02T11:00:00", text: "Contenu inapproprie signale par plusieurs utilisateurs...", likes: 2, comments: 0, shares: 0, status: "published", reported: true, featured: false },
+  { id: "p7", isArticle: false, author: "Lova Ravelojaona", authorId: "u2", title: "Ingenieure Data @ Fintra", initials: "LR", time: "2025-08-01T15:00:00", text: "Les pipelines de donnees modernes : de l'ingestion a l'analyse en temps reel...", likes: 67, comments: 1, shares: 5, status: "published", reported: false, featured: false },
+  { id: "p8", isArticle: false, author: "Jean Pierre Razafy", authorId: "u11", title: "Developpeur Fullstack", initials: "JR", time: "2025-08-01T08:00:00", text: "Spam promotionnel repete sur plusieurs groupes...", likes: 0, comments: 0, shares: 0, status: "pending_review", reported: true, featured: false },
+];
+
+const ALL_GROUPS = [
+  { id: "g1", name: "Product Design Madagascar", members: 3240, initials: "PD", category: "Design", privacy: "public", createdAt: "2022-03-15", status: "active", postsCount: 156, reportsCount: 0 },
+  { id: "g2", name: "Fondateurs & Fondatrices Tech MG", members: 1180, initials: "FF", category: "Entrepreneuriat", privacy: "private", createdAt: "2021-11-01", status: "active", postsCount: 89, reportsCount: 1 },
+  { id: "g3", name: "Ingenierie Backend & Cloud", members: 2760, initials: "IB", category: "Ingenierie", privacy: "public", createdAt: "2020-06-20", status: "active", postsCount: 234, reportsCount: 0 },
+  { id: "g4", name: "Growth & Marketing Digital", members: 1930, initials: "GM", category: "Marketing", privacy: "public", createdAt: "2023-01-10", status: "active", postsCount: 112, reportsCount: 2 },
+  { id: "g5", name: "Crypto & Web3 Madagascar", members: 450, initials: "CW", category: "Technologie", privacy: "public", createdAt: "2024-02-01", status: "suspended", postsCount: 23, reportsCount: 5 },
+];
+
+const ALL_PAGES = [
+  { id: "pg1", name: "Nexcore", followers: 12400, initials: "NX", category: "Cloud & Infrastructure", verified: true, status: "active", postsCount: 45 },
+  { id: "pg2", name: "Orion Digital", followers: 8100, initials: "OD", category: "Agence digitale", verified: true, status: "active", postsCount: 32 },
+  { id: "pg3", name: "Fintra", followers: 15600, initials: "FT", category: "Fintech", verified: true, status: "active", postsCount: 67 },
+  { id: "pg4", name: "Vantara", followers: 6300, initials: "VT", category: "Logistique", verified: false, status: "active", postsCount: 28 },
+  { id: "pg5", name: "Zetra", followers: 4200, initials: "ZT", category: "SaaS B2B", verified: true, status: "active", postsCount: 19 },
+  { id: "pg6", name: "TechVision MG", followers: 180, initials: "TV", category: "Formation", verified: false, status: "pending", postsCount: 3 },
+];
+
+const ALL_SUBSCRIPTIONS = [
+  { id: "s1", userId: "u1", userName: "Naina Andriamampianina", plan: "pro", status: "active", startedAt: "2024-06-01", nextBilling: "2026-09-01", amount: 29, currency: "USD", paymentMethod: "card ****4242" },
+  { id: "s2", userId: "u2", userName: "Lova Ravelojaona", plan: "free", status: "active", startedAt: "2025-01-15", nextBilling: "", amount: 0, currency: "USD", paymentMethod: "" },
+  { id: "s3", userId: "u6", userName: "Solo Andriamahefa", plan: "enterprise", status: "past_due", startedAt: "2023-11-20", nextBilling: "2026-08-10", amount: 499, currency: "USD", paymentMethod: "card ****1111" },
+  { id: "s4", userId: "u10", userName: "Ny Aina Rakotondrabe", plan: "pro", status: "canceled", startedAt: "2023-05-20", nextBilling: "", amount: 29, currency: "USD", paymentMethod: "card ****2222" },
+];
+
+const INITIAL_REPORTS = [
+  { id: "r1", type: "post", targetId: "p6", targetLabel: "Publication de Ny Aina Rakotondrabe", reporter: "Fanja Rasolofoson", reporterId: "u3", reason: "Contenu inapproprie", details: "Cette publication contient des propos insultants envers une communaute specifique.", status: "pending", createdAt: "2025-08-02T12:30:00" },
+  { id: "r2", type: "post", targetId: "p8", targetLabel: "Publication de Jean Pierre Razafy", reporter: "Lova Ravelojaona", reporterId: "u2", reason: "Spam", details: "L'utilisateur publie le meme message promotionnel dans de multiples groupes, plusieurs fois par jour.", status: "pending", createdAt: "2025-08-01T09:15:00" },
+  { id: "r3", type: "user", targetId: "u10", targetLabel: "Ny Aina Rakotondrabe", reporter: "Naina Andriamampianina", reporterId: "u1", reason: "Compte suspect", details: "Comportement inhabituel : demandes de connexion massives et messages identiques envoyes a plusieurs personnes.", status: "pending", createdAt: "2025-06-15T16:00:00" },
+  { id: "r4", type: "group", targetId: "g5", targetLabel: "Crypto & Web3 Madagascar", reporter: "Hery Rakoto", reporterId: "u0", reason: "Activite frauduleuse", details: "Plusieurs membres signalent des tentatives de phishing via des liens partages dans le groupe.", status: "reviewed", createdAt: "2025-07-20T10:00:00", resolvedAt: "2025-07-22T14:00:00", resolution: "Groupe suspendu, administrateur averti." },
+  { id: "r5", type: "post", targetId: "p4", targetLabel: "Publication de Marie Noelle Andria", reporter: "Hasina Randrianja", reporterId: "u8", reason: "Droits d'auteur", details: "Le texte de cette publication est copie integralement d'un article de blog externe sans citation ni credit.", status: "pending", createdAt: "2025-08-04T11:45:00" },
+];
+
+const ANALYTICS_DATA = {
+  totalUsers: 12847, activeUsersMonth: 8923, totalPosts: 45620, postsThisMonth: 3241,
+  totalGroups: 342, totalMessages: 189400, messagesThisMonth: 12300, newUsersThisMonth: 487,
+  avgSessionDuration: "8m 32s",
+  userGrowth: [
+    { month: "Fev", value: 8200 }, { month: "Mar", value: 8900 }, { month: "Avr", value: 9400 },
+    { month: "Mai", value: 10100 }, { month: "Juin", value: 10800 }, { month: "Juil", value: 11500 }, { month: "Aout", value: 12847 },
+  ],
+  postGrowth: [
+    { month: "Fev", value: 2800 }, { month: "Mar", value: 3100 }, { month: "Avr", value: 2900 },
+    { month: "Mai", value: 3200 }, { month: "Juin", value: 3400 }, { month: "Juil", value: 3050 }, { month: "Aout", value: 3241 },
+  ],
+  topCategories: [
+    { name: "Ingenierie", count: 12400, pct: 34 },
+    { name: "Design", count: 8900, pct: 24 },
+    { name: "Entrepreneuriat", count: 7200, pct: 20 },
+    { name: "Marketing", count: 4800, pct: 13 },
+    { name: "Data & IA", count: 3200, pct: 9 },
+  ],
+  dailyActive: [
+    { day: "Lun", value: 4200 }, { day: "Mar", value: 4800 }, { day: "Mer", value: 5100 },
+    { day: "Jeu", value: 4900 }, { day: "Ven", value: 4600 }, { day: "Sam", value: 2100 }, { day: "Dim", value: 1800 },
+  ],
+};
+
+const DEFAULT_PLATFORM_SETTINGS = {
+  maintenanceMode: false, allowRegistration: true, requireEmailVerification: true,
+  maxPostsPerDay: 10, maxGroupMembers: 50000, autoApprovePosts: true,
+  enableArticles: true, enableGroups: true, enableMessages: true, enablePages: true,
+  contentFilterLevel: "medium", defaultGroupPrivacy: "public",
+  allowedFileTypes: "jpg, png, gif, pdf, mp4", maxFileSize: 25,
+};
+
+/* ================================================================== */
+/*  COMPOSANTS UTILITAIRES                                             */
+/* ================================================================== */
+function Avatar({ initials, size = 40, ring = false, gradient, status }) {
+  const grad = gradient || navyGrad;
+  return (
+    <div style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+      <div style={{
+        width: size, height: size, borderRadius: size * 0.28, background: grad, color: C.white,

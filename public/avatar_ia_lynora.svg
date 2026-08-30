@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="bgSpace" cx="50%" cy="40%" r="75%">
+      <stop offset="0%" stop-color="#134063"/>
+      <stop offset="100%" stop-color="#03101C"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F6D374"/>
+      <stop offset="100%" stop-color="#D9A536"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8FF3EE"/>
+      <stop offset="100%" stop-color="#22B8B0"/>
+    </linearGradient>
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F6D374"/>
+      <stop offset="100%" stop-color="#22B8B0"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3.4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Anneau exterieur segmente, effet circuit -->
+  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#neonGrad)"
+          stroke-width="2.4" stroke-dasharray="10 7" opacity="0.85" filter="url(#glow)"/>
+  <!-- Anneau interieur fin, plus dense -->
+  <circle cx="100" cy="100" r="74" fill="none" stroke="url(#cyanGrad)"
+          stroke-width="1" stroke-dasharray="2 5" opacity="0.5"/>
+
+  <!-- Noeuds orbitaux lumineux -->
+  <g filter="url(#glow)">
+    <circle cx="100" cy="12" r="3.6" fill="url(#goldGrad)"/>
+    <circle cx="176" cy="58" r="2.6" fill="url(#cyanGrad)"/>
+    <circle cx="176" cy="142" r="2.6" fill="url(#cyanGrad)"/>
+    <circle cx="100" cy="188" r="3.6" fill="url(#goldGrad)"/>
+    <circle cx="24" cy="142" r="2.6" fill="url(#cyanGrad)"/>
+    <circle cx="24" cy="58" r="2.6" fill="url(#cyanGrad)"/>
+  </g>
+
+  <!-- Etincelle IA centrale, facettes nettes -->
+  <path d="M100 52
+           C105 78, 122 96, 149 101
+           C122 106, 105 124, 100 150
+           C95 124, 78 106, 51 101
+           C78 96, 95 78, 100 52 Z"
+        fill="url(#neonGrad)" filter="url(#glow)"/>
+  <circle cx="100" cy="101" r="6.5" fill="#FFFFFF" opacity="0.95"/>
+</svg>

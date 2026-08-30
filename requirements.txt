@@ -1,0 +1,5 @@
+fastapi>=0.107.0
+uvicorn>=0.24.0
+langchain>=0.0.320
+requests>=2.31.0
+python-dotenv>=1.0.0

@@ -1,0 +1,1 @@
+ALTER TABLE "Story" ADD COLUMN "privacy" TEXT NOT NULL DEFAULT 'network';

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "n_1786184288873_1ylyoe",
+    "userId": "u0",
+    "type": "danger",
+    "message": "Votre compte a ete supprime par un administrateur.",
+    "meta": {},
+    "createdAt": "2026-08-08T10:18:08.873Z"
+  },
+  {
+    "id": "n_1786184311973_u74cvc",
+    "userId": "u1",
+    "type": "warning",
+    "message": "Votre abonnement a ete annule par un administrateur.",
+    "meta": {},
+    "createdAt": "2026-08-08T10:18:31.973Z"
+  }
+]

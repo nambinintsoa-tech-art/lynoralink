@@ -1,0 +1,31 @@
+﻿/* ================================================================== */
+/*  MODE ADMIN — GESTION DES PAGES ENTREPRISE                          */
+/* ================================================================== */
+
+function AdminStatusPill({ status }) {
+  const meta = PAGE_STATUS_META[status] || PAGE_STATUS_META.pending;
+  const Icon = meta.icon;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, background: meta.bg, color: meta.fg }}>
+      <Icon size={11} /> {meta.label}
+    </span>
+  );
+}
+
+function ConfirmModal({ title, message, onConfirm, onCancel, confirmLabel = 'Confirmer', danger = false }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,51,82,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }} onClick={onCancel}>
+      <div style={{ ...cardStyle, padding: 22, maxWidth: 420, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <AlertTriangle size={18} color={danger ? C.danger : C.navy800} />
+          <div style={{ fontFamily: displayFont, fontWeight: 800, fontSize: 16, color: C.ink }}>{title}</div>
+        </div>
+        <p style={{ fontSize: 13, color: C.muted, margin: '0 0 18px', lineHeight: 1.6 }}>{message}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onCancel} style={{ ...ghostBtnStyle() }}>Annuler</button>
+          <button onClick={onConfirm} style={{ ...primaryBtnStyle(), background: danger ? 'linear-gradient(135deg, ' + C.danger + ' 0%, ' + C.danger + ' 100%)' : goldGrad, color: danger ? C.white : C.navy900 }}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}

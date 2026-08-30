@@ -1,0 +1,26 @@
+-- CreateTable
+CREATE TABLE "Group" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "ownerId" TEXT,
+    "name" TEXT NOT NULL,
+    "emoji" TEXT,
+    "description" TEXT,
+    "category" TEXT,
+    "coverGradient" TEXT,
+    "coverUrl" TEXT,
+    "avatarUrl" TEXT,
+    "privacy" TEXT DEFAULT 'public',
+    "postPermission" TEXT DEFAULT 'all',
+    "location" TEXT,
+    "inviteLink" TEXT,
+    "members" TEXT,
+    "posts" TEXT,
+    "events" TEXT,
+    "media" TEXT,
+    "files" TEXT,
+    "announcements" TEXT,
+    "rules" TEXT,
+    "tags" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
