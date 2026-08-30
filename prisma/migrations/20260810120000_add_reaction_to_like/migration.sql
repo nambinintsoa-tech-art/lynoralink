@@ -1,1 +1,0 @@
-ALTER TABLE "Like" ADD COLUMN "reaction" TEXT NOT NULL DEFAULT 'ok';

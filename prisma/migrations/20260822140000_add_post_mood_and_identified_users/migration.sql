@@ -1,2 +1,0 @@
-ALTER TABLE "Post" ADD COLUMN "mood" TEXT;
-ALTER TABLE "Post" ADD COLUMN "identifiedUsers" TEXT;
