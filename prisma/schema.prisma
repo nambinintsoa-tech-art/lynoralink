@@ -3,71 +3,68 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  title         String?
-  birthDate     DateTime?
-  email         String    @unique
-  emailVerified DateTime?
-  password      String? // null si compte OAuth pur (Google / Facebook)
-  image         String?
-  cover         String?
-  website       String?
-  bio           String?
-  location      String?
-  company       String?
-  sector        String?
-  skills        String?   // JSON array stocké comme string
-  plan          String    @default("FREE")
-  autoReplyEnabled Boolean @default(false) @map("auto_reply_enabled")
-  autoReplyTone String?   @default("friendly")
+  id                      String               @id @default(cuid())
+  name                    String?
+  title                   String?
+  birthDate               DateTime?
+  email                   String               @unique
+  emailVerified           DateTime?
+  password                String?
+  image                   String?
+  cover                   String?
+  website                 String?
+  bio                     String?
+  location                String?
+  company                 String?
+  sector                  String?
+  skills                  String?
+  plan                    String               @default("FREE")
+  autoReplyEnabled        Boolean              @default(false) @map("auto_reply_enabled")
+  autoReplyTone           String?              @default("friendly")
   autoReplyDefaultMessage String?
-  autoReplyFaq  String?
-  autoReplyMedia String?
-  role          String    @default("user") // admin | moderator | user
-  status        String    @default("active") // active | suspended | banned | deleted
-  deletedAt     DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts           Account[]
-  sessions           Session[]
-  posts              Post[]
-  comments           Comment[]
-  likes              Like[]
-  savedPosts         SavedPost[]
-  commentReactions   CommentReaction[] @relation("CommentReactions")
-  subscription       Subscription?
-  notifications      Notification[]
-  sentNotifications  Notification[] @relation("NotificationSender")
-  userSettings       UserSetting[]
-  companyPosts       Post[]        @relation("CompanyPosts")
-  reportsSent        Report[]       @relation("ReportReporter")
-
-  connectionsA       Connection[] @relation("ConnectionUserA")
-  connectionsB       Connection[] @relation("ConnectionUserB")
-  removedBy          RemovedConnection[] @relation("RemovedByUser")
-  removedUsers       RemovedConnection[] @relation("RemovedUser")
-  conversationsA     Conversation[] @relation("ConversationUserA")
-  conversationsB     Conversation[] @relation("ConversationUserB")
-  conversationMembers ConversationMember[]
-  sentMessages       Message[]
-  messageReactions   MessageReaction[]
-  messageDeletions   MessageDeletion[]
-  callsStarted       CallSession[] @relation("CallSessionCaller")
-  
-  stories            Story[]
-  storyViews         StoryView[]
-  storyReactions     StoryReaction[]
-  supportRequests    SupportRequest[]
-  postShares         PostShare[]
-  pushSubscriptions  PushSubscription[]
-  autoReplyRules     AutoReplyRule[]
+  autoReplyFaq            String?
+  autoReplyMedia          String?
+  role                    String               @default("user")
+  status                  String               @default("active")
+  deletedAt               DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  accounts                Account[]
+  callsStarted            CallSession[]        @relation("CallSessionCaller")
+  comments                Comment[]
+  commentReactions        CommentReaction[]    @relation("CommentReactions")
+  connectionsA            Connection[]         @relation("ConnectionUserA")
+  connectionsB            Connection[]         @relation("ConnectionUserB")
+  conversationsA          Conversation[]       @relation("ConversationUserA")
+  conversationsB          Conversation[]       @relation("ConversationUserB")
+  conversationMembers     ConversationMember[]
+  likes                   Like[]
+  sentMessages            Message[]
+  messageDeletions        MessageDeletion[]
+  messageReactions        MessageReaction[]
+  sentNotifications       Notification[]       @relation("NotificationSender")
+  notifications           Notification[]
+  posts                   Post[]
+  companyPosts            Post[]               @relation("CompanyPosts")
+  postShares              PostShare[]
+  pushSubscriptions       PushSubscription[]
+  removedUsers            RemovedConnection[]  @relation("RemovedUser")
+  removedBy               RemovedConnection[]  @relation("RemovedByUser")
+  reportsSent             Report[]             @relation("ReportReporter")
+  savedPosts              SavedPost[]
+  sessions                Session[]
+  stories                 Story[]
+  storyReactions          StoryReaction[]
+  storyViews              StoryView[]
+  subscription            Subscription?
+  supportRequests         SupportRequest[]
+  userSettings            UserSetting[]
+  autoReplyRules          AutoReplyRule[]
 }
 
 model AutoReplyRule {
@@ -79,8 +76,7 @@ model AutoReplyRule {
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dayOfWeek])
   @@map("auto_reply_rules")
@@ -93,8 +89,7 @@ model UserSetting {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
 }
@@ -112,8 +107,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -146,49 +140,47 @@ model PendingRegistration {
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  authorId  String
-  companyPageId String?
-  text      String?
-  isArticle Boolean  @default(false)
-  headline  String?
-  excerpt   String?
-  body      String?
-  presentation String?
-  mediaUrl  String?
-  mediaType String?
-  mediaData String?
-  mood       String?  // JSON object { emoji, label }
-  identifiedUsers String? // JSON array of user snapshots
-  visibility String   @default("public") // public | connections | private
-  status    String   @default("published") // pending_review | published | rejected
-  reported  Boolean  @default(false)
-  featured  Boolean  @default(false)
-  isSponsored Boolean @default(false)
-  campaignId String?
-  createdAt DateTime @default(now())
-
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  companyPage User?     @relation("CompanyPosts", fields: [companyPageId], references: [id], onDelete: SetNull)
-  comments Comment[]
-  likes    Like[]
-  savedPosts SavedPost[]
-  shares PostShare[]
+  id              String      @id @default(cuid())
+  authorId        String
+  companyPageId   String?
+  text            String?
+  isArticle       Boolean     @default(false)
+  headline        String?
+  excerpt         String?
+  body            String?
+  presentation    String?
+  mediaUrl        String?
+  mediaType       String?
+  mediaData       String?
+  mood            String?
+  identifiedUsers String?
+  visibility      String      @default("public")
+  status          String      @default("published")
+  reported        Boolean     @default(false)
+  featured        Boolean     @default(false)
+  isSponsored     Boolean     @default(false)
+  campaignId      String?
+  createdAt       DateTime    @default(now())
+  comments        Comment[]
+  likes           Like[]
+  author          User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  companyPage     User?       @relation("CompanyPosts", fields: [companyPageId], references: [id])
+  shares          PostShare[]
+  savedPosts      SavedPost[]
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String            @id @default(cuid())
   postId    String
   authorId  String
   text      String
   parentId  String?
-  mediaData String?  // JSON array of media objects
-  createdAt DateTime @default(now())
-
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
+  mediaData String?
+  createdAt DateTime          @default(now())
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]         @relation("CommentReplies")
+  post      Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
   reactions CommentReaction[]
 }
 
@@ -198,9 +190,8 @@ model Like {
   userId    String
   reaction  String   @default("ok")
   createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId, reaction])
 }
@@ -210,9 +201,8 @@ model SavedPost {
   postId    String
   userId    String
   createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([userId, createdAt])
@@ -223,9 +213,8 @@ model PostShare {
   postId    String
   userId    String
   createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId, createdAt])
   @@index([userId, createdAt])
@@ -237,51 +226,49 @@ model CommentReaction {
   userId    String
   reaction  String   @default("ok")
   createdAt DateTime @default(now())
-
-  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User    @relation("CommentReactions", fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation("CommentReactions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId, reaction])
 }
 
 model Group {
-  id            String   @id @default(cuid())
-  ownerId       String?
-  name          String
-  emoji         String?
-  description   String?
-  category      String?
-  coverGradient String?
-  coverUrl      String?
-  avatarUrl     String?
-  privacy       String?  @default("public")
-  postPermission String? @default("all")
-  location      String?
-  inviteLink    String?
-  status        String   @default("active") // active | suspended
-  members       String?  // JSON array
-  joinRequests  String?  // JSON array
-  joinQuestions String?  // JSON array of { id, label }
-  posts         String?  // JSON array
-  events        String?  // JSON array
-  media         String?  // JSON array
-  files         String?  // JSON array
-  announcements String? // JSON array
-  rules         String?  // JSON array
-  tags          String?  // JSON array
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  ownerId        String?
+  name           String
+  emoji          String?
+  description    String?
+  category       String?
+  coverGradient  String?
+  coverUrl       String?
+  avatarUrl      String?
+  privacy        String?  @default("public")
+  postPermission String?  @default("all")
+  location       String?
+  inviteLink     String?
+  status         String   @default("active")
+  members        String?
+  joinRequests   String?
+  joinQuestions  String?
+  posts          String?
+  events         String?
+  media          String?
+  files          String?
+  announcements  String?
+  rules          String?
+  tags           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Connection {
   id        String   @id @default(cuid())
   userAId   String
   userBId   String
-  status    String   @default("accepted") // pending | accepted | rejected
+  status    String   @default("accepted")
   createdAt DateTime @default(now())
-
-  userA User @relation("ConnectionUserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB User @relation("ConnectionUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  userA     User     @relation("ConnectionUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User     @relation("ConnectionUserB", fields: [userBId], references: [id], onDelete: Cascade)
 
   @@unique([userAId, userBId])
 }
@@ -291,29 +278,27 @@ model RemovedConnection {
   userId    String
   targetId  String
   createdAt DateTime @default(now())
-
-  user   User @relation("RemovedByUser", fields: [userId], references: [id], onDelete: Cascade)
-  target User @relation("RemovedUser", fields: [targetId], references: [id], onDelete: Cascade)
+  target    User     @relation("RemovedUser", fields: [targetId], references: [id], onDelete: Cascade)
+  user      User     @relation("RemovedByUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, targetId])
   @@index([userId])
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
+  id        String               @id @default(cuid())
   userAId   String
   userBId   String
   pageId    String?
   groupName String?
-  isGroup   Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  userA     User      @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB     User      @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
-  messages  Message[]
+  isGroup   Boolean              @default(false)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
   calls     CallSession[]
+  userA     User                 @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User                 @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
   members   ConversationMember[]
+  messages  Message[]
 
   @@unique([userAId, userBId, pageId])
 }
@@ -323,39 +308,36 @@ model ConversationMember {
   conversationId String
   userId         String
   joinedAt       DateTime     @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([userId])
 }
 
 model Message {
-  id            String    @id @default(cuid())
-  conversationId String
-  senderId      String
-  text          String
-  mediaData     String?
-  createdAt     DateTime  @default(now())
-  readAt        DateTime?
-
-  conversation  Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender        User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  reactions     MessageReaction[]
-  deletions     MessageDeletion[]
-  deletedForEveryone Boolean @default(false)
+  id                 String            @id @default(cuid())
+  conversationId     String
+  senderId           String
+  text               String
+  mediaData          String?
+  createdAt          DateTime          @default(now())
+  readAt             DateTime?
+  deletedForEveryone Boolean           @default(false)
+  conversation       Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender             User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  deletions          MessageDeletion[]
+  reactions          MessageReaction[]
 }
 
 model MessageReaction {
-  id            String       @id @default(cuid())
-  messageId     String
-  userId        String
-  reaction      String
-  createdAt     DateTime     @default(now())
-
-  message       Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  reaction  String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId])
   @@index([messageId])
@@ -366,9 +348,8 @@ model MessageDeletion {
   messageId String
   userId    String
   createdAt DateTime @default(now())
-
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId])
   @@index([messageId])
@@ -387,9 +368,8 @@ model CallSession {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   endedAt          DateTime?
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  caller       User         @relation("CallSessionCaller", fields: [callerId], references: [id], onDelete: Cascade)
+  caller           User         @relation("CallSessionCaller", fields: [callerId], references: [id], onDelete: Cascade)
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, updatedAt])
 }
@@ -400,16 +380,15 @@ model Notification {
   senderId  String?
   type      String   @default("info")
   actor     String   @default("LynoraLink")
-  initials  String? 
+  initials  String?
   text      String
   message   String?
   read      Boolean  @default(false)
   meta      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sender  User? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  sender    User?    @relation("NotificationSender", fields: [senderId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PushSubscription {
@@ -420,40 +399,38 @@ model PushSubscription {
   auth      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Subscription {
-  id                   String              @id @default(cuid())
-  userId               String              @unique
-  stripeCustomerId     String              @unique
-  stripeSubscriptionId String?             @unique
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String    @unique
+  stripeSubscriptionId String?   @unique
   stripePriceId        String?
-  status               String              @default("INCOMPLETE")
+  status               String    @default("INCOMPLETE")
   currentPeriodEnd     DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Report {
-  id          String   @id @default(cuid())
-  type        String   // post | user | group
+  id          String    @id @default(cuid())
+  type        String
   targetId    String
   targetLabel String
   reporterId  String
-  reporter    User     @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   reason      String
   details     String?
-  status      String   @default("pending") // pending | reviewed | dismissed
+  status      String    @default("pending")
   resolution  String?
   resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  reporter    User      @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
 }
 
 model PlatformSetting {
@@ -465,29 +442,28 @@ model PlatformSetting {
 }
 
 model StatusCheck {
-  id         String   @id @default(cuid())
-  status     String
-  latencyMs  Int
-  checkedAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  status    String
+  latencyMs Int
+  checkedAt DateTime @default(now())
 
   @@index([checkedAt])
 }
 
 model Story {
-  id              String    @id @default(cuid())
+  id              String          @id @default(cuid())
   userId          String
   companyPageId   String?
   text            String?
   image           String?
-  type            String    @default("text") // "text" | "image"
+  type            String          @default("text")
   backgroundColor String?
-  privacy         String    @default("network") // "network" | "close" | "private"
-  createdAt       DateTime  @default(now())
+  privacy         String          @default("network")
+  createdAt       DateTime        @default(now())
   expiresAt       DateTime
-
-  author          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  views           StoryView[]
+  author          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions       StoryReaction[]
+  views           StoryView[]
 
   @@index([userId])
   @@index([companyPageId])
@@ -495,31 +471,29 @@ model Story {
 }
 
 model StoryView {
-  id        String   @id @default(cuid())
-  storyId   String
-  userId    String
-  viewedAt  DateTime @default(now())
-
-  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  storyId  String
+  userId   String
+  viewedAt DateTime @default(now())
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([storyId, userId])
 }
 
 model SupportRequest {
-  id        String   @id @default(cuid())
-  userId    String
-  category  String
-  subject   String
-  message   String
-  response  String?
-  status    String   @default("open")
+  id          String    @id @default(cuid())
+  userId      String
+  category    String
+  subject     String
+  message     String
+  response    String?
+  status      String    @default("open")
   respondedAt DateTime?
   respondedBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -531,7 +505,6 @@ model StoryReaction {
   userId    String
   reaction  String
   createdAt DateTime @default(now())
-
   story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

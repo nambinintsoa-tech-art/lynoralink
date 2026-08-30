@@ -92,6 +92,7 @@ const AtSign = makeFaIcon(faAt);
 const Sparkles = makeFaIcon(faWandSparkles);
 const ExternalLink = makeFaIcon(faArrowUpRightFromSquare);
 const Menu = makeFaIcon(faBars);
+const Bars = makeFaIcon(faBars);
 const Megaphone = makeFaIcon(faBullhorn);
 const ThumbsUp = makeFaIcon(faThumbsUp);
 const Copy = makeFaIcon(faCopy);
@@ -129,31 +130,32 @@ const ListCheck = makeFaIcon(faListCheck);
 const UserGroup = makeFaIcon(faUserGroup);
 const Whatsapp = makeFaIcon(faWhatsapp);
 const Linkedin = makeFaIcon(faLinkedin);
+const Compass = makeFaIcon(faBullseye);
 
 /* ================================================================== */
 /*  COULEURS & CONSTANTES                                              */
 /* ================================================================== */
 const C = {
-  navy900: "#0E1F17", navy800: "#146C4B", navy700: "#1D9468",
-  navy100: "var(--app-border)", navy50: "var(--app-bg)",
-  gold400: "#EFC069", gold600: "#C08A2E",
-  ink: "var(--app-text)", muted: "var(--app-muted)", mutedLight: "var(--app-muted-light)",
-  line: "var(--app-border)", white: "var(--app-surface)",
-  danger: "#C0473A", danger50: "#FDEEEC",
-  success: "#15806D", success50: "#E4F5F0",
-  warn: "#C08A2E", warn50: "#FCF3DF",
-  paper: "var(--app-input)", surfaceAlt: "var(--app-bg)",
+  navy900: "#1C1E21", navy800: "#1877F2", navy700: "#1564C0",
+  navy100: "#E4E6EB", navy50: "#F0F2F5",
+  gold400: "#F7931E", gold600: "#E67E22",
+  ink: "#1C1E21", muted: "#65676B", mutedLight: "#8A8D91",
+  line: "#E4E6EB", white: "#FFFFFF",
+  danger: "#E41E3F", danger50: "#FDE8EA",
+  success: "#31A24C", success50: "#E6F6EC",
+  warn: "#F7931E", warn50: "#FEF3E2",
+  paper: "#F0F2F5", surfaceAlt: "#F0F2F5",
 };
 
 const goldGrad = `linear-gradient(135deg, ${C.gold400} 0%, ${C.gold600} 100%)`;
-const navyGrad = `linear-gradient(160deg, ${C.navy700} 0%, ${C.navy900} 100%)`;
+const navyGrad = `linear-gradient(135deg, ${C.navy800} 0%, ${C.navy700} 100%)`;
 const shadow = {
-  xs: "0 1px 2px rgba(14,31,23,.06)",
-  sm: "0 2px 8px rgba(14,31,23,.07)",
-  md: "0 8px 24px rgba(14,31,23,.10)",
-  lg: "0 20px 44px rgba(14,31,23,.16)",
-  brand: "0 14px 30px rgba(20,108,75,.20)",
-  gold: "0 10px 24px rgba(192,138,46,.28)",
+  xs: "0 1px 2px rgba(0,0,0,.1)",
+  sm: "0 2px 8px rgba(0,0,0,.08)",
+  md: "0 8px 24px rgba(0,0,0,.12)",
+  lg: "0 20px 44px rgba(0,0,0,.16)",
+  brand: "0 14px 30px rgba(24,119,242,.20)",
+  gold: "0 10px 24px rgba(247,147,30,.28)",
 };
 
 const getGroupCoverStyle = (group) => group?.coverUrl
@@ -270,12 +272,10 @@ const getAvatarColor = (name) => {
   return AVATAR_COLORS[Number.isNaN(code) ? 0 : code % AVATAR_COLORS.length];
 };
 
-const S = { font: "'Sora', sans-serif", display: "'Fraunces', 'Georgia', serif" };
+const S = { font: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", display: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" };
 
 const FontImports = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
-
     .lynora-groupes * { box-sizing: border-box; }
     .lynora-groupes { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     .lynora-groupes button:not(:disabled) { transition: transform .16s cubic-bezier(.2,.8,.2,1), filter .16s ease, opacity .16s ease, box-shadow .16s ease, background .16s ease; }
@@ -284,7 +284,7 @@ const FontImports = () => (
     .lynora-groupes input:focus-visible,
     .lynora-groupes textarea:focus-visible,
     .lynora-groupes button:focus-visible {
-      outline: 2px solid ${C.navy700};
+      outline: 2px solid ${C.navy800};
       outline-offset: 2px;
     }
     .lynora-groupes ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -305,11 +305,222 @@ const FontImports = () => (
     @keyframes lynoraSpin { to { transform: rotate(360deg); } }
     .lynora-fade-up { animation: lynoraFadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
     .lynora-cta-primary {
-      background: ${navyGrad};
-      box-shadow: ${shadow.brand};
+      background: ${C.navy800};
+      box-shadow: shadow.sm;
     }
-    .lynora-cta-primary:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 18px 36px rgba(20,108,75,.28); transform: translateY(-1px); }
+    .lynora-cta-primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
 
+    /* ===== Groups Index: Sidebar + Feed Layout ===== */
+    .lynora-groups-index {
+      display: flex !important;
+      gap: 16px !important;
+      max-width: 1100px !important;
+      padding: 16px !important;
+      align-items: flex-start !important;
+    }
+    .lynora-groups-sidebar {
+      width: 360px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .lynora-groups-feed {
+      flex: 1;
+      min-width: 0;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .lynora-groups-sidebar .fb-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: ${C.navy50};
+      border-radius: 20px;
+      padding: 0 16px;
+      height: 40px;
+    }
+    .lynora-groups-sidebar .fb-search-bar input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 14px;
+      color: ${C.ink};
+      outline: none;
+    }
+    .lynora-groups-sidebar .fb-search-bar input::placeholder {
+      color: ${C.mutedLight};
+    }
+    .lynora-groups-sidebar .fb-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
+      background: ${C.navy800};
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+    .lynora-groups-sidebar .fb-nav-item.inactive {
+      background: transparent;
+      color: ${C.muted};
+    }
+    .lynora-groups-sidebar .fb-nav-item.inactive:hover {
+      background: ${C.navy50};
+    }
+    .lynora-groups-sidebar .fb-nav-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .lynora-groups-sidebar .fb-nav-item:not(.inactive) .fb-nav-icon {
+      background: rgba(255,255,255,.2);
+    }
+    .lynora-groups-sidebar .fb-nav-item.inactive .fb-nav-icon {
+      background: ${C.line};
+    }
+    .lynora-groups-sidebar .fb-create-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: ${C.primaryLight};
+      color: ${C.navy800};
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+    .lynora-groups-sidebar .fb-create-btn:hover {
+      background: #D0E4FF;
+    }
+    .lynora-groups-sidebar .fb-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: ${C.ink};
+      margin: 8px 0 6px 4px;
+    }
+    .lynora-groups-sidebar .fb-group-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s ease;
+    }
+    .lynora-groups-sidebar .fb-group-item:hover {
+      background: ${C.navy50};
+    }
+    .lynora-groups-sidebar .fb-group-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: ${C.line};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      overflow: hidden;
+    }
+    .lynora-groups-sidebar .fb-group-item img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    .lynora-groups-sidebar .fb-group-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .lynora-groups-sidebar .fb-group-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: ${C.ink};
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .lynora-groups-sidebar .fb-group-meta {
+      font-size: 13px;
+      color: ${C.muted};
+      margin-top: 2px;
+    }
+    .lynora-groups-sidebar .fb-see-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: ${C.line};
+      color: ${C.muted};
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .lynora-groups-sidebar .fb-see-more:hover {
+      background: #DADDE1;
+    }
+    .lynora-groups-feed .fb-post-card {
+      background: ${C.white};
+      border-radius: 8px;
+      border: 1px solid ${C.line};
+      overflow: hidden;
+    }
+    .lynora-groups-feed .fb-empty-feed {
+      background: ${C.white};
+      border-radius: 8px;
+      border: 1px solid ${C.line};
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .lynora-groups-sidebar-toggle {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid ${C.line};
+      background: ${C.white};
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: ${C.ink};
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .lynora-groups-sidebar-backdrop {
+      display: none;
+    }
+
+    /* ===== Detail layout ===== */
     .lynora-detail-layout { display: grid !important; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); align-items: start !important; gap: 16px !important; }
     .lynora-group-detail,
     .lynora-detail-layout {
@@ -331,7 +542,7 @@ const FontImports = () => (
     .lynora-group-sidebar::-webkit-scrollbar { width: 6px; }
     .lynora-group-sidebar > * { flex-shrink: 0; }
     .lynora-group-sidebar { gap: 8px; }
-    .lynora-group-sidebar .lynora-card { padding: 12px !important; }
+    .lynora-group-sidebar .lynora-card { padding: 12px !important; border-radius: 8px !important; }
     .lynora-group-sidebar .lynora-card:first-of-type { padding: 6px !important; }
     .lynora-group-sidebar .lynora-card:first-of-type button { padding: 8px 10px !important; margin-bottom: 1px !important; }
     .lynora-sidebar-header { display: none; }
@@ -340,23 +551,18 @@ const FontImports = () => (
     .lynora-detail-main .pc-card .pc-header { padding: 10px 14px 0 !important; }
     .lynora-detail-main .pc-card .pc-body-text { padding: 0 14px 8px !important; }
     .lynora-detail-main .pc-card .pc-actions { padding: 2px 6px !important; }
-    @media (max-width: 640px) {
-      .lynora-join-request-overlay { align-items: stretch !important; padding: 0 !important; overflow-y: auto !important; }
-      .lynora-join-request-modal { width: 100% !important; min-height: 100dvh !important; max-height: none !important; border-radius: 0 !important; }
-      .lynora-join-request-modal > div:last-child { padding: 18px !important; }
-    }
-    .lynora-groups-tabs { display: flex; gap: 6px; margin: 0 0 20px; border-bottom: 1px solid ${C.line}; }
-    .lynora-groups-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: ${C.muted}; font-family: ${S.font}; font-size: 13px; font-weight: 700; cursor: pointer; }
-    .lynora-groups-tabs button.is-active { color: ${C.navy800}; border-bottom-color: ${C.navy800}; }
-    .lynora-groups-tabs span { min-width: 20px; padding: 2px 6px; border-radius: 999px; background: ${C.navy50}; color: ${C.navy700}; font-size: 10px; text-align: center; }
     .lynora-header-title-copy { position: relative; padding-left: 16px; }
-    .lynora-header-title-copy::before { content: ""; position: absolute; left: 0; top: 3px; bottom: 4px; width: 3px; border-radius: 3px; background: ${C.gold600}; }
-    .lynora-header-eyebrow { display: block; margin-bottom: 7px; font-family: ${S.font}; font-size: 10px; font-weight: 800; letter-spacing: .14em; line-height: 1; text-transform: uppercase; color: ${C.navy700}; }
-    .lynora-header-stats { background: linear-gradient(135deg, ${C.navy50} 0%, #F7F8F3 100%) !important; }
+    .lynora-header-title-copy::before { content: ""; position: absolute; left: 0; top: 3px; bottom: 4px; width: 3px; border-radius: 3px; background: ${C.navy800}; }
+    .lynora-header-eyebrow { display: block; margin-bottom: 7px; font-family: inherit; font-size: 10px; font-weight: 800; letter-spacing: .14em; line-height: 1; text-transform: uppercase; color: ${C.navy800}; }
+    .lynora-header-stats { background: ${C.navy50} !important; border-radius: 8px !important; }
     .lynora-header-stats .lynora-stat-item { transition: background .18s ease; }
     .lynora-header-stats .lynora-stat-item:hover { background: rgba(255,255,255,.72); }
+    .lynora-groups-tabs { display: flex; gap: 6px; margin: 0 0 20px; border-bottom: 1px solid ${C.line}; }
+    .lynora-groups-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: ${C.muted}; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .lynora-groups-tabs button.is-active { color: ${C.navy800}; border-bottom-color: ${C.navy800}; }
+    .lynora-groups-tabs span { min-width: 20px; padding: 2px 6px; border-radius: 999px; background: ${C.navy50}; color: ${C.navy800}; font-size: 10px; text-align: center; }
 
-    /* ===== Sidebar en tiroir sur tablette / mobile ===== */
+    /* ===== Sidebar drawer on tablet/mobile ===== */
     @media (max-width: 768px) {
       .lynora-detail-layout { display: block !important; gap: 0 !important; }
       .lynora-sidebar-toggle { display: flex !important; }
@@ -371,36 +577,41 @@ const FontImports = () => (
       .lynora-group-sidebar.is-open { transform: translateX(0); }
       .lynora-sidebar-header { display: none; }
       .lynora-group-sidebar-slot { min-height: 0 !important; }
+      .lynora-groups-sidebar {
+        position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important;
+        width: 100vw !important; max-width: 320px !important; height: 100dvh !important; max-height: 100dvh !important;
+        background: ${C.white}; padding: max(16px, env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)); margin: 0; z-index: 1200; border-radius: 0 !important;
+        box-sizing: border-box !important; overflow-y: auto !important; overflow-x: hidden !important; min-height: 0 !important; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+        box-shadow: 0 20px 50px rgba(0,0,0,.28);
+        transform: translateX(-106%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+      }
+      .lynora-groups-sidebar.is-open { transform: translateX(0); }
+      .lynora-groups-sidebar-toggle { display: flex !important; }
+      .lynora-groups-sidebar-backdrop.is-open {
+        display: block !important;
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0,0,0,.5) !important;
+        z-index: 1199 !important;
+      }
+      .lynora-groups-index {
+        flex-direction: column !important;
+        padding: 12px !important;
+      }
+      .lynora-groups-feed {
+        max-width: none !important;
+      }
     }
 
-    /* ===== Adaptation mobile ===== */
+    /* ===== Smartphone adaptation ===== */
     @media (max-width: 640px) {
       .lynora-groupes { min-height: 100dvh !important; overflow-x: hidden; }
-      .lynora-page { padding-left: 14px !important; padding-right: 14px !important; }
+      .lynora-page { padding-left: 0 !important; padding-right: 0 !important; }
       .lynora-groupes > .lynora-page { padding-left: 0 !important; padding-right: 0 !important; }
-      .lynora-groups-index { padding: 0 0 24px !important; width: 100% !important; }
-      .lynora-groups-index .lynora-hero { border-radius: 0 !important; margin-bottom: 20px !important; box-shadow: none !important; }
-      .lynora-groups-index .lynora-groups-grid { gap: 10px !important; padding: 0 12px !important; grid-template-columns: 1fr !important; }
-      .lynora-groups-index .lynora-groups-tabs { padding: 0 12px; margin-bottom: 16px; }
-      .lynora-groups-index .lynora-groups-tabs button { flex: 1; justify-content: center; padding: 10px 6px; font-size: 12px; }
-      .lynora-groups-index .lynora-group-card { display: grid !important; grid-template-columns: 72px minmax(0, 1fr) !important; min-height: 72px; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
-      .lynora-groups-index .lynora-group-card > div:first-child { height: 72px !important; min-height: 72px !important; border-radius: 10px !important; }
-      .lynora-groups-index .lynora-group-card > div:nth-child(2) { padding: 2px 0 2px 12px !important; min-width: 0; }
-      .lynora-groups-index .lynora-group-card h3 { font-size: 13px !important; margin: 0 !important; }
-      .lynora-groups-index .lynora-group-card p { font-size: 10.5px !important; margin: 5px 0 8px !important; min-height: 30px !important; }
-      .lynora-groups-index .lynora-group-card .lynora-group-card-title-row { align-items: flex-start !important; }
-      .lynora-groups-index .lynora-group-card .lynora-cover-member-badge { display: flex !important; }
-      .lynora-groups-index .lynora-group-card .lynora-cover-owner-badge { display: none !important; }
-      .lynora-groups-index .lynora-group-card .lynora-cover-privacy-badge,
-      .lynora-groups-index .lynora-group-card .lynora-cover-category-badge { gap: 3px !important; padding: 3px 5px !important; font-size: 8px !important; line-height: 1.1 !important; }
-      .lynora-groups-index .lynora-group-card .lynora-cover-privacy-badge { top: 6px !important; left: 6px !important; }
-      .lynora-groups-index .lynora-group-card .lynora-cover-category-badge { right: 6px !important; bottom: 6px !important; left: auto !important; max-width: calc(100% - 12px) !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-      .lynora-groups-index .lynora-group-card .lynora-cover-privacy-badge svg { width: 8px !important; height: 8px !important; }
-      .lynora-groups-index .lynora-group-card > div:first-child > div { top: 7px !important; left: 7px !important; right: 7px !important; }
-      .lynora-groups-index .lynora-group-card > div:first-child > div:last-child { bottom: 7px !important; top: auto !important; }
-      .lynora-groups-index .lynora-group-card > div:nth-child(2) > div:not(.lynora-group-card-title-row) { margin-bottom: 6px !important; padding-bottom: 6px !important; }
-      .lynora-groups-index .lynora-group-card > div:nth-child(2) button,
-      .lynora-groups-index .lynora-group-card > div:nth-child(2) > div:last-child { font-size: 10px !important; padding: 7px 6px !important; }
+      .lynora-groups-index { padding: 0 !important; width: 100% !important; gap: 0 !important; }
+      .lynora-groups-feed { gap: 0 !important; }
+      .lynora-groups-feed .fb-post-card { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+      .lynora-groups-feed .fb-empty-feed { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
       .lynora-group-detail { padding: 0 0 24px !important; width: 100% !important; }
       .lynora-group-detail .lynora-card { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
       .lynora-group-detail .lynora-detail-main { width: 100% !important; max-width: none !important; }
@@ -413,8 +624,6 @@ const FontImports = () => (
       .lynora-group-detail .lynora-header-toprow { margin-top: -24px !important; margin-bottom: 12px !important; }
       .lynora-group-detail .lynora-title-row { gap: 8px !important; }
       .lynora-group-detail .lynora-detail-title { font-size: 22px !important; line-height: 1.2 !important; }
-      .lynora-group-detail .lynora-header-title-copy { padding-left: 12px; }
-      .lynora-group-detail .lynora-header-eyebrow { font-size: 9px; margin-bottom: 6px; }
       .lynora-group-detail .lynora-detail-layout { display: block !important; }
       .lynora-group-detail .lynora-detail-main > div { width: 100% !important; max-width: none !important; }
       .lynora-group-admin { width: 100% !important; max-width: none !important; min-height: 100dvh !important; padding: 0 0 24px !important; gap: 0 !important; }
@@ -423,21 +632,9 @@ const FontImports = () => (
       .lynora-group-admin .lynora-group-sidebar { max-height: 100dvh !important; }
       .lynora-group-admin .lynora-card { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
       .lynora-group-detail .lynora-sidebar-header { display: flex !important; align-items: center; gap: 10px; min-height: 52px; padding: 0 2px 12px; margin-bottom: 4px; border-bottom: 1px solid ${C.line}; }
-      .lynora-group-detail .lynora-sidebar-header strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ${S.font}; font-size: 16px; color: ${C.ink}; }
+      .lynora-group-detail .lynora-sidebar-header strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: inherit; font-size: 16px; color: ${C.ink}; }
       .lynora-group-detail .lynora-sidebar-header button { width: 36px; height: 36px; border: 0; border-radius: 10px; background: ${C.navy50}; color: ${C.navy800}; display: flex; align-items: center; justify-content: center; cursor: pointer; }
       .lynora-header-card { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
-      .lynora-hero { padding: 22px 18px !important; }
-      .lynora-hero-row { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-      .lynora-hero-title { font-size: 24px !important; }
-      .lynora-hero-cta { width: 100%; }
-      .lynora-groups-grid { gap: 14px !important; grid-template-columns: 1fr !important; }
-      .lynora-group-card h3 { font-size: 15px !important; }
-      .lynora-detail-toolbar { gap: 8px !important; }
-      .lynora-cover { height: 140px !important; }
-      .lynora-cover-btn { width: 36px !important; height: 36px !important; right: 12px !important; bottom: 12px !important; }
-      .lynora-header-toprow { margin-top: -24px !important; }
-      .lynora-title-row { flex-direction: column !important; align-items: stretch !important; }
-      .lynora-detail-title { font-size: 21px !important; }
       .lynora-stats-row { flex-wrap: nowrap !important; overflow-x: auto !important; scrollbar-width: none; }
       .lynora-stats-row::-webkit-scrollbar { display: none; }
       .lynora-stats-row > .lynora-stat-item { flex: 0 0 116px !important; min-width: 116px !important; padding: 10px 12px !important; border-left: 1px solid ${C.line} !important; border-top: 0 !important; border-right: 0 !important; }
@@ -459,9 +656,11 @@ const FontImports = () => (
       .lynora-event-modal > div:first-child, .lynora-file-modal > div:first-child { flex-shrink: 0 !important; }
       .lynora-event-modal > div:last-child, .lynora-file-modal > div:last-child { overflow-y: auto !important; flex: 1 !important; box-sizing: border-box !important; }
       .lynora-detail-main { width: 100% !important; }
+      .lynora-join-request-overlay { align-items: stretch !important; padding: 0 !important; overflow-y: auto !important; }
+      .lynora-join-request-modal { width: 100% !important; min-height: 100dvh !important; max-height: none !important; border-radius: 0 !important; }
+      .lynora-join-request-modal > div:last-child { padding: 18px !important; }
     }
     @media (max-width: 420px) {
-      .lynora-hero-title { font-size: 21px !important; }
       .lynora-detail-title { font-size: 19px !important; }
       .lynora-toast { left: 14px !important; right: 14px !important; bottom: 14px !important; }
     }
@@ -472,11 +671,11 @@ const Card = ({ children, style, onClick, className }) => (
   <div
     onClick={onClick}
     className={`lynora-card${className ? ` ${className}` : ""}`}
-    onMouseEnter={onClick ? (e) => { e.currentTarget.style.boxShadow = shadow.brand; e.currentTarget.style.borderColor = C.navy700 + "55"; e.currentTarget.style.transform = "translateY(-4px)"; } : undefined}
-    onMouseLeave={onClick ? (e) => { e.currentTarget.style.boxShadow = shadow.xs; e.currentTarget.style.borderColor = C.line; e.currentTarget.style.transform = "translateY(0)"; } : undefined}
+    onMouseEnter={onClick ? (e) => { e.currentTarget.style.boxShadow = shadow.sm; e.currentTarget.style.transform = "translateY(-2px)"; } : undefined}
+    onMouseLeave={onClick ? (e) => { e.currentTarget.style.boxShadow = shadow.xs; e.currentTarget.style.transform = "translateY(0)"; } : undefined}
     style={{
-      background: C.white, borderRadius: 20, border: `1px solid ${C.line}`,
-      overflow: "hidden", transition: "box-shadow .25s cubic-bezier(.2,.8,.2,1), border-color .25s ease, transform .25s cubic-bezier(.2,.8,.2,1)",
+      background: C.white, borderRadius: 8, border: `1px solid ${C.line}`,
+      overflow: "hidden", transition: "box-shadow .2s ease, transform .2s ease",
       cursor: onClick ? "pointer" : "default",
       boxShadow: shadow.xs,
       ...style,
@@ -539,7 +738,7 @@ const AvatarStack = ({ members = [], max = 5, size = 34, overlap = 12, ringColor
             name={m.name}
             initials={m.initials}
             size={size}
-            style={{ border: `2.5px solid ${ringColor}`, boxShadow: "0 3px 8px rgba(14,31,23,.16)" }}
+            style={{ border: `2.5px solid ${ringColor}`, boxShadow: "0 3px 8px rgba(0,0,0,.16)" }}
           />
         </div>
       ))}
@@ -549,7 +748,7 @@ const AvatarStack = ({ members = [], max = 5, size = 34, overlap = 12, ringColor
           background: C.navy50, border: `2.5px solid ${ringColor}`, display: "flex",
           alignItems: "center", justifyContent: "center", fontFamily: S.font,
           fontSize: Math.max(10, size * 0.32), fontWeight: 800, color: C.navy800,
-          boxShadow: "0 3px 8px rgba(14,31,23,.16)", position: "relative", zIndex: 0, flexShrink: 0,
+          boxShadow: "0 3px 8px rgba(0,0,0,.16)", position: "relative", zIndex: 0, flexShrink: 0,
         }}>
           +{remaining}
         </div>
@@ -568,7 +767,7 @@ const Toast = ({ message, type = "success", onClose }) => {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
   const bg = type === "success" ? C.success : type === "error" ? C.danger : C.warn;
   return (
-    <div className="lynora-fade-up lynora-toast" style={{ position: "fixed", bottom: 24, right: 24, padding: "13px 22px", borderRadius: 14, background: bg, color: C.white, fontSize: 14, fontWeight: 600, fontFamily: S.font, zIndex: 9999, boxShadow: "0 16px 34px rgba(14,31,23,.24)", display: "flex", alignItems: "center", gap: 10 }}>
+    <div className="lynora-fade-up lynora-toast" style={{ position: "fixed", bottom: 24, right: 24, padding: "13px 22px", borderRadius: 14, background: bg, color: C.white, fontSize: 14, fontWeight: 600, fontFamily: S.font, zIndex: 9999, boxShadow: "0 16px 34px rgba(0,0,0,.24)", display: "flex", alignItems: "center", gap: 10 }}>
       {type === "success" ? <CheckCircle2 size={16} /> : type === "error" ? <AlertTriangle size={16} /> : <Info size={16} />}
       {message}
       <X size={14} style={{ cursor: "pointer", opacity: 0.75, marginLeft: 6 }} onClick={onClose} />
@@ -591,7 +790,7 @@ const ConfirmModal = ({ open, title, text, onConfirm, onCancel }) => {
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={onCancel}>
-      <div style={{ background: C.white, borderRadius: 20, padding: 32, maxWidth: 400, width: "90%" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: C.white, borderRadius: 8, padding: 32, maxWidth: 400, width: "90%" }} onClick={e => e.stopPropagation()}>
         <h3 style={{ fontFamily: S.font, fontSize: 18, fontWeight: 700, color: C.ink, margin: "0 0 8px" }}>{title}</h3>
         <p style={{ fontFamily: S.font, fontSize: 14, color: C.muted, margin: "0 0 24px", lineHeight: 1.6 }}>{text}</p>
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
@@ -694,7 +893,7 @@ const InviteModal = ({ open, group, currentUserId, onClose, onToast, onUpdateGro
   };
 
   return (
-    <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, background: "rgba(15,26,18,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998, padding: 16 }} onClick={onClose}>
+    <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998, padding: 16 }} onClick={onClose}>
       <div className="lynora-share-modal" style={{ background: C.white, borderRadius: 22, width: "95%", maxWidth: 460, maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: "0 30px 60px rgba(0,0,0,.22)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "20px 24px", background: "linear-gradient(135deg, #1B5E40 0%, #122318 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -736,7 +935,7 @@ const InviteModal = ({ open, group, currentUserId, onClose, onToast, onUpdateGro
               {selectedUsers.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                   {selectedUsers.map(u => (
-                    <span key={u.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 6px 4px 4px", borderRadius: 20, background: C.navy50, fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.navy800 }}>
+                    <span key={u.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 6px 4px 4px", borderRadius: 8, background: C.navy50, fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.navy800 }}>
                       <Avatar src={u.image || u.avatarUrl || u.photoUrl || null} name={u.name} initials={u.initials} size={18} />
                       {u.name}
                       <X size={9} style={{ cursor: "pointer", opacity: .7 }} onClick={() => toggleSelect(u)} />
@@ -829,8 +1028,8 @@ const InviteModal = ({ open, group, currentUserId, onClose, onToast, onUpdateGro
 };
 
 const EmptyState = ({ icon: Icon, title, subtitle }) => (
-  <div className="lynora-fade-up" style={{ textAlign: "center", padding: "64px 24px", background: C.white, borderRadius: 20, border: `1px dashed ${C.line}` }}>
-    <div style={{ width: 72, height: 72, borderRadius: 20, background: `linear-gradient(135deg, ${C.navy800}12, ${C.gold400}18)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+  <div className="lynora-fade-up" style={{ textAlign: "center", padding: "64px 24px", background: C.white, borderRadius: 8, border: `1px dashed ${C.line}` }}>
+    <div style={{ width: 72, height: 72, borderRadius: 8, background: `linear-gradient(135deg, ${C.navy800}12, ${C.gold400}18)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
       <Icon size={30} style={{ color: C.navy700 }} />
     </div>
     <h3 style={{ fontFamily: S.display, fontSize: 19, fontWeight: 600, color: C.ink, margin: "0 0 6px" }}>{title}</h3>
@@ -870,7 +1069,7 @@ const GroupPreviewCard = ({ form }) => {
         <div style={{ position: "absolute", top: 10, left: 10, width: 26, height: 26, borderRadius: 8, background: "rgba(255,255,255,.18)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,.25)" }}>
           {form.privacy === "private" ? <Lock size={12} style={{ color: C.white }} /> : <Globe size={12} style={{ color: C.white }} />}
         </div>
-        <div style={{ position: "absolute", top: 10, right: 10, padding: "3px 9px", borderRadius: 20, background: "rgba(255,255,255,.22)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,.28)", fontFamily: S.font, fontSize: 10, fontWeight: 700, color: C.white, display: "flex", alignItems: "center", gap: 4 }}>
+        <div style={{ position: "absolute", top: 10, right: 10, padding: "3px 9px", borderRadius: 8, background: "rgba(255,255,255,.22)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,.28)", fontFamily: S.font, fontSize: 10, fontWeight: 700, color: C.white, display: "flex", alignItems: "center", gap: 4 }}>
           <Sparkles size={10} /> Nouveau
         </div>
       </div>
@@ -1046,7 +1245,7 @@ const CreateGroupModal = ({ open, onClose, onCreate }) => {
             <label style={labelStyle}><span>Catégorie</span></label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => update("category", cat.id)} style={{ padding: "8px 16px", borderRadius: 20, border: form.category === cat.id ? "none" : `1px solid ${C.line}`, background: form.category === cat.id ? cat.color : C.white, color: form.category === cat.id ? C.white : C.muted, fontFamily: S.font, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all .15s" }}>{cat.label}</button>
+                <button key={cat.id} onClick={() => update("category", cat.id)} style={{ padding: "8px 16px", borderRadius: 8, border: form.category === cat.id ? "none" : `1px solid ${C.line}`, background: form.category === cat.id ? cat.color : C.white, color: form.category === cat.id ? C.white : C.muted, fontFamily: S.font, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all .15s" }}>{cat.label}</button>
               ))}
             </div>
           </div>
@@ -1156,8 +1355,8 @@ const CreateGroupModal = ({ open, onClose, onCreate }) => {
   );
 
   return (
-    <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, background: "rgba(15,26,18,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998, padding: 16 }} onClick={onClose}>
-      <div className="lynora-create-modal" style={{ background: C.white, borderRadius: 24, width: "95%", maxWidth: isWide ? 880 : 560, maxHeight: "92vh", overflow: "auto", boxShadow: "0 30px 60px rgba(0,0,0,.22)" }} onClick={e => e.stopPropagation()}>
+    <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998, padding: 16 }} onClick={onClose}>
+      <div className="lynora-create-modal" style={{ background: C.white, borderRadius: 8, width: "95%", maxWidth: isWide ? 880 : 560, maxHeight: "92vh", overflow: "auto", boxShadow: "0 30px 60px rgba(0,0,0,.22)" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="lynora-create-header" style={{ padding: "22px 28px", background: "linear-gradient(135deg, #1B5E40 0%, #122318 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 5 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1239,7 +1438,7 @@ const GroupCard = ({ group, onClick, isSuggestion, suggestionReason, onJoin, onD
           </button>
         )}
         {isTrending && (
-          <div style={{ position: "absolute", top: isSuggestion || !onToggleFavorite ? 10 : 44, right: 10, padding: "4px 10px", borderRadius: 20, background: "rgba(184,72,60,.88)", color: C.white, fontFamily: S.font, fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, boxShadow: "0 8px 16px rgba(184,72,60,.22)" }}><Flame size={12} /> Tendance</div>
+          <div style={{ position: "absolute", top: isSuggestion || !onToggleFavorite ? 10 : 44, right: 10, padding: "4px 10px", borderRadius: 8, background: "rgba(184,72,60,.88)", color: C.white, fontFamily: S.font, fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, boxShadow: "0 8px 16px rgba(184,72,60,.22)" }}><Flame size={12} /> Tendance</div>
         )}
         {group.privacy === "private" && (
           <div style={{ position: "absolute", top: 10, left: 10, width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,.18)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,.25)" }}><Lock size={14} style={{ color: C.white }} /></div>
@@ -1568,8 +1767,8 @@ const UpdateCoverModal = ({ open, group, onClose, onSave }) => {
   const dashOffset = CIRC - (Math.min(progress, 100) / 100) * CIRC;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,26,18,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={!isUploading ? onClose : undefined}>
-      <div onClick={e => e.stopPropagation()} style={{ width: "min(92vw, 560px)", background: C.white, borderRadius: 24, overflow: "hidden", boxShadow: "0 28px 60px rgba(18,38,24,.2)", animation: "modalSlideIn .25s ease-out" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={!isUploading ? onClose : undefined}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "min(92vw, 560px)", background: C.white, borderRadius: 8, overflow: "hidden", boxShadow: "0 28px 60px rgba(0,0,0,.2)", animation: "modalSlideIn .25s ease-out" }}>
         <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: C.paper }}>
           <div>
             <div style={{ fontFamily: S.font, fontSize: 10, fontWeight: 800, color: C.navy800, textTransform: "uppercase", letterSpacing: 1.1, marginBottom: 4 }}>Couverture du groupe</div>
@@ -1595,9 +1794,9 @@ const UpdateCoverModal = ({ open, group, onClose, onSave }) => {
               ...getGroupCoverStyle({ ...group, coverUrl: preview || group?.coverUrl }),
             }}
           >
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,26,18,0) 45%, rgba(15,26,18,.55) 100%)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 14 }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,26,18,0) 45%, rgba(0,0,0,.55) 100%)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 14 }}>
               {!isUploading && (
-                <span style={{ fontFamily: S.font, fontSize: 12, fontWeight: 700, color: C.white, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,.28)", padding: "6px 12px", borderRadius: 20, backdropFilter: "blur(4px)" }}>
+                <span style={{ fontFamily: S.font, fontSize: 12, fontWeight: 700, color: C.white, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,.28)", padding: "6px 12px", borderRadius: 8, backdropFilter: "blur(4px)" }}>
                   <Camera size={13} /> {preview ? "Changer l'image" : "Glisser une image ou cliquer"}
                 </span>
               )}
@@ -1724,8 +1923,8 @@ const CreateEventModal = ({ open, group, onClose, onCreate }) => {
   };
 
   return (
-    <div className="lynora-event-overlay" style={{ position: "fixed", inset: 0, background: "rgba(15,26,18,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={onClose}>
-      <div className="lynora-event-modal" onClick={e => e.stopPropagation()} style={{ width: "min(94vw, 520px)", maxHeight: "88vh", overflowX: "hidden", overflowY: "auto", background: C.white, borderRadius: 24, boxShadow: "0 28px 60px rgba(18,38,24,.2)", animation: "modalSlideIn .25s ease-out" }}>
+    <div className="lynora-event-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={onClose}>
+      <div className="lynora-event-modal" onClick={e => e.stopPropagation()} style={{ width: "min(94vw, 520px)", maxHeight: "88vh", overflowX: "hidden", overflowY: "auto", background: C.white, borderRadius: 8, boxShadow: "0 28px 60px rgba(0,0,0,.2)", animation: "modalSlideIn .25s ease-out" }}>
         <div style={{ padding: "20px 24px", background: navyGrad, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 2 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <FontAwesomeIcon icon={faCalendarDays} style={{ color: C.gold400, fontSize: 18 }} />
@@ -1922,8 +2121,8 @@ const AddFileModal = ({ open, group, onClose, onAdd, currentUser }) => {
   const fi = pending ? (FILE_ICONS[guessFileType(pending.name)] || FILE_ICONS.default) : null;
 
   return (
-    <div className="lynora-file-overlay" style={{ position: "fixed", inset: 0, background: "rgba(15,26,18,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={!isUploading ? onClose : undefined}>
-      <div className="lynora-file-modal" onClick={e => e.stopPropagation()} style={{ width: "min(92vw, 480px)", background: C.white, borderRadius: 24, overflow: "hidden", boxShadow: "0 28px 60px rgba(18,38,24,.2)", animation: "modalSlideIn .25s ease-out" }}>
+    <div className="lynora-file-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={!isUploading ? onClose : undefined}>
+      <div className="lynora-file-modal" onClick={e => e.stopPropagation()} style={{ width: "min(92vw, 480px)", background: C.white, borderRadius: 8, overflow: "hidden", boxShadow: "0 28px 60px rgba(0,0,0,.2)", animation: "modalSlideIn .25s ease-out" }}>
         <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: C.paper }}>
           <div>
             <div style={{ fontFamily: S.font, fontSize: 10, fontWeight: 800, color: C.navy800, textTransform: "uppercase", letterSpacing: 1.1, marginBottom: 4 }}>{group?.name}</div>
@@ -2051,8 +2250,8 @@ const JoinRequestModal = ({ open, group, onClose, onSubmitted, onToast }) => {
   };
 
   return (
-    <div className="lynora-join-request-overlay" style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,26,18,.58)", backdropFilter: "blur(4px)" }} onClick={onClose}>
-      <div className="lynora-join-request-modal" onClick={event => event.stopPropagation()} style={{ width: "min(94vw, 520px)", maxHeight: "88vh", overflowY: "auto", background: C.white, borderRadius: 20, boxShadow: "0 28px 70px rgba(18,38,24,.25)" }}>
+    <div className="lynora-join-request-overlay" style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,.58)", backdropFilter: "blur(4px)" }} onClick={onClose}>
+      <div className="lynora-join-request-modal" onClick={event => event.stopPropagation()} style={{ width: "min(94vw, 520px)", maxHeight: "88vh", overflowY: "auto", background: C.white, borderRadius: 8, boxShadow: "0 28px 70px rgba(0,0,0,.25)" }}>
         <div style={{ padding: "20px 22px", background: navyGrad, color: C.white }}>
           <div style={{ fontFamily: S.font, fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: C.gold400 }}>Demande d'adhésion</div>
           <h2 style={{ margin: "6px 0 0", fontFamily: S.display, fontSize: 22, fontWeight: 600 }}>Rejoindre {group.name}</h2>
@@ -2688,7 +2887,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
       />
 
       {/* En-tête du groupe — cover + carte d'identité unifiées */}
-      <div className="lynora-header-card" style={{ borderRadius: 20, marginBottom: 24, background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 18px 45px rgba(18,38,24,.09)", overflow: "hidden" }}>
+      <div className="lynora-header-card" style={{ borderRadius: 8, marginBottom: 16, background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 18px 45px rgba(0,0,0,.09)", overflow: "hidden" }}>
         {/* Cover */}
         <div className="lynora-cover" style={{ height: 190, position: "relative", overflow: "hidden", backgroundPosition: "center", ...getGroupCoverStyle(group) }}>
           <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(255,255,255,.14) 1px, transparent 1px)", backgroundSize: "16px 16px", opacity: .5, pointerEvents: "none" }} />
@@ -2696,15 +2895,15 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
 
           {/* Chips flottants : confidentialité / catégorie / lieu */}
           <div className="lynora-cover-chips" style={{ position: "absolute", top: 16, left: 18, display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", maxWidth: "calc(100% - 80px)" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px 5px 9px", borderRadius: 20, background: "rgba(15,26,18,.4)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.22)", fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.white }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px 5px 9px", borderRadius: 8, background: "rgba(0,0,0,.4)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.22)", fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.white }}>
               {group.privacy === "private" ? <Lock size={11} /> : <Globe size={11} />}
               {group.privacy === "private" ? "Privé" : "Public"}
             </span>
             {cat && (
-              <span style={{ padding: "5px 12px", borderRadius: 20, background: "rgba(255,255,255,.94)", fontFamily: S.font, fontSize: 11.5, fontWeight: 700, color: cat.color }}>{cat.label}</span>
+              <span style={{ padding: "5px 12px", borderRadius: 8, background: "rgba(255,255,255,.94)", fontFamily: S.font, fontSize: 11.5, fontWeight: 700, color: cat.color }}>{cat.label}</span>
             )}
             {group.location && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 20, background: "rgba(15,26,18,.4)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.22)", fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.white }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "rgba(0,0,0,.4)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.22)", fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.white }}>
                 <MapPin size={11} /> {group.location}
               </span>
             )}
@@ -2733,7 +2932,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
             {group.tags && group.tags.length > 0 && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", paddingBottom: 6 }}>
                 {group.tags.map(t => (
-                  <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 20, background: C.navy50, fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.navy800 }}><Hash size={10} />{t}</span>
+                  <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 8, background: C.navy50, fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.navy800 }}><Hash size={10} />{t}</span>
                 ))}
               </div>
             )}
@@ -2762,7 +2961,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
           </div>
 
           {/* Barre de statistiques */}
-          <div className="lynora-stats-row lynora-header-stats" style={{ display: "flex", alignItems: "stretch", marginTop: 22, borderRadius: 14, background: C.navy50, border: `1px solid ${C.line}`, overflow: "hidden" }}>
+          <div className="lynora-stats-row lynora-header-stats" style={{ display: "flex", alignItems: "stretch", marginTop: 22, borderRadius: 8, background: C.navy50, border: `1px solid ${C.line}`, overflow: "hidden" }}>
             {[
               { value: group.members.length, label: "Membres", icon: Users, color: C.navy800 },
               { value: group.postsCount, label: "Publications", icon: MessageSquare, color: "#3B82F6" },
@@ -2895,7 +3094,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
             <button type="button" onClick={openInviteModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 9, border: "none", background: "transparent", fontFamily: S.font, fontSize: 12.5, fontWeight: 600, color: C.navy800, cursor: "pointer", textAlign: "left" }}><UserPlus size={14} /> Inviter des membres</button>
           </Card>}
         </aside>
-        {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,26,18,.4)", zIndex: 15 }} className="lynora-sidebar-backdrop" />}
+        {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 15 }} className="lynora-sidebar-backdrop" />}
 
         {/* ============ CONTENU PRINCIPAL ============ */}
         <div className="lynora-detail-main">
@@ -2970,7 +3169,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
             <div key={post.id} style={{ filter: isPendingReview ? "blur(1.2px)" : "none", opacity: isPendingReview ? 0.72 : 1, pointerEvents: isPendingReview ? "none" : "auto", position: "relative" }}>
               {isPendingReview && (
                 <div style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                  <span style={{ padding: "6px 10px", borderRadius: 999, background: "rgba(15,51,82,0.7)", color: "#fff", fontFamily: S.font, fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>
+                  <span style={{ padding: "6px 10px", borderRadius: 999, background: "rgba(0,0,0,0.7)", color: "#fff", fontFamily: S.font, fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>
                     En attente d’approbation
                   </span>
                 </div>
@@ -3220,7 +3419,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
             {group.tags && group.tags.length > 0 && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 16 }}>
                 {group.tags.map(t => (
-                  <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 20, background: C.navy50, fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.navy800 }}><Hash size={10} />{t}</span>
+                  <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 8, background: C.navy50, fontFamily: S.font, fontSize: 11.5, fontWeight: 600, color: C.navy800 }}><Hash size={10} />{t}</span>
                 ))}
               </div>
             )}
@@ -3345,8 +3544,8 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
               })}
             </div>
           ) : (
-            <div className="lynora-fade-up" style={{ textAlign: "center", padding: "64px 24px", background: C.white, borderRadius: 20, border: `1px dashed ${C.line}` }}>
-              <div style={{ width: 72, height: 72, borderRadius: 20, background: `linear-gradient(135deg, ${C.navy800}12, ${C.gold400}18)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+            <div className="lynora-fade-up" style={{ textAlign: "center", padding: "64px 24px", background: C.white, borderRadius: 8, border: `1px dashed ${C.line}` }}>
+              <div style={{ width: 72, height: 72, borderRadius: 8, background: `linear-gradient(135deg, ${C.navy800}12, ${C.gold400}18)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
                 <Calendar size={30} style={{ color: C.navy700 }} />
               </div>
               <h3 style={{ fontFamily: S.display, fontSize: 19, fontWeight: 600, color: C.ink, margin: "0 0 6px" }}>Aucun événement</h3>
@@ -3478,8 +3677,8 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
               })}
             </div>
           ) : (
-            <div className="lynora-fade-up" style={{ textAlign: "center", padding: "64px 24px", background: C.white, borderRadius: 20, border: `1px dashed ${C.line}` }}>
-              <div style={{ width: 72, height: 72, borderRadius: 20, background: `linear-gradient(135deg, ${C.navy800}12, ${C.gold400}18)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+            <div className="lynora-fade-up" style={{ textAlign: "center", padding: "64px 24px", background: C.white, borderRadius: 8, border: `1px dashed ${C.line}` }}>
+              <div style={{ width: 72, height: 72, borderRadius: 8, background: `linear-gradient(135deg, ${C.navy800}12, ${C.gold400}18)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
                 <FileText size={30} style={{ color: C.navy700 }} />
               </div>
               <h3 style={{ fontFamily: S.display, fontSize: 19, fontWeight: 600, color: C.ink, margin: "0 0 6px" }}>Aucun fichier</h3>
@@ -3749,7 +3948,7 @@ const GroupAdminPanel = ({ group, onBack, onToast, onDeleteGroup, onUpdateGroup 
 
         <Card style={{ padding: 0, marginBottom: 16 }}>
           <div style={{ height: 88, position: "relative", ...getGroupCoverStyle(group) }}>
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(14,31,23,.04), rgba(14,31,23,.42))" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.42))" }} />
             <div style={{ position: "absolute", left: 14, bottom: 12, width: 38, height: 38, borderRadius: 11, background: C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, overflow: "hidden", boxShadow: shadow.sm }}>
               {group.avatarUrl ? <img src={group.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : group.emoji}
             </div>
@@ -4237,6 +4436,9 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   const [favorites, setFavorites] = useState([]);
   const [dismissedSuggestions, setDismissedSuggestions] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
+  const [feedTab, setFeedTab] = useState("feed");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
 
   const showToast = useCallback((message, type = "success") => setToast({ message, type }), []);
 
@@ -4288,6 +4490,20 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   }), [groups, groupTab, session?.user?.id]);
   const myGroupCount = groups.filter((group) => group.ownerId === session?.user?.id || (group.members || []).some((member) => member?.id === session?.user?.id || member === session?.user?.id)).length;
   const discoverGroupCount = groups.filter((group) => group.ownerId !== session?.user?.id && !(group.members || []).some((member) => member?.id === session?.user?.id || member === session?.user?.id)).length;
+  const managedGroups = useMemo(() => groups.filter(g => g.ownerId === session?.user?.id || (g.members || []).some(m => m?.id === session?.user?.id && (m.role === "admin" || m.role === "moderator"))), [groups, session?.user?.id]);
+  const memberGroups = useMemo(() => groups.filter(g => g.ownerId !== session?.user?.id && (g.members || []).some(m => m?.id === session?.user?.id)), [groups, session?.user?.id]);
+  const discoverGroups = useMemo(() => {
+    const q = groupSearch.trim().toLowerCase();
+    const base = groups.filter(g => g.ownerId !== session?.user?.id && !(g.members || []).some(m => m?.id === session?.user?.id));
+    if (!q) return base;
+    return base.filter(g => g.name.toLowerCase().includes(q) || (g.description || "").toLowerCase().includes(q));
+  }, [groups, session?.user?.id, groupSearch]);
+  const allGroupPosts = useMemo(() => {
+    return groups
+      .filter(g => (g.members || []).some(m => m?.id === session?.user?.id))
+      .flatMap(g => (g.posts || []).filter(p => p.status !== "pending_review").map(p => ({ ...p, group: { id: g.id, name: g.name, coverUrl: g.coverUrl } })))
+      .sort((a, b) => new Date(b.createdAt || b.time) - new Date(a.createdAt || a.time));
+  }, [groups, session?.user?.id]);
 
   // Point d'écriture unique pour toute mutation d'un groupe (posts, membres,
   // annonces, paramètres...). updater peut être un objet (merge partiel) ou
@@ -4402,131 +4618,249 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   }, []);
 
   return (
-    <div ref={groupScrollRef} className="lynora-groupes" style={{ minHeight: "100vh", background: `radial-gradient(circle at 8% 0%, ${C.navy700}10, transparent 34%), radial-gradient(circle at 92% 4%, ${C.gold400}14, transparent 30%), linear-gradient(180deg, #FAF8F1 0%, #F1EEE1 100%)`, fontFamily: S.font }}>
+    <div ref={groupScrollRef} className="lynora-groupes" style={{ minHeight: "100vh", background: C.navy50, fontFamily: S.font }}>
       <FontImports />
       {view === "grid" && (
         <>
           {status === "loading" || loadingGroups ? (
             <GroupsGridSkeleton count={6} />
           ) : !session?.user?.id ? (
-            <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 20px", fontFamily: S.font, color: C.muted, textAlign: "center", minHeight: "60vh" }}>
+            <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 20px", fontFamily: S.font, color: C.muted, textAlign: "center", minHeight: "60vh" }}>
               Veuillez vous connecter pour voir les groupes.
             </div>
           ) : (
-            <div className="lynora-page lynora-groups-index" style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 24px 60px" }}>
-              {/* Bandeau d'en-tête */}
-              <div className="lynora-fade-up lynora-hero" style={{ position: "relative", borderRadius: 24, padding: "34px 32px", marginBottom: 32, overflow: "hidden", background: navyGrad, boxShadow: shadow.lg }}>
-                <div style={{ position: "absolute", top: -60, right: -40, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(239,192,105,.25), transparent 70%)" }} />
-                <div style={{ position: "absolute", bottom: -80, left: "30%", width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.06), transparent 70%)" }} />
-                <div className="lynora-hero-row" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.18)", marginBottom: 14 }}>
-                      <Sparkles size={12} style={{ color: C.gold400 }} />
-                      <span style={{ fontFamily: S.font, fontSize: 11.5, fontWeight: 700, color: "rgba(255,255,255,.9)", letterSpacing: .3 }}>Espace communautaire</span>
-                    </div>
-                    <h1 className="lynora-hero-title" style={{ fontFamily: S.display, fontSize: 34, fontWeight: 700, color: C.white, margin: 0, letterSpacing: "-0.01em" }}>Vos groupes</h1>
-                    <p style={{ fontFamily: S.font, fontSize: 14, color: "rgba(255,255,255,.72)", margin: "8px 0 0", maxWidth: 460, lineHeight: 1.5 }}>
-                      Retrouvez vos communautés, échangez avec vos membres et suivez l'activité en un coup d'œil.
-                    </p>
+            <div className="lynora-page lynora-groups-index" style={{ margin: "0 auto", background: C.navy50, minHeight: "100vh" }}>
+              {/* Mobile sidebar toggle */}
+              <button className="lynora-groups-sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                <Bars size={18} /> Menu des groupes
+              </button>
+              {sidebarOpen && <div className="lynora-groups-sidebar-backdrop is-open" onClick={() => setSidebarOpen(false)} />}
+
+              {/* ===== SIDEBAR ===== */}
+              <aside className={`lynora-groups-sidebar${sidebarOpen ? " is-open" : ""}`}>
+                {/* Header: Groupes title + settings */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 12 }}>
+                  <h2 style={{ fontFamily: S.font, fontSize: 24, fontWeight: 700, color: C.ink, margin: 0 }}>Groupes</h2>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.line, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Settings size={14} style={{ color: C.muted }} />
                   </div>
-                  <button
-                    onClick={() => setShowCreate(true)}
-                    className="lynora-cta-primary lynora-hero-cta"
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 24px", borderRadius: 12, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.98)", color: C.navy900, fontFamily: S.font, fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 10px 26px rgba(0,0,0,.18)" }}
-                  >
-                    <Plus size={16} /> Créer un groupe
+                </div>
+
+                {/* Search bar */}
+                <div className="fb-search-bar" style={{ marginBottom: 12 }}>
+                  <Search size={16} style={{ color: C.mutedLight, flexShrink: 0 }} />
+                  <input type="text" placeholder="Rechercher des groupes" value={groupSearch} onChange={e => setGroupSearch(e.target.value)} />
+                </div>
+
+                {/* Navigation items */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 12 }}>
+                  <button className={`fb-nav-item${feedTab === "feed" ? "" : " inactive"}`} onClick={() => setFeedTab("feed")}>
+                    <span className="fb-nav-icon"><Newspaper size={16} /></span>
+                    Votre fil
+                  </button>
+                  <button className={`fb-nav-item${feedTab === "discover" ? "" : " inactive"}`} onClick={() => setFeedTab("discover")}>
+                    <span className="fb-nav-icon"><Compass size={16} /></span>
+                    Découvrir
+                  </button>
+                  <button className={`fb-nav-item${feedTab === "your-groups" ? "" : " inactive"}`} onClick={() => setFeedTab("your-groups")}>
+                    <span className="fb-nav-icon"><Users size={16} /></span>
+                    Vos groupes
                   </button>
                 </div>
-              </div>
 
-              <div className="lynora-groups-tabs" role="tablist" aria-label="Filtrer les groupes">
-                <button type="button" role="tab" aria-selected={groupTab === "mine"} className={groupTab === "mine" ? "is-active" : ""} onClick={() => setGroupTab("mine")}>
-                  Mes groupes <span>{myGroupCount}</span>
+                {/* Create button */}
+                <button className="fb-create-btn" onClick={() => setShowCreate(true)}>
+                  <Plus size={16} /> Créer un nouveau groupe
                 </button>
-                <button type="button" role="tab" aria-selected={groupTab === "discover"} className={groupTab === "discover" ? "is-active" : ""} onClick={() => setGroupTab("discover")}>
-                  Découvrir <span>{discoverGroupCount}</span>
-                </button>
+
+                {/* Groupes que vous gérez */}
+                {managedGroups.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="fb-section-title">Groupes que vous gérez</div>
+                    {managedGroups.slice(0, 3).map(g => (
+                      <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
+                        <div className="fb-group-avatar">
+                          {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
+                        </div>
+                        <div className="fb-group-info">
+                          <div className="fb-group-name" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {g.name}
+                            {g.privacy === "private" ? <Lock size={11} style={{ color: C.muted }} /> : <Globe size={11} style={{ color: C.muted }} />}
+                          </div>
+                          <div className="fb-group-meta">En ligne récemment</div>
+                        </div>
+                      </div>
+                    ))}
+                    {managedGroups.length > 3 && (
+                      <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
+                        Voir plus <ChevronDown size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Vos groupes (member) */}
+                {memberGroups.length > 0 && (
+                  <div style={{ marginTop: 4 }}>
+                    <div className="fb-section-title">Groupes dont vous êtes membre</div>
+                    {memberGroups.slice(0, 5).map(g => (
+                      <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
+                        <div className="fb-group-avatar">
+                          {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
+                        </div>
+                        <div className="fb-group-info">
+                          <div className="fb-group-name">{g.name}</div>
+                          <div className="fb-group-meta">En ligne récemment</div>
+                        </div>
+                      </div>
+                    ))}
+                    {memberGroups.length > 5 && (
+                      <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
+                        Voir plus <ChevronDown size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </aside>
+
+              {/* ===== FEED / CONTENT ===== */}
+              <div className="lynora-groups-feed">
+                {feedTab === "feed" && (
+                  <>
+                    {/* Create post prompt */}
+                    <div className="fb-post-card" style={{ padding: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Avatar name={session?.user?.name || "Vous"} initials={(session?.user?.name || "V").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase()} src={session?.user?.image} size={40} />
+                        <div style={{ flex: 1, background: C.navy50, borderRadius: 8, padding: "10px 16px", color: C.mutedLight, fontSize: 14, cursor: "pointer" }} onClick={() => { if(visibleGridGroups.length > 0) { setSelectedGroupId(visibleGridGroups[0].id); setView("detail"); }}}>
+                          Publier dans un groupe...
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Aggregated posts from all groups */}
+                    {allGroupPosts.length > 0 ? allGroupPosts.map(post => (
+                      <PostCard
+                        key={post.id}
+                        post={{
+                          ...post,
+                          liked: Boolean(post.liked || post.reaction),
+                          bookmarked: false,
+                          likes: post.reactions ? Object.values(post.reactions).reduce((s, c) => s + c, 0) : 0,
+                          comments: post.comments || [],
+                          shares: post.shares || 0,
+                          reaction: post.reaction || null,
+                          group: post.group,
+                        }}
+                        currentUser={{
+                          id: session?.user?.id,
+                          name: session?.user?.name || CURRENT_USER.name,
+                          initials: (session?.user?.name || CURRENT_USER.name).split(" ").slice(0,2).map(p=>p[0]).join("").toUpperCase() || "?",
+                          avatarUrl: session?.user?.image || null,
+                        }}
+                        onToggleLike={() => {}}
+                        onSelectReaction={() => {}}
+                        onToggleBookmark={() => {}}
+                        onAddComment={() => {}}
+                        onShare={() => {}}
+                        onOpenPost={(p) => { setSelectedGroupId(p.group?.id); setView("detail"); }}
+                        isOwn={false}
+                      />
+                    )) : (
+                      <div className="fb-empty-feed">
+                        <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Votre fil est vide</div>
+                        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Rejoignez des groupes ou publiez dans vos groupes pour voir leurs actualités ici.</div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {feedTab === "discover" && (
+                  <>
+                    {discoverGroups.length === 0 ? (
+                      <div className="fb-empty-feed">
+                        <Compass size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe à découvrir</div>
+                        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez le premier groupe pour commencer à bâtir votre communauté.</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
+                        {discoverGroups.map((group, idx) => {
+                          const memberCount = (group.members || []).length;
+                          return (
+                            <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
+                              <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
+                                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
+                                <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 12, background: "rgba(0,0,0,.4)", color: "#fff", fontSize: 10.5, fontWeight: 600 }}>
+                                  {group.privacy === "private" ? <Lock size={9} /> : <Globe size={9} />}
+                                  {group.privacy === "private" ? "Privé" : "Public"}
+                                </div>
+                              </div>
+                              <div style={{ padding: "12px 14px 14px", flex: 1 }}>
+                                <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
+                                <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <Users size={12} style={{ color: C.muted }} />
+                                  <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (group.privacy === "private") {
+                                      handleSelectGroup(group);
+                                    } else {
+                                      handleJoinGroup(group.id);
+                                    }
+                                  }}
+                                  style={{ width: "100%", marginTop: 10, padding: "8px 12px", borderRadius: 8, border: "none", background: C.navy800, color: "#fff", fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                                >
+                                  {group.privacy === "private" ? "Demander à rejoindre" : "Rejoindre"}
+                                </button>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {feedTab === "your-groups" && (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
+                      {visibleGridGroups.map((group, idx) => {
+                        const isMember = true;
+                        const memberCount = (group.members || []).length;
+                        const cat = CATEGORIES.find(c => c.id === group.category);
+                        return (
+                          <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
+                            <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
+                              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
+                              {cat && <div style={{ position: "absolute", bottom: 8, left: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: cat.color }}>{cat.label}</div>}
+                              {group.ownerId === session?.user?.id && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: C.navy800, display: "flex", alignItems: "center", gap: 3 }}><Crown size={9} /> Admin</div>}
+                            </div>
+                            <div style={{ padding: "12px 14px 14px", flex: 1 }}>
+                              <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
+                              <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <Users size={12} style={{ color: C.muted }} />
+                                <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
+                              </div>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                    {visibleGridGroups.length === 0 && (
+                      <div className="fb-empty-feed">
+                        <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe</div>
+                        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez votre premier groupe ou rejoignez-en un.</div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-
-              {visibleGridGroups.length === 0 ? (
-                <EmptyState icon={Users} title="Aucun groupe pour l'instant" subtitle="Créez votre premier groupe pour commencer !" />
-              ) : (
-                <div className="lynora-groups-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(300px, 100%), 1fr))", gap: 22 }}>
-                  {visibleGridGroups.map((group, idx) => {
-                    const isMember = (group.members || []).some(m => m.id === session?.user?.id);
-                    const cat = CATEGORIES.find(c => c.id === group.category);
-                    const memberCount = (group.members || []).length;
-                    const previewMembers = (group.members || []).slice(0, 4);
-                    return (
-                      <Card
-                        key={group.id}
-                        onClick={() => handleSelectGroup(group)}
-                        className="lynora-group-card"
-                        style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .45s cubic-bezier(.2,.8,.2,1) both`, animationDelay: `${Math.min(idx, 8) * 40}ms` }}
-                      >
-                        {/* Couverture — sans icône centrale */}
-                        <div style={{ ...getGroupCoverStyle(group), height: 108, position: "relative", overflow: "hidden" }}>
-                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(14,31,23,.05) 0%, rgba(14,31,23,.05) 55%, rgba(14,31,23,.4) 100%)" }} />
-
-                          <div className="lynora-cover-privacy-badge" style={{ position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px 4px 8px", borderRadius: 20, background: "rgba(15,26,18,.38)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.2)" }}>
-                            {group.privacy === "private" ? <Lock size={11} style={{ color: C.white }} /> : <Globe size={11} style={{ color: C.white }} />}
-                            <span style={{ fontFamily: S.font, fontSize: 10.5, fontWeight: 600, color: C.white }}>{group.privacy === "private" ? "Privé" : "Public"}</span>
-                          </div>
-
-                          {isMember && (
-                            <div className="lynora-cover-member-badge" style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,.94)", fontFamily: S.font, fontSize: 10.5, fontWeight: 700, color: C.navy800, display: "flex", alignItems: "center", gap: 4 }}>
-                              <CheckCircle2 size={10} /> Membre
-                            </div>
-                          )}
-
-                          {group.ownerId === session?.user?.id && (
-                            <div className="lynora-cover-owner-badge" style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,.94)", fontFamily: S.font, fontSize: 10.5, fontWeight: 700, color: C.gold600, display: "flex", alignItems: "center", gap: 4 }}>
-                              <Crown size={10} /> Admin
-                            </div>
-                          )}
-
-                          {cat && (
-                            <div className="lynora-cover-category-badge" style={{ position: "absolute", bottom: 12, left: 12, padding: "4px 11px", borderRadius: 20, background: "rgba(255,255,255,.92)", fontFamily: S.font, fontSize: 10.5, fontWeight: 700, color: cat.color, letterSpacing: "-0.01em" }}>
-                              {cat.label}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Corps */}
-                        <div className="lynora-group-card-body" style={{ padding: "16px 18px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
-                          <div className="lynora-group-card-title-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                            <h3 style={{ fontFamily: S.font, fontSize: 15.5, fontWeight: 700, color: C.ink, margin: "0 0 6px", letterSpacing: "-0.01em", lineHeight: 1.3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
-                          </div>
-                          <p style={{ fontFamily: S.font, fontSize: 12.5, color: C.muted, margin: "0 0 14px", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 36 }}>{group.description || "Sans description"}</p>
-
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                              <div style={{ display: "flex" }}>
-                                {previewMembers.length > 0 ? previewMembers.map((m, i) => (
-                                  <div key={m.id} style={{ width: 22, height: 22, borderRadius: "50%", background: getAvatarColor(m.name), border: `2px solid ${C.white}`, marginLeft: i === 0 ? 0 : -8, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: S.font, fontSize: 8.5, fontWeight: 700, color: C.white, boxShadow: shadow.xs }}>
-                                    {(m.initials || m.name || "?").slice(0, 2).toUpperCase()}
-                                  </div>
-                                )) : <Users size={13} style={{ color: C.navy700 }} />}
-                              </div>
-                              <span style={{ fontFamily: S.font, fontSize: 12, color: C.muted, fontWeight: 500 }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
-                            </div>
-                            {typeof group.postsCount === "number" && (
-                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                <MessageSquare size={12} style={{ color: C.mutedLight }} />
-                                <span style={{ fontFamily: S.font, fontSize: 12, color: C.muted, fontWeight: 500 }}>{group.postsCount}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {!isMember && (
-                            <button onClick={(e) => { e.stopPropagation(); group.privacy === "private" ? handleSelectGroup(group) : handleJoinGroup(group.id); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: navyGrad, color: C.white, fontFamily: S.font, fontSize: 11.5, fontWeight: 700, cursor: "pointer", boxShadow: shadow.sm }}>{group.privacy === "private" ? "Voir et demander à rejoindre" : "Rejoindre le groupe"}</button>
-                          )}
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           )}
         </>
