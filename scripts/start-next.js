@@ -2,9 +2,14 @@ const { spawn } = require("node:child_process");
 const nextBin = require.resolve("next/dist/bin/next");
 const port = process.env.PORT || "3000";
 
-const child = spawn(process.execPath, [nextBin, "start", "-p", port], {
+const child = spawn(process.execPath, [nextBin, "start", "-H", "0.0.0.0", "-p", port], {
   env: process.env,
   stdio: "inherit",
+});
+
+child.on("error", (error) => {
+  console.error("[start-next] unable to start Next.js:", error);
+  process.exitCode = 1;
 });
 
 child.on("exit", (code, signal) => {
