@@ -11,7 +11,7 @@
     "migration:check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-backend-migration.ps1",
     "tunnel": "npx ngrok http 3000",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "node scripts/start-next.js",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
