@@ -5,7 +5,7 @@
     "buildCommand": "npm ci --include=dev && npm run build"
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "node scripts/start-next.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",
