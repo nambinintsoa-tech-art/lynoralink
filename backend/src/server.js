@@ -71,6 +71,12 @@ app.get("/v1/health", async () => ({
   service: "lynoralink-backend",
 }));
 
+app.get("/", async () => ({
+  ok: true,
+  service: "lynoralink-backend",
+  health: "/v1/health",
+}));
+
 await registerPostRoutes(app);
 await registerReelRoutes(app);
 await registerReelActionRoutes(app);
