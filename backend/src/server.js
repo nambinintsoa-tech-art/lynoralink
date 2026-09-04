@@ -50,8 +50,8 @@ const app = Fastify({
 });
 
 const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
-const port = Number.parseInt(process.env.BACKEND_PORT || "4001", 10);
-const host = process.env.BACKEND_HOST || "127.0.0.1";
+const port = Number.parseInt(process.env.PORT || process.env.BACKEND_PORT || "4001", 10);
+const host = process.env.HOST || process.env.BACKEND_HOST || "0.0.0.0";
 
 await app.register(helmet, {
   contentSecurityPolicy: false,
