@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Loader2, UserRound } from "lucide-react";
 import BrandName from "@/components/BrandName";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 const INITIAL_FORM = {
   title: "",
@@ -27,7 +28,7 @@ const uploadImage = async (file) => {
   formData.append("file", file);
   formData.append("type", "image");
 
-  const response = await fetch("/api/upload", {
+  const response = await fetchBackendApi("/api/upload", {
     method: "POST",
     body: formData,
   });
@@ -95,7 +96,7 @@ export default function OnboardingPage() {
         .filter(Boolean)
         .slice(0, 20);
 
-      const response = await fetch("/api/profile", {
+      const response = await fetchBackendApi("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, skills, image: form.image || undefined }),

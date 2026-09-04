@@ -14,8 +14,19 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const [accounts, setAccounts] = useState([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
-  const [navigationTarget, setNavigationTarget] = useState(null);
   const [showStartupSplash, setShowStartupSplash] = useState(true);
+  const [authTransition, setAuthTransition] = useState(null);
+
+  const handleRemoveAccount = (account) => {
+    if (account.id === session?.user?.id) return;
+    if (!window.confirm(`Supprimer ${account.name} de cet appareil ?`)) return;
+
+    setAccounts((currentAccounts) => {
+      const nextAccounts = currentAccounts.filter((current) => current.id !== account.id);
+      window.localStorage.setItem("lynoralink:connectedAccounts", JSON.stringify(nextAccounts));
+      return nextAccounts;
+    });
+  };
 
   useEffect(() => {
     if (window.sessionStorage.getItem(STARTUP_SPLASH_KEY) === "1") {
@@ -61,7 +72,7 @@ export default function HomePage() {
     const initialAccounts = [primaryAccount, ...storedAccounts.filter((account) => account?.id !== primaryAccount.id)];
     setAccounts(initialAccounts);
 
-    fetch("/api/account")
+    fetch("/api/account", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Unable to load accounts");
         const data = await response.json();
@@ -113,26 +124,28 @@ export default function HomePage() {
     );
   }
 
+  if (authTransition) {
+    return (
+      <AuthRedirectTransition
+        mode={authTransition}
+        duration={900}
+        onComplete={() => router.push(authTransition === "login" ? "/login" : "/register")}
+      />
+    );
+  }
+
   return (
     <>
-      {navigationTarget && (
-        <AuthRedirectTransition
-          mode={navigationTarget}
-          navigation
-          duration={900}
-          onComplete={() => router.push(`/${navigationTarget}`)}
-        />
-      )}
-      {!navigationTarget && (
-        <AccountPicker
-          accounts={accounts}
-          currentUserEmail={session?.user?.email || ""}
-          onContinue={() => router.push("/feed")}
-          onAddAccount={() => setNavigationTarget("login")}
-          onRegister={() => setNavigationTarget("register")}
-          onSignOut={() => signOut({ callbackUrl: "/" })}
-        />
-      )}
+      <AccountPicker
+        accounts={accounts}
+        currentUserEmail={session?.user?.email || ""}
+        onRemoveAccount={handleRemoveAccount}
+        canRemoveAccount={(account) => account.id !== session?.user?.id}
+        onContinue={() => router.push("/feed")}
+        onAddAccount={() => setAuthTransition("login")}
+        onRegister={() => setAuthTransition("register")}
+        onSignOut={() => signOut({ callbackUrl: "/" })}
+      />
     </>
   );
 }

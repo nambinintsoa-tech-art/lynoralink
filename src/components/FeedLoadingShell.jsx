@@ -44,7 +44,7 @@ export default function FeedLoadingShell({ profileView = false }) {
             <LeftSidebarSkeleton />
           </div>
         </aside>
-        <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0, width: "100%" }}>
           <ComposerSkeleton />
           <SkeletonStoryRail />
           <FeedSkeleton count={5} />

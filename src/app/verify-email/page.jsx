@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    fetch("/api/verify-email", {
+    fetchBackendApi("/api/verify-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
@@ -41,7 +42,7 @@ export default function VerifyEmailPage() {
     setResending(true);
     setResendMessage("");
     try {
-      const response = await fetch("/api/verify-email/resend", {
+      const response = await fetchBackendApi("/api/verify-email/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

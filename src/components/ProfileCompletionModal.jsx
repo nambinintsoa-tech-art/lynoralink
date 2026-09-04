@@ -24,7 +24,7 @@ const uploadImage = async (file) => {
   formData.append("file", file);
   formData.append("type", "image");
 
-  const response = await fetch("/api/upload", {
+  const response = await fetchBackendApi("/api/upload", {
     method: "POST",
     body: formData,
   });
@@ -102,7 +102,7 @@ export default function ProfileCompletionModal({ open, onClose, onComplete }) {
       .slice(0, 20);
 
     try {
-      const response = await fetch("/api/profile", {
+      const response = await fetchBackendApi("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, skills, image: form.image || undefined }),

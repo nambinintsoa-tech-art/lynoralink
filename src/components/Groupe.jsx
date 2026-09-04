@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { fetchBackendApi } from "@/lib/backend-api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft, faPlus, faSearch, faUsers, faGlobe, faLock, faShieldHalved, faCrown,
@@ -324,7 +325,6 @@ const FontImports = () => (
       height: calc(100dvh - var(--lynora-header-offset, 0px));
       min-height: calc(100dvh - var(--lynora-header-offset, 0px));
       overflow: hidden;
-      box-sizing: border-box;
       background: ${C.navy50};
     }
     .lynora-groupes .fb-shell {
@@ -557,6 +557,9 @@ const FontImports = () => (
       cursor: pointer;
       margin-bottom: 12px;
     }
+    .lynora-groups-sidebar-close {
+      display: none !important;
+    }
     .lynora-groups-sidebar-backdrop {
       display: none;
     }
@@ -618,20 +621,24 @@ const FontImports = () => (
       .lynora-group-sidebar.is-open { transform: translateX(0); }
       .lynora-sidebar-header { display: none; }
       .lynora-group-sidebar-slot { min-height: 0 !important; }
-      .lynora-groups-sidebar {
-        position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important;
-        width: 100vw !important; max-width: 320px !important; height: 100dvh !important; max-height: 100dvh !important;
+      .lynora-groupes .lynora-groups-sidebar {
+        position: fixed !important; top: var(--lynora-header-offset, 0px) !important; left: 0 !important; bottom: 0 !important;
+        width: 100vw !important; max-width: none !important; height: calc(100dvh - var(--lynora-header-offset, 0px)) !important; max-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
         background: ${C.white}; padding: max(16px, env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)); margin: 0; z-index: 1200; border-radius: 0 !important;
         box-sizing: border-box !important; overflow-y: auto !important; overflow-x: hidden !important; min-height: 0 !important; touch-action: pan-y; -webkit-overflow-scrolling: touch;
         box-shadow: 0 20px 50px rgba(0,0,0,.28);
         transform: translateX(-106%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
       }
-      .lynora-groups-sidebar.is-open { transform: translateX(0); }
+      .lynora-groupes .lynora-groups-sidebar.is-open { transform: translateX(0); }
       .lynora-groups-sidebar-toggle { display: flex !important; }
+      .lynora-groups-sidebar-close { display: flex !important; }
       .lynora-groups-sidebar-backdrop.is-open {
         display: block !important;
         position: fixed !important;
-        inset: 0 !important;
+        top: var(--lynora-header-offset, 0px) !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
         background: rgba(0,0,0,.5) !important;
         z-index: 1199 !important;
       }
@@ -649,8 +656,13 @@ const FontImports = () => (
       .lynora-groupes { min-height: 100dvh !important; overflow-x: hidden; }
       .lynora-page { padding-left: 0 !important; padding-right: 0 !important; }
       .lynora-groupes > .lynora-page { padding-left: 0 !important; padding-right: 0 !important; }
+      .lynora-groupes .fb-page { height: auto !important; min-height: 100dvh !important; overflow: visible !important; }
+      .lynora-groupes .fb-shell { display: block !important; height: auto !important; min-height: 100dvh !important; }
+      .lynora-groupes .fb-content { width: 100% !important; height: auto !important; min-height: 0 !important; overflow: visible !important; padding: 0 0 calc(56px + env(safe-area-inset-bottom)) !important; }
       .lynora-groups-index { padding: 0 !important; width: 100% !important; gap: 0 !important; }
       .lynora-groups-feed { gap: 0 !important; }
+      .lynora-groups-sidebar-toggle { width: 100% !important; min-height: 48px !important; margin: 0 !important; padding: 12px 16px !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; justify-content: flex-start !important; text-align: left !important; }
+      .lynora-groups-feed > div:not(.lynora-groups-card-grid)[style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
       .lynora-groups-feed .fb-post-card { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
       .lynora-groups-feed .fb-empty-feed { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
       .lynora-group-detail { padding: 0 0 24px !important; width: 100% !important; }
@@ -690,6 +702,10 @@ const FontImports = () => (
       .lynora-create-steps { padding: 16px 18px 4px !important; }
       .lynora-create-overlay { padding: 0 !important; align-items: stretch !important; }
       .lynora-create-modal { width: 100% !important; max-width: none !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; padding-bottom: env(safe-area-inset-bottom); }
+      .lynora-group-settings-modal { width: 100% !important; max-width: none !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; }
+      .lynora-group-settings-modal > div:nth-child(2) { grid-template-columns: minmax(0, 1fr) !important; padding: 18px !important; }
+      .lynora-group-settings-modal > div:nth-child(2) > div[style*="repeat(2"] { grid-template-columns: minmax(0, 1fr) !important; }
+      .lynora-group-settings-modal > div:last-child { padding: 0 18px max(18px, env(safe-area-inset-bottom)) !important; }
       .lynora-create-modal input, .lynora-create-modal textarea, .lynora-create-modal select { font-size: 16px !important; }
       .lynora-event-overlay, .lynora-file-overlay { padding: 0 !important; align-items: stretch !important; }
       .lynora-event-modal, .lynora-file-modal { width: 100vw !important; max-width: none !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; box-shadow: none !important; }
@@ -857,7 +873,7 @@ const usePlatformUserSearch = (active) => {
     setError(false);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/users?search=${encodeURIComponent(query.trim())}&limit=20`);
+        const res = await fetchBackendApi(`/api/users?search=${encodeURIComponent(query.trim())}&limit=20`);
         if (!res.ok) throw new Error("Erreur lors du chargement des utilisateurs");
         const data = await res.json();
         if (!cancelled) setResults(Array.isArray(data.users) ? data.users : Array.isArray(data) ? data : []);
@@ -1077,6 +1093,112 @@ const EmptyState = ({ icon: Icon, title, subtitle }) => (
     <p style={{ fontFamily: S.font, fontSize: 13.5, color: C.muted, margin: 0 }}>{subtitle}</p>
   </div>
 );
+
+const GroupSettingsModal = ({ group, onClose, onSave }) => {
+  const getInitialForm = (currentGroup) => ({
+    name: currentGroup?.name || "",
+    description: currentGroup?.description || "",
+    category: currentGroup?.category || "tech",
+    privacy: currentGroup?.privacy || "public",
+    postPermission: currentGroup?.postPermission || "all",
+    location: currentGroup?.location || "",
+    rules: Array.isArray(currentGroup?.rules) ? currentGroup.rules.join("\n") : "",
+  });
+  const [form, setForm] = useState(() => getInitialForm(group));
+  const [saving, setSaving] = useState(false);
+
+  useEscapeToClose(Boolean(group), onClose);
+  useEffect(() => {
+    if (group) setForm(getInitialForm(group));
+  }, [group]);
+
+  if (!group) return null;
+
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const save = async (event) => {
+    event.preventDefault();
+    if (!form.name.trim() || saving) return;
+    setSaving(true);
+    try {
+      const saved = await onSave(group.id, {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        category: form.category,
+        privacy: form.privacy,
+        postPermission: form.postPermission,
+        location: form.location.trim(),
+        rules: form.rules.split("\n").map((rule) => rule.trim()).filter(Boolean),
+      });
+      if (saved) onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.line}`, background: C.paper, color: C.ink, fontFamily: S.font, fontSize: 13, outline: "none", boxSizing: "border-box" };
+  const labelStyle = { display: "block", marginBottom: 6, fontFamily: S.font, fontSize: 11.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: .4 };
+
+  return (
+    <div className="lynora-create-overlay" style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)" }} onClick={onClose}>
+      <form className="lynora-group-settings-modal" onSubmit={save} onClick={(event) => event.stopPropagation()} style={{ width: "95%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", borderRadius: 18, background: C.white, boxShadow: "0 30px 60px rgba(0,0,0,.22)" }}>
+        <div style={{ padding: "20px 24px", background: navyGrad, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Settings size={17} style={{ color: C.gold400 }} />
+            <div>
+              <h2 style={{ margin: 0, fontFamily: S.display, fontSize: 19, fontWeight: 600, color: C.white }}>Paramètres du groupe</h2>
+              <p style={{ margin: "3px 0 0", fontFamily: S.font, fontSize: 12, color: "rgba(255,255,255,.68)" }}>{group.name}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Fermer les paramètres" style={{ width: 32, height: 32, border: 0, borderRadius: 9, background: "rgba(255,255,255,.14)", color: C.white, cursor: "pointer" }}><X size={14} /></button>
+        </div>
+        <div style={{ display: "grid", gap: 16, padding: 24 }}>
+          <div>
+            <label style={labelStyle}>Nom du groupe</label>
+            <input required maxLength={60} value={form.name} onChange={(event) => update("name", event.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea maxLength={220} value={form.description} onChange={(event) => update("description", event.target.value)} style={{ ...inputStyle, minHeight: 76, resize: "vertical" }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Catégorie</label>
+              <select value={form.category} onChange={(event) => update("category", event.target.value)} style={inputStyle}>
+                {CATEGORIES.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Localisation</label>
+              <input value={form.location} onChange={(event) => update("location", event.target.value)} placeholder="Ex. Antananarivo" style={inputStyle} />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Confidentialité</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+              {[{ value: "public", label: "Public", icon: Globe }, { value: "private", label: "Privé", icon: Lock }].map(({ value, label, icon: Icon }) => (
+                <button key={value} type="button" onClick={() => update("privacy", value)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, border: `1px solid ${form.privacy === value ? C.gold600 : C.line}`, background: form.privacy === value ? C.warn50 : C.white, color: form.privacy === value ? C.gold600 : C.muted, fontFamily: S.font, fontSize: 13, fontWeight: 700, cursor: "pointer" }}><Icon size={14} /> {label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Qui peut publier ?</label>
+            <select value={form.postPermission} onChange={(event) => update("postPermission", event.target.value)} style={inputStyle}>
+              {POST_PERMISSIONS.map((permission) => <option key={permission.id} value={permission.id}>{permission.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Règles, une par ligne</label>
+            <textarea value={form.rules} onChange={(event) => update("rules", event.target.value)} placeholder="Soyez respectueux\nPas de spam" style={{ ...inputStyle, minHeight: 86, resize: "vertical" }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 24px 22px" }}>
+          <button type="button" onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${C.line}`, background: C.white, color: C.muted, fontFamily: S.font, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
+          <button type="submit" disabled={saving || !form.name.trim()} style={{ padding: "10px 18px", borderRadius: 10, border: 0, background: saving || !form.name.trim() ? C.mutedLight : navyGrad, color: C.white, fontFamily: S.font, fontSize: 13, fontWeight: 700, cursor: saving || !form.name.trim() ? "not-allowed" : "pointer" }}>{saving ? "Enregistrement..." : "Enregistrer"}</button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 const StatBlock = ({ value, label, icon: Icon, color }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 13, padding: "15px 18px", borderRadius: 14, background: C.white, border: `1px solid ${C.line}`, boxShadow: shadow.xs }}>
@@ -2145,7 +2267,7 @@ const AddFileModal = ({ open, group, onClose, onAdd, currentUser }) => {
       const formData = new FormData();
       formData.append("file", pending);
       formData.append("type", "document");
-      const response = await fetch("/api/upload", { method: "POST", body: formData });
+      const response = await fetchBackendApi("/api/upload", { method: "POST", body: formData });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.url) throw new Error(data.error || "Le téléversement a échoué.");
       setProgress(100);
@@ -2290,7 +2412,7 @@ const JoinRequestModal = ({ open, group, onClose, onSubmitted, onToast }) => {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch(`/api/groups/${group.id}/join-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers }) });
+      const response = await fetchBackendApi(`/api/groups/${group.id}/join-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Impossible d'envoyer la demande");
       onSubmitted(data.request);
@@ -2356,7 +2478,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
 
   useEffect(() => {
     let active = true;
-    fetch('/api/settings')
+    fetchBackendApi('/api/settings')
       .then(async (response) => {
         if (!response.ok) throw new Error('Impossible de charger les paramètres');
         return response.json();
@@ -2380,7 +2502,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     setNotifOn(nextValue);
 
     try {
-      const response = await fetch('/api/settings', {
+      const response = await fetchBackendApi('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2735,7 +2857,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     };
     try {
       if (group.privacy !== "private") {
-        const response = await fetch("/api/posts", {
+        const response = await fetchBackendApi("/api/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2777,7 +2899,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
         await Promise.all([...adminIds].filter(Boolean).map(async (adminId) => {
           if (!adminId || adminId === (currentUserId || session?.user?.id)) return null;
           try {
-            await fetch("/api/notifications", {
+            await fetchBackendApi("/api/notifications", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -2813,7 +2935,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     }
   };
 
-  const handleAddComment = (postId) => {
+  const handleAddComment = async (postId) => {
     const text = (commentDrafts[postId] || "").trim();
     if (!text) return;
     const commentAuthor = session?.user?.name || CURRENT_USER.name;
@@ -2833,6 +2955,10 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     };
     updatePosts(posts => posts.map(p => p.id === postId ? { ...p, comments: [...p.comments, comment] } : p));
     setCommentDrafts(prev => ({ ...prev, [postId]: "" }));
+    if (!String(postId).startsWith("new_") && !String(postId).startsWith("shared_")) {
+      const response = await fetchBackendApi(`/api/posts/${postId}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      if (!response.ok) updatePosts(posts => posts.map(p => p.id === postId ? { ...p, comments: p.comments.filter(item => item.id !== comment.id) } : p));
+    }
   };
 
   const handleShare = (postId) => {
@@ -2852,7 +2978,11 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
     onToast("Publication mise à jour", "success");
   };
 
-  const handleDeletePost = (postId) => {
+  const handleDeletePost = async (postId) => {
+    if (!String(postId).startsWith("new_") && !String(postId).startsWith("shared_")) {
+      const response = await fetchBackendApi(`/api/posts/${postId}`, { method: "DELETE" });
+      if (!response.ok) return;
+    }
     onUpdateGroup(group.id, g => ({ ...g, posts: g.posts.filter(p => p.id !== postId), postsCount: Math.max(0, (g.postsCount || 1) - 1) }));
     setOpenMenuFor(null);
     onToast("Publication supprimée", "success");
@@ -2861,7 +2991,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
   const toggleRsvp = async (eventId, currentAttending = rsvpdEvents.includes(eventId)) => {
     const nowRsvpd = currentAttending || rsvpdEvents.includes(eventId);
     try {
-      const response = await fetch(`/api/groups/${group.id}/events`, {
+      const response = await fetchBackendApi(`/api/groups/${group.id}/events`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId, attending: !nowRsvpd }),
@@ -2880,7 +3010,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
   };
 
   const handleCreateEvent = async (eventData) => {
-    const response = await fetch(`/api/groups/${group.id}/events`, {
+    const response = await fetchBackendApi(`/api/groups/${group.id}/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(eventData),
@@ -2902,7 +3032,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
       role: "Membre",
       createdAt: data.event.createdAt || new Date().toISOString(),
       time: data.event.createdAt || new Date().toISOString(),
-      text: fileData.description?.trim() || "",
+      text: eventData.description?.trim() || "",
       media: [],
       images: [],
       visibility: group.privacy === "private" ? "Privé" : "Public",
@@ -3796,7 +3926,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
                         aria-label={`Télécharger ${f.name}`}
                         onClick={async () => {
                           try {
-                            const response = await fetch(`/api/groups/${group.id}/files/${encodeURIComponent(f.id)}/download`, { credentials: "include" });
+                            const response = await fetchBackendApi(`/api/groups/${group.id}/files/${encodeURIComponent(f.id)}/download`);
                             if (!response.ok) throw new Error();
                             const blob = await response.blob();
                             const url = URL.createObjectURL(blob);
@@ -3954,7 +4084,7 @@ const GroupAdminPanel = ({ group, onBack, onToast, onDeleteGroup, onUpdateGroup 
 
   const decideRequest = async (req, decision) => {
     try {
-      const response = await fetch(`/api/groups/${group.id}/join-requests`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: req.id, decision }) });
+      const response = await fetchBackendApi(`/api/groups/${group.id}/join-requests`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: req.id, decision }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Impossible de traiter la demande");
       onUpdateGroup(group.id, g => ({ ...g, members: data.group.members, joinRequests: data.group.joinRequests }), false);
@@ -3974,7 +4104,7 @@ const GroupAdminPanel = ({ group, onBack, onToast, onDeleteGroup, onUpdateGroup 
       : `Votre publication a été rejetée dans le groupe ${group.name}.`;
 
     try {
-      await fetch("/api/notifications", {
+      await fetchBackendApi("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -4589,8 +4719,12 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   const [feedTab, setFeedTab] = useState("feed");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
+  const [sidebarGroupSearch, setSidebarGroupSearch] = useState("");
+  const [gridSearch, setGridSearch] = useState("");
+  const [gridSearching, setGridSearching] = useState(false);
   const [composerTarget, setComposerTarget] = useState(null);
   const [openGridPost, setOpenGridPost] = useState(null);
+  const [settingsGroup, setSettingsGroup] = useState(null);
 
   const showToast = useCallback((message, type = "success") => setToast({ message, type }), []);
 
@@ -4606,7 +4740,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
       const url = new URL("/api/groups", window.location.origin);
       const q = String(query || "").trim();
       if (q) url.searchParams.set("search", q);
-      const res = await fetch(url.toString(), { cache: "no-store" });
+      const res = await fetchBackendApi(`${url.pathname}${url.search}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Erreur lors du chargement des groupes");
       const data = await res.json();
       setGroups(Array.isArray(data.groups) ? data.groups : []);
@@ -4634,6 +4768,19 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
     groupScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [view]);
 
+  // Gère l'animation de progression lors de la recherche en grille
+  useEffect(() => {
+    if (!gridSearch.trim()) {
+      setGridSearching(false);
+      return;
+    }
+    setGridSearching(true);
+    const timer = setTimeout(() => {
+      setGridSearching(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [gridSearch]);
+
   // Le groupe sélectionné est toujours dérivé de la liste à jour : toute
   // modification (posts, membres, paramètres...) reste visible en revenant
   // sur le détail ou le panneau admin, au lieu de retomber sur un instantané figé.
@@ -4647,6 +4794,21 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   const discoverGroupCount = groups.filter((group) => group.ownerId !== session?.user?.id && !(group.members || []).some((member) => member?.id === session?.user?.id || member === session?.user?.id)).length;
   const managedGroups = useMemo(() => groups.filter(g => g.ownerId === session?.user?.id || (g.members || []).some(m => m?.id === session?.user?.id && (m.role === "admin" || m.role === "moderator"))), [groups, session?.user?.id]);
   const memberGroups = useMemo(() => groups.filter(g => g.ownerId !== session?.user?.id && (g.members || []).some(m => m?.id === session?.user?.id)), [groups, session?.user?.id]);
+  const filteredManagedGroups = useMemo(() => {
+    if (!sidebarGroupSearch.trim()) return managedGroups;
+    const term = sidebarGroupSearch.toLowerCase();
+    return managedGroups.filter(g => g.name.toLowerCase().includes(term) || (g.description || "").toLowerCase().includes(term));
+  }, [managedGroups, sidebarGroupSearch]);
+  const filteredMemberGroups = useMemo(() => {
+    if (!sidebarGroupSearch.trim()) return memberGroups;
+    const term = sidebarGroupSearch.toLowerCase();
+    return memberGroups.filter(g => g.name.toLowerCase().includes(term) || (g.description || "").toLowerCase().includes(term));
+  }, [memberGroups, sidebarGroupSearch]);
+  const filteredAllGroups = useMemo(() => {
+    if (!gridSearch.trim()) return groups;
+    const term = gridSearch.toLowerCase();
+    return groups.filter(g => g.name.toLowerCase().includes(term) || (g.description || "").toLowerCase().includes(term) || (g.category || "").toLowerCase().includes(term));
+  }, [groups, gridSearch]);
   const discoverGroups = useMemo(() => {
     const base = groups.filter(g => g.ownerId !== session?.user?.id && !(g.members || []).some(m => m?.id === session?.user?.id));
     return base;
@@ -4691,14 +4853,14 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
   // une fonction (group) => group pour les mutations qui dépendent de l'état actuel.
   const updateGroup = useCallback(async (groupId, updater, persist = true) => {
     const currentGroup = groups.find(g => g.id === groupId);
-    if (!currentGroup) return;
+    if (!currentGroup) return false;
 
     const nextGroup = typeof updater === "function" ? updater(currentGroup) : { ...currentGroup, ...updater };
     setGroups(prev => prev.map(g => g.id !== groupId ? g : nextGroup));
-    if (!persist) return;
+    if (!persist) return true;
 
     try {
-      const res = await fetch(`/api/groups/${groupId}`, {
+      const res = await fetchBackendApi(`/api/groups/${groupId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nextGroup),
@@ -4708,12 +4870,20 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "La mise à jour du groupe a échoué");
       }
+      return true;
     } catch (error) {
       console.error("updateGroup", error);
       setGroups(prev => prev.map(g => g.id !== groupId ? g : currentGroup));
       showToast("La modification du groupe n’a pas été enregistrée", "error");
+      return false;
     }
   }, [groups, showToast]);
+
+  const handleSaveGroupSettings = useCallback(async (groupId, changes) => {
+    const saved = await updateGroup(groupId, changes);
+    if (saved) showToast("Paramètres du groupe enregistrés", "success");
+    return saved;
+  }, [showToast, updateGroup]);
 
   const handleSelectGroup = useCallback((g) => { setSelectedGroupId(g.id); setView("detail"); }, []);
   const handleOpenComposer = useCallback((g, mode = "post") => {
@@ -4731,7 +4901,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
 
   const handleCreateGroup = useCallback(async (g) => {
     try {
-      const res = await fetch("/api/groups", {
+      const res = await fetchBackendApi("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(g),
@@ -4748,7 +4918,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
 
   const handleDeleteGroup = useCallback(async (groupId) => {
     try {
-      const res = await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
+      const res = await fetchBackendApi(`/api/groups/${groupId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Erreur lors de la suppression du groupe");
       setGroups(prev => prev.filter(g => g.id !== groupId));
       setSelectedGroupId(null);
@@ -4787,7 +4957,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
       : { ...item, members: [...(item.members || []), member] }));
 
     try {
-      const response = await fetch(`/api/groups/${groupId}/join`, { method: "POST" });
+      const response = await fetchBackendApi(`/api/groups/${groupId}/join`, { method: "POST" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Impossible de rejoindre le groupe");
       setDismissedSuggestions(prev => [...prev, groupId]);
@@ -4827,9 +4997,9 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                 <aside className={`fb-sidebar lynora-groups-sidebar${sidebarOpen ? " is-open" : ""}`}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 12 }}>
                     <h2 style={{ fontFamily: S.font, fontSize: 24, fontWeight: 700, color: C.ink, margin: 0 }}>Groupes</h2>
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.line, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Settings size={14} style={{ color: C.muted }} />
-                    </div>
+                    <button className="lynora-groups-sidebar-close" type="button" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu des groupes" style={{ width: 36, height: 36, border: 0, borderRadius: 10, background: C.line, color: C.muted, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                      <X size={15} />
+                    </button>
                   </div>
 
                   <div className="fb-search-bar" style={{ marginBottom: 12 }}>
@@ -4837,8 +5007,8 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                     <input
                       type="text"
                       placeholder="Rechercher des groupes"
-                      value={groupSearch}
-                      onChange={e => setGroupSearch(e.target.value)}
+                      value={sidebarGroupSearch}
+                      onChange={e => setSidebarGroupSearch(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -4849,15 +5019,15 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 12 }}>
-                    <button className={`fb-nav-item${feedTab === "feed" ? "" : " inactive"}`} onClick={() => setFeedTab("feed")}>
+                    <button className={`fb-nav-item${feedTab === "feed" ? "" : " inactive"}`} onClick={() => { setFeedTab("feed"); setSidebarOpen(false); }}>
                       <span className="fb-nav-icon"><Newspaper size={16} /></span>
                       Votre fil
                     </button>
-                    <button className={`fb-nav-item${feedTab === "discover" ? "" : " inactive"}`} onClick={() => setFeedTab("discover")}>
+                    <button className={`fb-nav-item${feedTab === "discover" ? "" : " inactive"}`} onClick={() => { setFeedTab("discover"); setSidebarOpen(false); }}>
                       <span className="fb-nav-icon"><Compass size={16} /></span>
                       Découvrir
                     </button>
-                    <button className={`fb-nav-item${feedTab === "your-groups" ? "" : " inactive"}`} onClick={() => setFeedTab("your-groups")}>
+                    <button className={`fb-nav-item${feedTab === "your-groups" ? "" : " inactive"}`} onClick={() => { setFeedTab("your-groups"); setSidebarOpen(false); }}>
                       <span className="fb-nav-icon"><Users size={16} /></span>
                       Vos groupes
                     </button>
@@ -4867,10 +5037,10 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                     <Plus size={16} /> Créer un nouveau groupe
                   </button>
 
-                  {managedGroups.length > 0 && (
+                  {filteredManagedGroups.length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <div className="fb-section-title">Groupes que vous gérez</div>
-                      {managedGroups.slice(0, 3).map(g => (
+                      {filteredManagedGroups.slice(0, 3).map(g => (
                         <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
                           <div className="fb-group-avatar">
                             {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
@@ -4884,7 +5054,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                           </div>
                         </div>
                       ))}
-                      {managedGroups.length > 3 && (
+                      {filteredManagedGroups.length > 3 && (
                         <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
                           Voir plus <ChevronDown size={12} />
                         </button>
@@ -4892,10 +5062,10 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                     </div>
                   )}
 
-                  {memberGroups.length > 0 && (
+                  {filteredMemberGroups.length > 0 && (
                     <div style={{ marginTop: 4 }}>
                       <div className="fb-section-title">Groupes dont vous êtes membre</div>
-                      {memberGroups.slice(0, 5).map(g => (
+                      {filteredMemberGroups.slice(0, 5).map(g => (
                         <div key={g.id} className="fb-group-item" onClick={() => handleSelectGroup(g)}>
                           <div className="fb-group-avatar">
                             {g.coverUrl ? <img src={g.coverUrl} alt="" /> : <span>{g.emoji || "🌐"}</span>}
@@ -4906,7 +5076,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                           </div>
                         </div>
                       ))}
-                      {memberGroups.length > 5 && (
+                      {filteredMemberGroups.length > 5 && (
                         <button className="fb-see-more" onClick={() => setFeedTab("your-groups")}>
                           Voir plus <ChevronDown size={12} />
                         </button>
@@ -4991,12 +5161,18 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                             <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez le premier groupe pour commencer à bâtir votre communauté.</div>
                           </div>
                         ) : (
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
+                          <div className="lynora-groups-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
                             {discoverGroups.map((group, idx) => {
                               const memberCount = (group.members || []).length;
                               return (
                                 <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
-                                  <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
+                                  <div
+                                    onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); handleSelectGroup(group); } }}
+                                    style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group), cursor: "pointer" }}
+                                  >
                                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
                                     <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 12, background: "rgba(0,0,0,.4)", color: "#fff", fontSize: 10.5, fontWeight: 600 }}>
                                       {group.privacy === "private" ? <Lock size={9} /> : <Globe size={9} />}
@@ -5004,13 +5180,22 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
                                     </div>
                                   </div>
                                   <div style={{ padding: "12px 14px 14px", flex: 1 }}>
-                                    <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
+                                    <h3
+                                      onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); handleSelectGroup(group); } }}
+                                      style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
+                                    >
+                                      {group.name}
+                                    </h3>
                                     <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
                                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                       <Users size={12} style={{ color: C.muted }} />
                                       <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
                                     </div>
                                     <button
+                                      type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (group.privacy === "private") {
@@ -5034,34 +5219,119 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
 
                     {feedTab === "your-groups" && (
                       <>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
-                          {visibleGridGroups.map((group, idx) => {
+                        <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
+                          <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
+                            <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedLight }} />
+                            <input
+                              type="text"
+                              value={gridSearch}
+                              onChange={e => setGridSearch(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
+                              placeholder="Filtrer les groupes..."
+                              style={{ width: "100%", padding: "12px 16px 12px 38px", borderRadius: 14, border: `1px solid ${C.line}`, fontFamily: S.font, fontSize: 14, color: C.ink, outline: "none", boxSizing: "border-box", background: "#FFFFFF", boxShadow: "inset 0 1px 2px rgba(18,38,24,0.03)" }}
+                            />
+                            {gridSearching && (
+                              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", borderRadius: "0 0 14px 14px", background: "linear-gradient(90deg, #1B5386 0%, #D9A536 50%, #1B5386 100%)", backgroundSize: "200% 100%", animation: "slideGradient 1.2s ease-in-out forwards" }} />
+                            )}
+                          </div>
+                        </div>
+                        <style>{`
+                          @keyframes slideGradient {
+                            0% { background-position: 200% 0; }
+                            100% { background-position: -200% 0; }
+                          }
+                        `}</style>
+                        <div className="lynora-groups-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 12 }}>
+                          {filteredAllGroups.map((group, idx) => {
                             const memberCount = (group.members || []).length;
                             const cat = CATEGORIES.find(c => c.id === group.category);
+                            const isOwner = group.ownerId === session?.user?.id;
+                            const isManager = isOwner || (group.members || []).some(m => m?.id === session?.user?.id && ["admin", "moderator"].includes(m.role));
+                            const isMember = isManager || (group.members || []).some(m => m?.id === session?.user?.id);
                             return (
-                              <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms` }}>
-                                <div style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group) }}>
+                              <Card key={group.id} onClick={() => handleSelectGroup(group)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", animation: `lynoraFadeUp .4s ease both`, animationDelay: `${idx * 40}ms`, opacity: gridSearching ? 0.8 : 1, transition: "opacity 0.3s ease" }}>
+                                <div
+                                  onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); handleSelectGroup(group); } }}
+                                  style={{ height: 100, position: "relative", overflow: "hidden", ...getGroupCoverStyle(group), cursor: "pointer" }}
+                                >
                                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.3) 100%)" }} />
                                   {cat && <div style={{ position: "absolute", bottom: 8, left: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: cat.color }}>{cat.label}</div>}
-                                  {group.ownerId === session?.user?.id && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: C.navy800, display: "flex", alignItems: "center", gap: 3 }}><Crown size={9} /> Admin</div>}
+                                  {isOwner && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 12, background: "rgba(255,255,255,.9)", fontSize: 10, fontWeight: 700, color: C.navy800, display: "flex", alignItems: "center", gap: 3 }}><Crown size={9} /> Admin</div>}
+                                  {!isMember && group.privacy === "public" && <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 12, background: "rgba(0,0,0,.4)", color: "#fff", fontSize: 10.5, fontWeight: 600 }}><Globe size={9} /> Public</div>}
+                                  {!isMember && group.privacy === "private" && <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 12, background: "rgba(0,0,0,.4)", color: "#fff", fontSize: 10.5, fontWeight: 600 }}><Lock size={9} /> Privé</div>}
                                 </div>
                                 <div style={{ padding: "12px 14px 14px", flex: 1 }}>
-                                  <h3 style={{ fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{group.name}</h3>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                    <h3
+                                      onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); handleSelectGroup(group); } }}
+                                      style={{ flex: 1, minWidth: 0, fontFamily: S.font, fontSize: 14.5, fontWeight: 700, color: C.ink, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
+                                    >
+                                      {group.name}
+                                    </h3>
+                                    {isManager && (
+                                      <button
+                                        type="button"
+                                        aria-label={`Ouvrir les paramètres de ${group.name}`}
+                                        title="Paramètres du groupe"
+                                        onClick={(event) => { event.stopPropagation(); setSettingsGroup(group); }}
+                                        style={{ width: 30, height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: `1px solid ${C.line}`, background: C.white, color: C.muted, cursor: "pointer" }}
+                                      >
+                                        <Settings size={14} />
+                                      </button>
+                                    )}
+                                  </div>
                                   <p style={{ fontFamily: S.font, fontSize: 12, color: C.muted, margin: "0 0 10px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{group.description || "Sans description"}</p>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <Users size={12} style={{ color: C.muted }} />
                                     <span style={{ fontSize: 12, color: C.muted }}>{memberCount} membre{memberCount > 1 ? "s" : ""}</span>
                                   </div>
+                                  {!isMember && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (group.privacy === "private") {
+                                          handleSelectGroup(group);
+                                        } else {
+                                          handleJoinGroup(group.id);
+                                        }
+                                      }}
+                                      style={{ width: "100%", marginTop: 10, padding: "8px 12px", borderRadius: 8, border: "none", background: C.navy800, color: "#fff", fontFamily: S.font, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                                    >
+                                      {group.privacy === "private" ? "Demander à rejoindre" : "Rejoindre"}
+                                    </button>
+                                  )}
                                 </div>
                               </Card>
                             );
                           })}
                         </div>
-                        {visibleGridGroups.length === 0 && (
+                        {filteredAllGroups.length === 0 && (
                           <div className="fb-empty-feed">
-                            <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
-                            <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe</div>
-                            <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez votre premier groupe ou rejoignez-en un.</div>
+                            {gridSearch.trim() ? (
+                              <>
+                                <Search size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                                <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe trouvé</div>
+                                <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Essayez de modifier votre recherche ou découvrez les groupes publics.</div>
+                              </>
+                            ) : (
+                              <>
+                                <Users size={48} style={{ color: C.mutedLight, marginBottom: 16 }} />
+                                <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Aucun groupe</div>
+                                <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>Créez votre premier groupe ou rejoignez-en un.</div>
+                              </>
+                            )}
                           </div>
                         )}
                       </>
@@ -5140,6 +5410,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
         <GroupAdminPanel group={selectedGroup} onBack={handleAdminBack} onToast={showToast} onDeleteGroup={handleDeleteGroup} onUpdateGroup={updateGroup} />
       )}
       <CreateGroupModal open={showCreate} onClose={() => setShowCreate(false)} onCreate={handleCreateGroup} />
+      <GroupSettingsModal group={settingsGroup} onClose={() => setSettingsGroup(null)} onSave={handleSaveGroupSettings} />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );

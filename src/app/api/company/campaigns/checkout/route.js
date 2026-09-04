@@ -8,8 +8,6 @@ import { getSubscriptionAccess } from "@/lib/subscription";
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
-  const access = await getSubscriptionAccess(session.user.id);
-  if (!access.isPremium) return NextResponse.json({ error: "Acces reserve aux pages entreprise Premium" }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const setting = await prisma.userSetting.findFirst({ where: { key: body.id, userId: session.user.id } });
   if (!setting) return NextResponse.json({ error: "Campagne introuvable" }, { status: 404 });

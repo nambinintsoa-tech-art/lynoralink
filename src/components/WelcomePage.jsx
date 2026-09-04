@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import LogoBadge from "./LogoBadge";
 import ProfileCompletionModal from "./ProfileCompletionModal";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ------------------------------------------------------------------ */
 /*  TOKENS — identiques au reste de l'application                    */
@@ -103,7 +104,7 @@ export default function WelcomePage({
       return;
     }
     let cancelled = false;
-    fetch("/api/stats")
+    fetchBackendApi("/api/stats")
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled && data?.stats) setStats(data.stats);

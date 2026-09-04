@@ -1,6 +1,26 @@
+import { createClient } from "redis";
+
 const globalState = globalThis.__lynoraRealtime ??= {
   clients: new Map(),
 };
+let redisClient;
+let redisConnecting;
+
+async function publishRealtimeEvent(event) {
+  if (!process.env.REDIS_URL) return;
+  if (!redisClient) {
+    redisClient = createClient({ url: process.env.REDIS_URL });
+    redisClient.on("error", () => {});
+  }
+  if (!redisConnecting) {
+    redisConnecting = redisClient.connect().catch(() => {
+      redisConnecting = null;
+      redisClient = null;
+    });
+  }
+  await redisConnecting;
+  if (redisClient?.isReady) await redisClient.publish("lynoralink:realtime", JSON.stringify(event));
+}
 
 const encoder = new TextEncoder();
 
@@ -47,6 +67,8 @@ export function broadcastRealtimeEvent({ userId = null, userIds = [], type = "up
     ...payload,
     sentAt: new Date().toISOString(),
   })}\n\n`;
+
+  void publishRealtimeEvent({ userId, userIds, type, payload, broadcastToAll });
 
   for (const client of recipients) {
     try {

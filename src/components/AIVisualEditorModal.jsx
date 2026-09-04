@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { fetchBackendApi } from "@/lib/backend-api";
+import { useToast } from "@/components/ToastProvider";
 import {
   Sparkles, Wand2, Image as ImageIcon, Download, RefreshCw, Check, X,
   Send, Loader2, ArrowLeft, Settings2, Plus, Crop, Palette,
@@ -801,7 +803,8 @@ function cleanGeneratedContent(value = "") {
     .replace(/^\s*#{1,6}\s*/gm, "")
     .replace(/\*{2,3}([^*\n]+)\*{2,3}/g, "$1")
     .replace(/(^|\n)\s*\*([^*\n]+)\*(?=\s*(?:\n|$))/g, "$1$2")
-    .replace(/(^|\n)\s*[-*+]\s+/g, "$1")
+    .replace(/(^|\n)\s*[-*+]\s+/g, "$1• ")
+    .replace(/`([^`]+)`/g, "$1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -879,6 +882,7 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef(null);
+  const toast = useToast();
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth <= 900);
@@ -892,7 +896,7 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
     if (prompt.trim().length < 8) { setError("Décrivez plus en détail (minimum 8 caractères)."); return; }
     setError(""); setIsGenerating(true); setImages([]);
     try {
-      const res = await fetch("/api/ai-image/generate", {
+      const res = await fetchBackendApi("/api/ai-image/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: prompt.trim(), style: styleId, aspect: aspectId, count }),
@@ -900,6 +904,12 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        if (res.status === 403 && data?.error?.toLowerCase().includes("premium")) {
+          toast?.push("Le VisuelFocus est réservé au plan Premium.", "warning");
+          setError("");
+          setIsGenerating(false);
+          return;
+        }
         throw new Error(data?.error || "La génération d'image a échoué.");
       }
 
@@ -912,14 +922,14 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
       setIsGenerating(false);
       setError(err?.message || "Erreur inconnue pendant la génération.");
     }
-  }, [prompt, styleId, aspectId, count]);
+  }, [prompt, styleId, aspectId, count, toast]);
 
   const handleGenerateArticle = useCallback(async () => {
     if (!topic.trim()) { setError("Veuillez indiquer un sujet."); return; }
     if (topic.trim().length < 5) { setError("Sujet trop court (minimum 5 caractères)."); return; }
     setError(""); setIsGenerating(true); setArticle(null);
     try {
-      const res = await fetch("/api/ai-article/generate", {
+      const res = await fetchBackendApi("/api/ai-article/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: topic.trim(), tone, length, format, images: articleImages }),
@@ -927,6 +937,12 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        if (res.status === 403 && data?.error?.toLowerCase().includes("premium")) {
+          toast?.push("Le VisuelFocus est réservé au plan Premium.", "warning");
+          setError("");
+          setIsGenerating(false);
+          return;
+        }
         throw new Error(data?.error || "La génération d'article a échoué.");
       }
 
@@ -939,7 +955,7 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
       setIsGenerating(false);
       setError(err?.message || "Erreur inconnue pendant la génération.");
     }
-  }, [topic, tone, length, format, articleImages]);
+  }, [topic, tone, length, format, articleImages, toast]);
 
   const handlePublish = () => {
     if (mode === "image") {

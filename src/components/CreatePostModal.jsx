@@ -12,6 +12,7 @@ import {
 import ArticleViewerPreview from "./ArticleViewerPreview";
 import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
+import { fetchBackendApi } from "@/lib/backend-api";
 import Emojipicker from "./Emojipicker";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faNewspaper, faPhotoFilm, faVideo, faWandSparkles } from "@fortawesome/free-solid-svg-icons";
@@ -78,6 +79,8 @@ const CREATE_POST_MODAL_CSS = `
   .cpm-add-tile { transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; cursor: pointer; }
   .cpm-add-tile:hover { border-color: ${C.gold600}; background: rgba(217,165,54,0.08); transform: translateY(-2px); }
 
+  .cpm-avatar { border-radius: 50% !important; }
+
   .cpm-icon-btn { transition: background 150ms ease, color 150ms ease; }
   .cpm-icon-btn:hover { background: ${C.navy50}; }
 
@@ -138,24 +141,59 @@ const CREATE_POST_MODAL_CSS = `
 
   @media (max-width: 900px) {
     .cpm-overlay {
+      width: 100vw !important;
+      max-width: none !important;
+      margin-left: calc(50% - 50vw) !important;
       padding: 0 !important;
       padding-top: env(safe-area-inset-top) !important;
       align-items: stretch !important;
+      justify-content: stretch !important;
       overflow-y: auto !important;
       overflow-x: hidden !important;
       -webkit-overflow-scrolling: touch;
+      background: rgba(15,51,82,0.6) !important;
     }
     .cpm-panel {
-      width: 100% !important;
-      max-width: 100% !important;
+      width: 100vw !important;
+      max-width: none !important;
+      min-width: 100vw !important;
+      margin: 0 !important;
       height: 100dvh !important;
       min-height: 100dvh !important;
       max-height: none !important;
       border-radius: 0 !important;
+      border: none !important;
       border-left: 0 !important;
       border-right: 0 !important;
+      box-shadow: none !important;
       overflow: visible !important;
       padding-bottom: env(safe-area-inset-bottom);
+      background: var(--app-surface) !important;
+    }
+    .cpm-panel *:not([style*="border-radius"]) {
+      border-radius: 0 !important;
+    }
+    /* Exceptions explicites pour les classes spéciales */
+    .cpm-panel .cpm-media-opt {
+      border-radius: 10px !important;
+    }
+    .cpm-panel .cpm-chip {
+      border-radius: 999px !important;
+    }
+    .cpm-panel .cpm-tile {
+      border-radius: 14px !important;
+    }
+    .cpm-panel .cpm-tile-drag {
+      border-radius: 8px !important;
+    }
+    .cpm-panel .cpm-rte-btn {
+      border-radius: 8px !important;
+    }
+    .cpm-panel button[style*="999"] {
+      border-radius: 999px !important;
+    }
+    .cpm-panel [class*="badge"] {
+      border-radius: 999px !important;
     }
     .cpm-toolbar {
       position: sticky !important;
@@ -365,15 +403,20 @@ function uploadFileWithProgress(file, { onProgress, signalRef } = {}) {
 function Avatar({ initials, size = 44, imgUrl = null, ring = false }) {
   return (
     <div
+      className="cpm-avatar"
       style={{
         width: size,
         height: size,
+        minWidth: size,
+        minHeight: size,
+        aspectRatio: "1 / 1",
+        boxSizing: "border-box",
+        borderRadius: "50%",
         background: imgUrl ? C.navy100 : navyGrad,
         color: C.white,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: "50%",
         fontWeight: 700,
         fontSize: size * 0.36,
         fontFamily: "'Sora', sans-serif",
@@ -385,7 +428,7 @@ function Avatar({ initials, size = 44, imgUrl = null, ring = false }) {
       }}
     >
       {imgUrl ? (
-        <img src={imgUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        <img src={imgUrl} alt={initials} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", display: "block" }} />
       ) : initials}
     </div>
   );
@@ -829,13 +872,13 @@ function VisibilityPicker({ value, onChange, variant = "chip", locked = false })
           type="button"
           onClick={() => !locked && setOpen((v) => !v)}
           disabled={locked}
-          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: C.navy800, background: "transparent", border: "none", cursor: locked ? "default" : "pointer", padding: 0, marginTop: 2 }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: C.navy800, background: "transparent", border: "none", cursor: locked ? "default" : "pointer", padding: 0, marginTop: 2, borderRadius: "8px" }}
         >
           <current.icon size={13} /> {current.label}
           <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }} />
         </button>
         {open && !locked && (
-          <div className="cpm-fade" style={{ position: "absolute", top: 30, left: 0, background: C.white, border: `1px solid ${C.line}`, borderRadius: 12, boxShadow: "0 12px 32px rgba(15,51,82,0.18)", zIndex: 20, minWidth: 230, overflow: "hidden" }}>
+          <div className="cpm-fade" style={{ position: "absolute", top: 30, left: 0, background: C.white, border: `1px solid ${C.line}`, borderRadius: "12px", boxShadow: "0 12px 32px rgba(15,51,82,0.18)", zIndex: 20, minWidth: 230, overflow: "hidden" }}>
             {VISIBILITY_OPTIONS.map((opt) => (
               <div
                 key={opt.id}
@@ -1031,7 +1074,7 @@ function IdentifierPicker({ value = [], onChange }) {
     let active = true;
     setLoading(true);
     setError("");
-    fetch("/api/users", { credentials: "include" })
+    fetchBackendApi("/api/users")
       .then((response) => {
         if (!response.ok) throw new Error("Impossible de charger les membres");
         return response.json();
@@ -1392,12 +1435,14 @@ function MediaTile({
 const MODE_TABS = [
   { id: "post", label: "Publication", icon: MessageSquare },
   { id: "article", label: "Article", icon: Pencil },
+  { id: "reel", label: "Reel", icon: Video },
   { id: "visuelfocus", label: "VisuelFocus", icon: Sparkles },
 ];
 
 const MEDIA_BAR_OPTIONS = [
   { id: "photo", label: "Photo", icon: faPhotoFilm, accept: "image/*", color: "#2E9E5B" },
   { id: "video", label: "Vidéo", icon: faVideo, accept: "video/*", color: "#C24444" },
+  { id: "reel", label: "Reel", icon: faVideo, action: "reel", color: "#C24444" },
   { id: "article", label: "Article", icon: faNewspaper, action: "article", color: "#1B5386" },
   { id: "visualfocus", label: "VisualFocus", icon: faWandSparkles, action: "visuelfocus", color: "#D9A536" },
 ];
@@ -1420,10 +1465,11 @@ export default function CreatePostModal({
   modalStyle,
   group = null,
 }) {
-  const [mode, setMode] = useState(initialMode === "article" ? "article" : initialMode === "visuelfocus" ? "visuelfocus" : "post");
+  const [mode, setMode] = useState(initialMode === "article" ? "article" : initialMode === "reel" ? "reel" : initialMode === "visuelfocus" ? "visuelfocus" : "post");
   const [text, setText] = useState(initialText);
   const [articleTitle, setArticleTitle] = useState(initialArticleTitle);
   const [articleExcerpt, setArticleExcerpt] = useState(initialArticleExcerpt);
+  const [reelSound, setReelSound] = useState("");
   const [media, setMedia] = useState(() => (Array.isArray(initialMedia) ? initialMedia : []).map((item, index) => ({
     ...item,
     id: item.id || `initial-media-${index}`,
@@ -1448,6 +1494,7 @@ export default function CreatePostModal({
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
+  const reelVideoInputRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInsertRef = useRef(null);
   const dragCounterRef = useRef(0);
@@ -1457,6 +1504,7 @@ export default function CreatePostModal({
   const [selectedArticleImage, setSelectedArticleImage] = useState(null);
 
   const isArticle = mode === "article";
+  const isReel = mode === "reel";
   const isVisuelfocus = mode === "visuelfocus";
   const words = isArticle ? rtePlainWordCount(text) : (text.trim() ? text.trim().split(/\s+/).length : 0);
   const estMinutes = Math.max(1, Math.round(words / 200));
@@ -1552,6 +1600,51 @@ export default function CreatePostModal({
     newItems.forEach((item) => startUpload(item, item._file));
   }, [media.length, startUpload]);
 
+  /**
+   * Ingestion dédiée au Reel : un seul fichier, exclusivement vidéo.
+   * Toute vidéo déjà présente est annulée (upload en cours interrompu) et remplacée.
+   */
+  const ingestReelVideo = useCallback((fileList) => {
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
+
+    setGlobalError("");
+
+    const file = incoming[0];
+    if (fileKind(file) !== "video") {
+      setGlobalError("Un reel doit être une vidéo (MP4, MOV ou WEBM).");
+      return;
+    }
+    const err = validateFile(file);
+    if (err) {
+      setGlobalError(err);
+      return;
+    }
+
+    setMedia((prev) => {
+      prev.forEach((item) => {
+        const signalRef = xhrRegistry.current[item.id];
+        if (signalRef?.current) signalRef.current.abort();
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
+
+    const newItem = {
+      id: uid(),
+      type: "video",
+      previewUrl: URL.createObjectURL(file),
+      name: file.name,
+      size: file.size,
+      progress: 0,
+      status: "uploading",
+      error: null,
+      _file: file,
+    };
+    setMedia([newItem]);
+    startUpload(newItem, file);
+  }, [startUpload]);
+
   const openFilePicker = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -1560,9 +1653,14 @@ export default function CreatePostModal({
     imageInputRef.current?.click();
   }, []);
 
-  const openVideoPicker = useCallback(() => {
-    videoInputRef.current?.click();
+  const openReelVideoPicker = useCallback(() => {
+    reelVideoInputRef.current?.click();
   }, []);
+
+  const handleReelVideoInputChange = (e) => {
+    ingestReelVideo(e.target.files);
+    e.target.value = "";
+  };
 
   const handleFileInputChange = (e) => {
     ingestFiles(e.target.files);
@@ -1607,12 +1705,18 @@ export default function CreatePostModal({
     e.preventDefault();
     dragCounterRef.current = 0;
     setDragActive(false);
-    if (e.dataTransfer?.files?.length) ingestFiles(e.dataTransfer.files);
+    if (e.dataTransfer?.files?.length) {
+      if (isReel) ingestReelVideo(e.dataTransfer.files);
+      else ingestFiles(e.dataTransfer.files);
+    }
   };
 
   const onPaste = (e) => {
     const files = Array.from(e.clipboardData?.files || []);
-    if (files.length) ingestFiles(files);
+    if (files.length) {
+      if (isReel) ingestReelVideo(files);
+      else ingestFiles(files);
+    }
   };
 
   /* ---------------------------- Réordonnancement des tuiles ---------------------------- */
@@ -1709,8 +1813,12 @@ export default function CreatePostModal({
   const canPublish = useMemo(() => {
     if (isUploading) return false;
     if (isArticle) return articleTitle.trim().length > 0 && text.trim().length > 20;
+    if (isReel) {
+      const videoCount = media.filter((item) => item.type === "video" && item.status === "done").length;
+      return videoCount > 0 && (text.trim().length > 0 || reelSound.trim().length > 0);
+    }
     return text.trim().length > 0 || media.length > 0;
-  }, [isArticle, articleTitle, text, media, isUploading]);
+  }, [isArticle, isReel, articleTitle, text, media, isUploading, reelSound]);
 
   const publishDisabledReason = useMemo(() => {
     if (submitting) return "Publication en cours…";
@@ -1720,9 +1828,15 @@ export default function CreatePostModal({
       if (text.trim().length <= 20) return "Rédigez au moins 20 caractères dans le corps de l'article.";
       return "";
     }
+    if (isReel) {
+      const videoCount = media.filter((item) => item.type === "video" && item.status === "done").length;
+      if (videoCount === 0) return "Ajoutez une vidéo pour publier votre reel.";
+      if (!text.trim() && !reelSound.trim()) return "Ajoutez une légende ou un son pour votre reel.";
+      return "";
+    }
     if (!text.trim() && media.length === 0) return "Ajoutez un message ou un média pour publier.";
     return "";
-  }, [isArticle, articleTitle, text, media, isUploading, submitting]);
+  }, [isArticle, isReel, articleTitle, text, media, isUploading, submitting, reelSound]);
 
   const handlePublish = async () => {
     if (!canPublish || submitting) return;
@@ -1737,6 +1851,7 @@ export default function CreatePostModal({
         mood,
         identifiedUsers,
         tags,
+        reelSound,
         media: media
           .filter((m) => m.status === "done")
           .map((m) => ({ id: m.id, type: m.type, url: m.url, fallback: m.fallback, name: m.name })),
@@ -1749,6 +1864,10 @@ export default function CreatePostModal({
   const handleMediaBarClick = (option) => {
     if (option.action === "article") {
       setMode("article");
+      return;
+    }
+    if (option.action === "reel") {
+      setMode("reel");
       return;
     }
     if (option.action === "visuelfocus") {
@@ -1936,7 +2055,15 @@ export default function CreatePostModal({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontFamily: "'Sora', sans-serif", lineHeight: 1.3 }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>{currentUser.name}</span>
-                {currentUser.isPlatformAdmin ? <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" /> : currentUser.isPremium && <PremiumBadge size={14} />}
+                {currentUser.isPlatformAdmin ? (
+                  <span style={{ display: "inline-flex", borderRadius: 999 }}>
+                    <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />
+                  </span>
+                ) : currentUser.isPremium && (
+                  <span style={{ display: "inline-flex", borderRadius: 999 }}>
+                    <PremiumBadge size={14} />
+                  </span>
+                )}
               </div>
               {currentUser.title && (
                 <div style={{ fontSize: 12.5, color: C.mutedLight, fontWeight: 500, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1978,6 +2105,32 @@ export default function CreatePostModal({
                   {publishDisabledReason}
                 </div>
               )}
+            </div>
+          )}
+
+          {isReel && (
+            <div style={{ padding: "0 24px 16px" }}>
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: C.muted }}>Légende</label>
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Ajoutez une légende à votre reel…"
+                    rows={3}
+                    style={{ width: "100%", resize: "vertical", minHeight: 90, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.line}`, background: C.navy50, color: C.ink, fontSize: 14, fontFamily: "'Inter', sans-serif" }}
+                  />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: C.muted }}>Son / musique</label>
+                  <input
+                    value={reelSound}
+                    onChange={(e) => setReelSound(e.target.value)}
+                    placeholder="Ex. Son original — Atelier Nova"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.line}`, background: C.navy50, color: C.ink, fontSize: 14 }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -2084,6 +2237,7 @@ export default function CreatePostModal({
                   time: new Date().toISOString(),
                   readingTime: estMinutes,
                   coverUrl: media.find((m) => m.type === "image" && m.status === "done")?.url || null,
+                  presentation: { theme: "navy-gold", font: "editorial", density: "airy", coverUrl: media.find((m) => m.type === "image" && m.status === "done")?.url || null },
                   likes: 0, liked: false, bookmarked: false, shares: 0, comments: [], tags: [], isArticle: true,
                 }}
                 currentUser={{ name: currentUser.name, initials: currentUser.avatar, avatarUrl: currentUser.avatarUrl || null }}
@@ -2130,15 +2284,17 @@ export default function CreatePostModal({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onPaste={onPaste}
-                  placeholder={isVisuelfocus
-                    ? group
-                      ? `Décrivez le VisuelFocus à partager avec ${group.name}…`
-                      : "Décrivez votre VisuelFocus…"
-                    : group
-                      ? `Partagez une actualité avec les membres de ${group.name}…`
-                      : "Exprimez vos idées, partagez vos projets ou vos inspirations…"
+                  placeholder={isReel
+                    ? "Décrivez votre reel…"
+                    : isVisuelfocus
+                      ? group
+                        ? `Décrivez le VisuelFocus à partager avec ${group.name}…`
+                        : "Décrivez votre VisuelFocus…"
+                      : group
+                        ? `Partagez une actualité avec les membres de ${group.name}…`
+                        : "Exprimez vos idées, partagez vos projets ou vos inspirations…"
                   }
-                  rows={4}
+                  rows={isReel ? 3 : 4}
                   style={{
                     width: "100%",
                     border: `1.5px solid ${C.line}`,
@@ -2185,7 +2341,7 @@ export default function CreatePostModal({
           {/* ---------------------------------------------------------- */}
           {/* BARRE DES OPTIONS MÉDIAS                                    */}
           {/* ---------------------------------------------------------- */}
-          {!isArticle && (
+          {!isArticle && !isReel && (
             <div style={{ padding: "10px 20px 14px", borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: C.navy50 }}>
               <div className="cpm-media-options" style={{ display: "flex", alignItems: "stretch", justifyContent: "center", gap: 6, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
                 {MEDIA_BAR_OPTIONS.map((option) => {
@@ -2218,10 +2374,101 @@ export default function CreatePostModal({
           )}
 
           {/* ---------------------------------------------------------- */}
-          {/* ZONE MÉDIAS (grille ou dropzone)                            */}
+          {/* ZONE MÉDIAS — dédiée au Reel (aperçu vertical 9:16) ou      */}
+          {/* grille/dropzone générique pour les autres modes             */}
           {/* ---------------------------------------------------------- */}
           <div style={{ padding: "16px 24px" }}>
-            {media.length === 0 ? (
+            {isReel ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                {media.length === 0 ? (
+                  <div
+                    className="cpm-dropzone"
+                    onClick={openReelVideoPicker}
+                    style={{
+                      width: "100%", maxWidth: 240, aspectRatio: "9 / 16", borderRadius: 22,
+                      border: `1.5px dashed ${C.navy100}`, background: navyGrad,
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                      gap: 10, cursor: "pointer", textAlign: "center", padding: 22, position: "relative",
+                    }}
+                  >
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Video size={22} color={C.gold400} />
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: C.white }}>Ajoutez votre vidéo</div>
+                    <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>Format vertical 9:16 recommandé</div>
+                    <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)" }}>MP4, MOV, WEBM · jusqu'à {MAX_VIDEO_MB} Mo</div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      position: "relative", width: "100%", maxWidth: 240, aspectRatio: "9 / 16",
+                      borderRadius: 22, overflow: "hidden", background: "#000",
+                      boxShadow: "0 10px 30px rgba(15,51,82,0.25)",
+                    }}
+                  >
+                    <video
+                      src={media[0].previewUrl}
+                      muted
+                      loop
+                      autoPlay
+                      playsInline
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.6) 100%)", pointerEvents: "none" }} />
+
+                    {media[0].status === "done" && (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <PlayCircle size={44} color="rgba(255,255,255,0.85)" strokeWidth={1.5} />
+                      </div>
+                    )}
+
+                    {media[0].status === "uploading" && (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(15,36,51,0.45)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <ProgressRing progress={media[0].progress} size={46} />
+                        <span style={{ fontSize: 11, fontWeight: 600, color: C.white }}>Envoi en cours…</span>
+                      </div>
+                    )}
+
+                    {media[0].status === "error" && (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(194,68,68,0.85)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: 12, textAlign: "center" }}>
+                        <AlertCircle size={20} color={C.white} />
+                        <span style={{ fontSize: 11, color: C.white, fontWeight: 600, lineHeight: 1.3 }}>{media[0].error || "Échec de l'envoi"}</span>
+                        <button
+                          type="button"
+                          onClick={() => retryMedia(media[0].id)}
+                          style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.18)", border: "none", borderRadius: 999, padding: "4px 10px", color: C.white, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          <RotateCcw size={12} /> Réessayer
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => removeMedia(media[0].id)}
+                      title="Supprimer la vidéo"
+                      style={{ position: "absolute", top: 10, right: 10, background: "rgba(15,36,51,0.6)", border: "none", borderRadius: 999, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                    >
+                      <X size={15} color={C.white} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={openReelVideoPicker}
+                      style={{ position: "absolute", bottom: 10, left: 10, right: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 999, border: "none", background: "rgba(15,36,51,0.55)", color: C.white, fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}
+                    >
+                      <RotateCcw size={12} /> Remplacer la vidéo
+                    </button>
+                  </div>
+                )}
+
+                {media[0]?.name && media[0]?.status === "done" && (
+                  <div style={{ fontSize: 11, color: C.mutedLight, maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {media[0].name}
+                  </div>
+                )}
+              </div>
+            ) : media.length === 0 ? (
               !isArticle && !isVisuelfocus && (
                 <div
                   className="cpm-dropzone"
@@ -2238,7 +2485,7 @@ export default function CreatePostModal({
                   <div style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>Glissez vos photos et vidéos ici</div>
                   <div style={{ fontSize: 12, color: C.muted }}>ou cliquez pour parcourir vos fichiers</div>
                   <div style={{ fontSize: 11, color: C.mutedLight, marginTop: 2 }}>
-                    JPG, PNG, WEBP, GIF, MP4, MOV · {MAX_IMAGE_MB} Mo max / image · {MAX_VIDEO_MB} Mo max / vidéo · {MAX_FILES} médias max
+                    {`JPG, PNG, WEBP, GIF, MP4, MOV · ${MAX_IMAGE_MB} Mo max / image · ${MAX_VIDEO_MB} Mo max / vidéo · ${MAX_FILES} médias max`}
                   </div>
                 </div>
               )
@@ -2305,6 +2552,7 @@ export default function CreatePostModal({
             <input ref={fileInputRef} type="file" accept={ACCEPTED_TYPES} multiple onChange={handleFileInputChange} style={{ display: "none" }} />
             <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={(e) => { ingestFiles(e.target.files); e.target.value = ""; }} style={{ display: "none" }} />
             <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={(e) => { ingestFiles(e.target.files); e.target.value = ""; }} style={{ display: "none" }} />
+            <input ref={reelVideoInputRef} type="file" accept="video/*" onChange={handleReelVideoInputChange} style={{ display: "none" }} />
           </div>
 
           {/* ---------------------------------------------------------- */}

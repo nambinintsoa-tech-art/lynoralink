@@ -2,16 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasActiveSubscription } from "@/lib/subscription";
 
 const CAMPAIGN_PREFIX = "sponsoredCampaign:";
 
 function isActiveCampaign(value) {
   try {
     const campaign = JSON.parse(value);
-    const now = new Date();
-    const startsAt = campaign.startDate ? new Date(`${campaign.startDate}T00:00:00`) : null;
-    const endsAt = campaign.endDate ? new Date(`${campaign.endDate}T23:59:59`) : null;
-    return campaign.status === "APPROVED" && (!campaign.paymentStatus || campaign.paymentStatus === "PAID") && (!startsAt || now >= startsAt) && (!endsAt || now <= endsAt);
+    return campaign.status === "APPROVED";
   } catch {
     return false;
   }
@@ -41,17 +39,17 @@ export async function GET() {
       try { return { storageId: setting.id, ...JSON.parse(setting.value) }; } catch { return null; }
     })
     .filter((campaign) => campaign && isActiveCampaign(JSON.stringify(campaign)));
-  const activeCampaignIds = activeCampaigns.map((campaign) => campaign.id).filter(Boolean);
-  const campaignsById = new Map(activeCampaigns.map((campaign) => [campaign.id, campaign]));
+  const activeCampaignIds = activeCampaigns.flatMap((campaign) => [campaign.id, campaign.storageId]).filter(Boolean);
+  const campaignsById = new Map(activeCampaigns.flatMap((campaign) => [[campaign.id, campaign], [campaign.storageId, campaign], ...(campaign.postId ? [[campaign.postId, campaign]] : [])]));
   if (!activeCampaignIds.length) return NextResponse.json({ ads: [] });
 
   const ads = await prisma.post.findMany({
-    where: { status: "published", isSponsored: true, campaignId: { in: activeCampaignIds } },
+    where: { status: "published", campaignId: { in: activeCampaignIds } },
     orderBy: { createdAt: "desc" },
     take: 3,
     select: {
       id: true,
-      author: { select: { id: true, name: true, image: true } },
+      author: { select: { id: true, name: true, image: true, role: true, email: true, subscription: { select: { status: true, currentPeriodEnd: true } } } },
       headline: true,
       excerpt: true,
       text: true,
@@ -81,8 +79,8 @@ export async function GET() {
       const pageImage = page?.logoUrl || page?.avatarUrl || ad.author.image || null;
       return {
         id: ad.id,
-        title: campaignsById.get(ad.campaignId)?.title || ad.headline || ad.excerpt || ad.text || "Publicité sponsorisée",
-        description: ad.excerpt || ad.text || "Découvrez cette offre proposée par notre partenaire.",
+        title: campaignsById.get(ad.campaignId)?.title || (ad.headline && ad.headline !== ad.excerpt && ad.headline !== ad.text ? ad.headline : "Publicité sponsorisée"),
+        description: campaignsById.get(ad.campaignId)?.description || ad.excerpt || ad.text || "Découvrez cette offre proposée par notre partenaire.",
         author: pageName,
         authorId: ad.author.id,
         ownerId: ad.author.id,
@@ -98,6 +96,8 @@ export async function GET() {
         cta: campaignsById.get(ad.campaignId)?.cta || "En savoir plus",
         website: campaignsById.get(ad.campaignId)?.website || null,
         whatsapp: campaignsById.get(ad.campaignId)?.whatsapp || null,
+        isPremium: hasActiveSubscription(ad.author.subscription),
+        isPlatformAdmin: ad.author.role === "admin" || Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && ad.author.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()),
         createdAt: ad.createdAt,
       };
     }),

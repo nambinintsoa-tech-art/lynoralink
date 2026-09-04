@@ -6,6 +6,9 @@ import LegalHelpSupport from "../LegalHelpSupport";
 import { CGU_SECTIONS, FAQ_ITEMS } from "../LegalHelpSupport";
 import AdminContentEditor from "./AdminContentEditor";
 
+const ADMIN_API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4001").replace(/\/$/, "");
+const adminApi = (path, options = {}) => fetch(`${ADMIN_API_BASE}${path}`, { credentials: "include", ...options });
+
 const SUPPORT_CATEGORIES = ["Question générale", "Problème technique", "Compte & sécurité", "Facturation", "Signaler un contenu"];
 
 function parseManagedContent(value, fallback) {
@@ -34,7 +37,7 @@ export default function AdminSupportPage({ showToast }) {
   const load = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/support", { cache: "no-store" });
+      const response = await adminApi("/v1/admin/support", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Chargement impossible");
       setRequests(data.requests || []);
@@ -54,7 +57,7 @@ export default function AdminSupportPage({ showToast }) {
     if (!selected || reply.trim().length < 2) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/support", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: selected.id, response: reply }) });
+      const response = await adminApi("/v1/admin/support", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reply", id: selected.id, response: reply }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Réponse impossible");
       setRequests((items) => items.map((item) => item.id === selected.id ? data.request : item));
@@ -65,7 +68,7 @@ export default function AdminSupportPage({ showToast }) {
   const saveContent = async (key) => {
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/support", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "content", key, value: JSON.stringify(content[key]) }) });
+      const response = await adminApi("/v1/admin/support", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "content", key, value: JSON.stringify(content[key]) }) });
       if (!response.ok) throw new Error("Enregistrement impossible");
       showToast("Contenu enregistré.");
     } catch (error) { showToast(error.message, "error"); } finally { setSaving(false); }
@@ -74,7 +77,7 @@ export default function AdminSupportPage({ showToast }) {
   const saveAutoReply = async () => {
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/support", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "autoReply", ...autoReply }) });
+      const response = await adminApi("/v1/admin/support", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "autoReply", ...autoReply }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Enregistrement impossible");
       setAutoReply({ ...data.autoReply, byCategory: data.autoReply.byCategory || {} });
@@ -85,7 +88,7 @@ export default function AdminSupportPage({ showToast }) {
   const sendAiReplies = async () => {
     setAiReplying(true);
     try {
-      const response = await fetch("/api/admin/ai/support", { method: "POST" });
+      const response = await adminApi("/v1/admin/ai/support", { method: "POST" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Réponses automatiques indisponibles");
       showToast(data.message || "Réponses automatiques envoyées.");

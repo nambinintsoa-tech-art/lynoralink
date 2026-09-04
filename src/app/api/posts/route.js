@@ -211,11 +211,14 @@ export async function GET(req) {
       return {
         id: comment.id,
         authorId: comment.author.id,
-        author: comment.author.name,
+        authorType: page && String(comment.author.id) === String(p.companyPageId) ? "page" : "person",
+        companyPageId: page && String(comment.author.id) === String(p.companyPageId) ? p.companyPageId : null,
+        author: page && String(comment.author.id) === String(p.companyPageId) ? page.name : comment.author.name,
         isPlatformAdmin: comment.author.role === "admin" || Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && comment.author.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()),
         isPremium: hasActiveSubscription(comment.author.subscription),
-        initials: initials(comment.author.name),
-        avatarUrl: comment.author.image || null,
+        initials: initials(page && String(comment.author.id) === String(p.companyPageId) ? page.name : comment.author.name),
+        avatarUrl: page && String(comment.author.id) === String(p.companyPageId) ? (page.logoUrl || page.avatarUrl || null) : comment.author.image || null,
+        coverUrl: page && String(comment.author.id) === String(p.companyPageId) ? (page.bannerUrl || page.coverUrl || null) : null,
         text: comment.text,
         media: parsedCommentMedia,
         time: comment.createdAt,
@@ -231,12 +234,18 @@ export async function GET(req) {
       id: p.id,
       authorId: p.authorId,
       companyPageId: p.companyPageId || null,
+      authorType: page ? "page" : "person",
       author: displayName,
       isPlatformAdmin: p.author.role === "admin" || Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && p.author.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()),
       isPremium: hasActiveSubscription(p.author.subscription),
       title: displayTitle,
       initials: initials(displayName),
       avatarUrl: displayImage,
+      pageCoverUrl: page?.bannerUrl || page?.coverUrl || null,
+      description: page?.description || null,
+      location: page?.location || null,
+      pageWebsite: page?.website || null,
+      followersCount: page?.stats?.followers ?? page?.followers ?? null,
       time: p.createdAt,
       likes: p.likes.length,
       reactions: p.likes.reduce((counts, like) => {
@@ -256,9 +265,10 @@ export async function GET(req) {
       mood: parseJson(p.mood, null),
       identifiedUsers: parseJson(p.identifiedUsers, []),
       visibility: p.visibility,
-      isSponsored: p.isSponsored,
+      isSponsored: Boolean(p.isSponsored || p.campaignId),
       campaignId: p.campaignId || null,
       campaignTitle: campaign?.title || null,
+      campaignDescription: campaign?.description || null,
       website: campaign?.website || null,
       whatsapp: campaign?.whatsapp || null,
       cta: campaign?.cta || null,
@@ -343,9 +353,6 @@ export async function POST(req) {
   const targetCompanyPageId = pageSetting ? companyPageId : null;
   if (isSponsored === true && !targetCompanyPageId) {
     return NextResponse.json({ error: "Une publicité doit être publiée depuis une page entreprise." }, { status: 403 });
-  }
-  if (isSponsored === true && !(await getSubscriptionAccess(session.user.id)).isPremium) {
-    return NextResponse.json({ error: "Acces reserve aux pages entreprise Premium" }, { status: 403 });
   }
 
   const post = await prisma.post.create({

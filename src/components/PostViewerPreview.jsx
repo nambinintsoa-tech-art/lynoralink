@@ -5,10 +5,10 @@ import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWhatsapp, faLinkedin, faFacebook, faXTwitter } from "@fortawesome/free-brands-svg-icons";
 import {
-  X, Globe, Lock, Users2, MoreHorizontal, ThumbsUp, MessageCircle, Briefcase, MapPin,
+  X, Globe, Lock, Users2, MoreHorizontal, ThumbsUp, MessageCircle, Briefcase, MapPin, Megaphone,
   Share2, Send, Smile, ChevronDown, ChevronUp, Search, Check, Mail, ExternalLink, PlayCircle, Image as ImageIcon,
   ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Bookmark, Clock, Pencil, Trash2, Flag, Link2,
-  BellOff, Copy, Camera, ListFilter, UserPlus, FileText, Download,
+  BellOff, EyeOff, Copy, Camera, ListFilter, UserPlus, FileText, Download, Info,
 } from "lucide-react";
 import ReactionPicker from "@/components/ReactionPicker";
 import Emojipicker from "@/components/Emojipicker";
@@ -16,6 +16,8 @@ import RelativeTime from "@/components/RelativeTime";
 import { CommentSkeleton } from "@/components/Skeleton";
 import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
+import ProfileHoverPreview from "./ProfileHoverPreview";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ------------------------------------------------------------------ */
 /*  TOKENS                                                            */
@@ -70,6 +72,11 @@ function getEngagementReactions(post, userReaction) {
 function readingTime(text = "") { return Math.max(1, Math.round(text.trim().split(/\s+/).filter(Boolean).length / 200)); }
 function formatCount(n = 0) { return n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)} k` : String(n); }
 function countComments(comments = []) { return comments.reduce((t, c) => t + 1 + countComments(c.replies || []), 0); }
+function filterHiddenComments(comments = [], hiddenIds = []) {
+  return comments
+    .filter((comment) => !hiddenIds.includes(String(comment.id)))
+    .map((comment) => ({ ...comment, replies: filterHiddenComments(comment.replies || [], hiddenIds) }));
+}
 function normalizeMedia(raw) { if (!raw) return []; return Array.isArray(raw) ? raw : [raw]; }
 function decorateJobComments(comments, userId) {
   return comments.map((comment) => {
@@ -123,7 +130,7 @@ function FileViewerBanner({ post }) {
   const fileSize = file?.size || post?.fileSize || file?.mimeType || "Document partagé par le groupe";
 
   return (
-    <div style={{ margin: "0 24px 20px", padding: "28px 24px 22px", display: "flex", flexDirection: "column", alignItems: "center", gap: 13, border: `1px solid ${LI_BORDER}`, borderRadius: 16, background: "linear-gradient(145deg, #F7FAFC 0%, var(--app-bg) 100%)", textAlign: "center" }}>
+    <div style={{ margin: "0 24px 20px", padding: "28px 24px 22px", display: "flex", flexDirection: "column", alignItems: "center", gap: 13, border: `1px solid ${LI_BORDER}`, borderRadius: 0, background: "linear-gradient(145deg, #F7FAFC 0%, var(--app-bg) 100%)", textAlign: "center" }}>
       <div style={{ width: 96, height: 96, borderRadius: 26, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(145deg, rgba(27,83,134,.14), rgba(27,83,134,.06))", color: C.navy800, boxShadow: "0 12px 28px rgba(27,83,134,.12)" }}>
         <FileText size={56} strokeWidth={1.6} />
       </div>
@@ -132,6 +139,219 @@ function FileViewerBanner({ post }) {
         <div style={{ marginTop: 5, color: LI_SECONDARY, fontSize: 13 }}>{fileSize}</div>
       </div>
       {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={fileName} aria-label={`Télécharger ${fileName}`} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 9, background: C.navy800, color: C.white, fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}><Download size={16} /> Télécharger</a>}
+    </div>
+  );
+}
+
+/* ---- Sponsored-ad helpers (collapse text + action label) ---- */
+const SP_TEXT_THRESHOLD = 240; // caracteres max avant troncature
+const SP_TEXT_MAX_LINES = 6;   // lignes max avant troncature
+
+function spTruncateText(text, { charLimit, lineLimit }) {
+  const lines = text.split("\n");
+  let truncated = text;
+  let cutByLines = false;
+  if (lines.length > lineLimit) {
+    truncated = lines.slice(0, lineLimit).join("\n");
+    cutByLines = true;
+  }
+  if (truncated.length > charLimit) {
+    const slice = truncated.slice(0, charLimit);
+    const lastSpace = slice.lastIndexOf(" ");
+    truncated = lastSpace > charLimit * 0.6 ? slice.slice(0, lastSpace) : slice;
+    cutByLines = false;
+  }
+  return { truncated: truncated.trimEnd(), wasCut: cutByLines || truncated.length < text.length };
+}
+
+function sponsoredActionLabel(post) {
+  if (post?.objective === "conversions") return "S'inscrire";
+  const website = sponsoredUrl(post?.website);
+  if (post?.objective === "clics" && website) return "Visiter";
+  const whatsapp = String(post?.whatsapp || "").replace(/\D/g, "");
+  if (whatsapp && !website) return "WhatsApp";
+  return "Découvrir";
+}
+
+function sponsoredUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try { return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).toString(); } catch { return null; }
+}
+
+function SponsoredInfo() {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <span
+      ref={containerRef}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+      style={{ position: "relative", display: "inline-flex" }}
+    >
+      <button
+        type="button"
+        aria-label="Pourquoi vois-je cette publicité ?"
+        aria-expanded={isOpen}
+        onFocus={() => setIsOpen(true)}
+        onBlur={(event) => {
+          if (!containerRef.current?.contains(event.relatedTarget)) setIsOpen(false);
+        }}
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 1, border: 0, background: "transparent", color: "inherit", cursor: "pointer", borderRadius: 4 }}
+      >
+        <Info size={13} />
+      </button>
+      {isOpen && (
+        <span role="status" style={{ position: "absolute", zIndex: 20, top: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)", width: "min(230px, calc(100vw - 48px))", padding: "10px 12px", borderRadius: 8, background: C.navy800, color: "#fff", fontSize: 12, lineHeight: 1.4, fontWeight: 500, textAlign: "left", whiteSpace: "normal", boxShadow: "0 6px 18px rgba(15,51,82,0.22)" }}>
+          Cette publication est sponsorisée par LynoraLink.
+        </span>
+      )}
+    </span>
+  );
+}
+
+function SponsoredViewerCard({ post }) {
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const website = sponsoredUrl(post?.website);
+  const whatsapp = String(post?.whatsapp || "").replace(/\D/g, "");
+  const whatsappUrl = whatsapp ? `https://wa.me/${whatsapp}` : null;
+  const actionUrl = website || whatsappUrl || null;
+  const actionLabel = sponsoredActionLabel(post);
+  const media = normalizeMedia(post?.media);
+
+  // --- Description avec repli "Voir plus / Voir moins" ---
+  const description = post?.excerpt || post?.campaignDescription || post?.text || "";
+  const descriptionLineCount = description.split("\n").length;
+  const descriptionIsLong = description.length > SP_TEXT_THRESHOLD || descriptionLineCount > SP_TEXT_MAX_LINES;
+  const descriptionPreview = descriptionIsLong
+    ? spTruncateText(description, { charLimit: SP_TEXT_THRESHOLD, lineLimit: SP_TEXT_MAX_LINES }).truncated
+    : description;
+  const ellipsis = "\u2026";
+  const displayedDescription = descriptionIsLong && !descriptionExpanded ? `${descriptionPreview}${ellipsis}` : description;
+
+  // --- Headline + domaine ---
+  const headline = post?.headline || post?.campaignTitle || post?.title || "";
+  let displayDomain = "lynoralink.com";
+  if (website) {
+    try { displayDomain = new URL(website).hostname.replace(/^www\./, ""); } catch {}
+  }
+
+  // CTA principal -- identite navy/dore de LynoraLink
+  const ctaStyle = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    gap: 6, padding: "8px 16px", borderRadius: 8,
+    border: `1px solid ${C.gold600}`, fontSize: 13, lineHeight: 1,
+    fontWeight: 800, textDecoration: "none", cursor: "pointer", whiteSpace: "nowrap",
+    color: C.navy800, background: C.gold400,
+    boxShadow: "0 1px 3px rgba(15,51,82,0.12)",
+    transition: "background 160ms ease, filter 160ms ease, transform 160ms ease",
+  };
+
+  const CtaElement = actionUrl ? (
+    <a
+      className="pv-sponsored-cta"
+      href={actionUrl}
+      target="_blank"
+      rel="noreferrer"
+      style={ctaStyle}
+    >{actionLabel}</a>
+  ) : (
+    <div className="pv-sponsored-cta" style={ctaStyle}>{actionLabel}</div>
+  );
+
+  return (
+    <div
+      className="post-viewer-sponsored-card pv-sponsored-block"
+      style={{ display: "flex", flexDirection: "column", margin: "8px 24px 20px" }}
+    >
+      {/* En-tete "Sponsorise" facon Facebook + icone Info */}
+      <div className="pv-sponsored-header" style={{ display: "flex", alignItems: "center", gap: 6, padding: "14px 16px 6px" }}>
+        <span style={{ color: C.gold600, fontSize: 13, fontWeight: 700, letterSpacing: ".01em" }}>Sponsorisé</span>
+        <SponsoredInfo />
+      </div>
+
+      {/* Texte principal (au-dessus de l'image) avec "Voir plus / Voir moins" */}
+      {description && (
+        <div
+          className="pv-sponsored-text"
+          style={{ padding: "4px 16px 12px", color: LI_TEXT, fontSize: 15, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+        >
+          {displayedDescription}
+          {descriptionIsLong && (
+            <button
+              type="button"
+              className="pv-sponsored-toggle"
+              onClick={() => setDescriptionExpanded((value) => !value)}
+              style={{
+                display: descriptionExpanded ? "block" : "inline",
+                marginTop: descriptionExpanded ? 6 : 0,
+                marginLeft: descriptionExpanded ? 0 : 6,
+                background: "none", border: "none", padding: 0, cursor: "pointer",
+                color: C.navy800, fontWeight: 700, fontSize: 15, textDecoration: "none",
+              }}
+              aria-expanded={descriptionExpanded}
+            >
+              {descriptionExpanded ? "Voir moins" : "Voir plus"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Image / video pleine largeur */}
+      {media.length > 0 && <MediaGallery items={media} />}
+
+      {/* Ligne "headline + domaine + bouton CTA" facon Facebook */}
+      <div
+        className="pv-sponsored-linkrow"
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          padding: "10px 16px", background: LI_HOVER,
+          borderTop: `1px solid ${LI_BORDER}`, borderBottom: `1px solid ${LI_BORDER}`,
+        }}
+      >
+        <div className="pv-sponsored-linkinfo" style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.navy800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{headline || "Publicité"}</span>
+          <span style={{ fontSize: 12, color: LI_SECONDARY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayDomain}</span>
+        </div>
+        {CtaElement}
+      </div>
+
+      {/* Actions secondaires discretes (WhatsApp) */}
+      {whatsappUrl && (
+        <div className="pv-sponsored-secondary" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px 14px" }}>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="pv-sponsored-wa"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+              border: `1px solid ${LI_BORDER}`, background: C.white, color: "#127A3D",
+              fontSize: 13, fontWeight: 600, textDecoration: "none", cursor: "pointer",
+              transition: "background 160ms ease, border-color 160ms ease",
+            }}
+          >
+            <FontAwesomeIcon icon={faWhatsapp} /> WhatsApp
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -192,7 +412,7 @@ function MediaGallery({ items = [] }) {
     return <img key={index} src={item.url} alt={item.label || `M\u00e9dia ${index + 1}`} style={mediaStyle} />;
   };
   return (
-    <div style={{ borderRadius: 12, overflow: "hidden", margin: 0 }}>
+    <div style={{ borderRadius: 0, overflow: "hidden", margin: 0 }}>
       <div
         className="post-viewer-media"
         style={{
@@ -205,6 +425,7 @@ function MediaGallery({ items = [] }) {
           alignItems: "center",
           justifyContent: "center",
           overflow: "visible",
+          borderRadius: 0,
         }}
       >
         {renderItem(currentItem, activeIndex)}
@@ -363,7 +584,7 @@ function MoreMenu({ isOwn, onEdit, onDelete, onReport, onCopyLink, onClose }) {
 /* ------------------------------------------------------------------ */
 /*  SHARE MODAL                                                       */
 /* ------------------------------------------------------------------ */
-export function ShareModal({ post, onClose, onRepost }) {
+export function ShareModal({ post, onClose, onRepost, shareUrl: shareUrlOverride = null }) {
   const [tab, setTab] = useState("message");
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -372,7 +593,7 @@ export function ShareModal({ post, onClose, onRepost }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
-  const postUrl = typeof window === "undefined" ? "" : `${window.location.origin}/feed?post=${encodeURIComponent(post.id)}${post?.isArticle || post?.headline ? "&article=1" : ""}`;
+  const postUrl = shareUrlOverride || (typeof window === "undefined" ? "" : `${window.location.origin}/feed?post=${encodeURIComponent(post.id)}${post?.isArticle || post?.headline ? "&article=1" : ""}`);
   const shareText = post?.text || post?.headline || "Découvrez cette publication sur LynoraLink.";
   const sharedAttachments = [
     ...(post?.isArticle || post?.headline ? [{
@@ -398,8 +619,8 @@ export function ShareModal({ post, onClose, onRepost }) {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/users", { credentials: "include" }).then((response) => response.ok ? response.json() : null),
-      fetch("/api/groups", { credentials: "include" }).then((response) => response.ok ? response.json() : null),
+      fetchBackendApi("/api/users").then((response) => response.ok ? response.json() : null),
+      fetchBackendApi("/api/groups").then((response) => response.ok ? response.json() : null),
     ]).then(([userData, groupData]) => {
       setUsers(Array.isArray(userData?.users) ? userData.users : []);
       setGroups(Array.isArray(groupData?.groups) ? groupData.groups : []);
@@ -414,7 +635,7 @@ export function ShareModal({ post, onClose, onRepost }) {
     setStatus("Envoi en cours...");
     const text = message.trim() || shareText;
     try {
-      const responses = await Promise.all(selectedUsers.map((user) => fetch("/api/messages", {
+      const responses = await Promise.all(selectedUsers.map((user) => fetchBackendApi("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otherUserId: user.id, text, attachments: sharedAttachments }),
@@ -432,7 +653,7 @@ export function ShareModal({ post, onClose, onRepost }) {
     if (!selectedGroup) return;
     setStatus("Partage en cours...");
     try {
-      const response = await fetch(`/api/groups/${selectedGroup.id}`, {
+      const response = await fetchBackendApi(`/api/groups/${selectedGroup.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -485,7 +706,17 @@ export function ShareModal({ post, onClose, onRepost }) {
           </>}
           {tab === "group" && <>
             <p style={{ margin: "0 0 12px", color: LI_SECONDARY, fontSize: 13 }}>Choisissez un groupe dont vous êtes membre.</p>
-            <div style={{ maxHeight: 260, overflowY: "auto" }}>{shareableGroups.map((group) => <button type="button" key={group.id} onClick={() => setSelectedGroup(group)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: 10, border: "none", borderRadius: 8, background: selectedGroup?.id === group.id ? C.navy50 : "transparent", cursor: "pointer", textAlign: "left" }}><span style={{ fontSize: 22 }}>{group.emoji || "🌐"}</span><span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{group.name}</span>{selectedGroup?.id === group.id && <Check size={16} color={LINKEDIN_BLUE} />}</button>)}</div>
+            <div style={{ maxHeight: 260, overflowY: "auto" }}>{shareableGroups.map((group) => {
+              const groupCoverUrl = group.coverUrl || group.cover || group.bannerUrl || group.backgroundImage || group.avatarUrl || null;
+              const isSelected = selectedGroup?.id === group.id;
+              return (
+                <button type="button" key={group.id} onClick={() => setSelectedGroup(group)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: 10, border: "none", borderRadius: 8, background: isSelected ? C.navy50 : "transparent", cursor: "pointer", textAlign: "left" }}>
+                  <span aria-hidden="true" style={{ width: 48, height: 36, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, overflow: "hidden", background: group.coverGradient || navyGrad, backgroundImage: groupCoverUrl ? `url(${groupCoverUrl})` : undefined, backgroundSize: "cover", backgroundPosition: "center", color: C.white, fontSize: 20, boxShadow: "0 1px 3px rgba(0,0,0,.14)" }}>{!groupCoverUrl && (group.emoji || "🌐")}</span>
+                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13, fontWeight: 600 }}>{group.name}</span>
+                  {isSelected && <Check size={16} color={LINKEDIN_BLUE} />}
+                </button>
+              );
+            })}</div>
             <button type="button" disabled={!selectedGroup} onClick={shareInGroup} style={{ width: "100%", marginTop: 12, padding: 11, border: "none", borderRadius: 8, background: selectedGroup ? LINKEDIN_BLUE : LI_BORDER, color: selectedGroup ? C.white : LI_SECONDARY, fontWeight: 700, cursor: selectedGroup ? "pointer" : "default" }}>Partager dans le groupe</button>
           </>}
           {tab === "social" && <>
@@ -541,18 +772,24 @@ function VisibilityIcon({ visibility }) {
 /* ------------------------------------------------------------------ */
 /*  COMMENT ITEM                                                      */
 /* ------------------------------------------------------------------ */
-function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply, onToggleCommentReaction, postId, postAuthorId, depth = 0 }) {
+function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply, onToggleCommentReaction, onReportComment, onHideComment, onEditComment, onDeleteComment, postId, postAuthorId, depth = 0 }) {
   const [replying, setReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [showReplies, setShowReplies] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [localReaction, setLocalReaction] = useState(comment.reaction || null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.text || "");
+  const [displayText, setDisplayText] = useState(comment.text || "");
   const reactionBtnRef = useRef(null);
   const reactionCloseTimer = useRef(null);
   const commentLongPressTimer = useRef(null);
   const commentLongPressFired = useRef(false);
   const submitReply = () => { if (!replyText.trim()) return; onReply(comment.id, replyText.trim()); setReplyText(""); setReplying(false); };
   const cInitials = comment.initials || (comment.author || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const commentAuthorId = comment.authorId || comment.userId || comment.author?.id;
+  const isPostAuthorComment = Boolean(postAuthorId && commentAuthorId && String(commentAuthorId) === String(postAuthorId));
 
   // Close reaction picker when clicking outside
   useEffect(() => {
@@ -609,15 +846,17 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
     <>
       <div style={{ display: "flex", gap: 10 }}>
         {comment.authorId ? (
-          <Link href={`/feed?view=profile&userId=${encodeURIComponent(comment.authorId)}`} aria-label={`Voir le profil de ${comment.author}`} style={{ display: "inline-flex", flexShrink: 0 }}>
-            <Avatar initials={cInitials} imgUrl={comment.avatarUrl} size={depth > 0 ? 32 : 40} />
-          </Link>
+          <ProfileHoverPreview type={comment.authorType === "page" ? "page" : "person"} fallback={{ id: comment.authorType === "page" ? (comment.companyPageId || comment.authorId) : comment.authorId, name: comment.author, avatarUrl: comment.avatarUrl, coverUrl: comment.coverUrl, bio: comment.description, location: comment.location }}>
+            <Link href={comment.authorType === "page" ? `/feed?view=company&pageId=${encodeURIComponent(comment.companyPageId || comment.authorId)}` : `/feed?view=profile&userId=${encodeURIComponent(comment.authorId)}`} aria-label={`Voir ${comment.authorType === "page" ? "la page" : "le profil"} de ${comment.author}`} style={{ display: "inline-flex", flexShrink: 0 }}>
+              <Avatar initials={cInitials} imgUrl={comment.avatarUrl} size={depth > 0 ? 32 : 40} />
+            </Link>
+          </ProfileHoverPreview>
         ) : <Avatar initials={cInitials} imgUrl={comment.avatarUrl} size={depth > 0 ? 32 : 40} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Meta row */}
           <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-            {comment.authorId ? <Link href={`/feed?view=profile&userId=${encodeURIComponent(comment.authorId)}`} style={{ fontWeight: 700, fontSize: 14, color: LI_TEXT, textDecoration: "none" }}>{comment.author}</Link> : <span style={{ fontWeight: 700, fontSize: 14, color: LI_TEXT }}>{comment.author}</span>}
-            {String(comment.authorId) === String(postAuthorId) && <span title="Auteur de la publication" style={{ color: LINKEDIN_BLUE, background: "#E8F3FF", border: "1px solid #B9D9F5", borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>Auteur</span>}
+            {comment.authorId ? <ProfileHoverPreview type={comment.authorType === "page" ? "page" : "person"} fallback={{ id: comment.authorType === "page" ? (comment.companyPageId || comment.authorId) : comment.authorId, name: comment.author, avatarUrl: comment.avatarUrl, coverUrl: comment.coverUrl, bio: comment.description, location: comment.location }}><Link href={comment.authorType === "page" ? `/feed?view=company&pageId=${encodeURIComponent(comment.companyPageId || comment.authorId)}` : `/feed?view=profile&userId=${encodeURIComponent(comment.authorId)}`} style={{ fontWeight: 700, fontSize: 14, color: LI_TEXT, textDecoration: "none" }}>{comment.author}</Link></ProfileHoverPreview> : <span style={{ fontWeight: 700, fontSize: 14, color: LI_TEXT }}>{comment.author}</span>}
+            {isPostAuthorComment && <span title="Auteur de la publication" style={{ color: LINKEDIN_BLUE, background: "#E8F3FF", border: "1px solid #B9D9F5", borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>Auteur</span>}
             {comment.isPlatformAdmin && <EnterpriseBadge size={13} label="Administrateur officiel LynoraLink" />}
             {!comment.isPlatformAdmin && comment.isPremium && <PremiumBadge size={13} />}
             {comment.connectionBadge && (
@@ -632,7 +871,17 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
             <div style={{ fontSize: 12, color: LI_SECONDARY, marginTop: 1, lineHeight: 1.4 }}>{comment.headline}</div>
           )}
           {/* Body */}
-          <div style={{ fontSize: 14, color: LI_TEXT, lineHeight: 1.55, marginTop: 6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{comment.text}</div>
+          {isEditing ? (
+            <div style={{ marginTop: 6 }}>
+              <textarea value={editText} onChange={(event) => setEditText(event.target.value)} rows={3} style={{ width: "100%", padding: 8, border: `1px solid ${LI_INPUT_BORDER}`, borderRadius: 8, resize: "vertical", font: "inherit" }} />
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <button type="button" onClick={async () => { if (editText.trim()) { await onEditComment?.(comment.id, editText.trim()); setDisplayText(editText.trim()); setIsEditing(false); } }} style={{ border: "none", borderRadius: 6, padding: "5px 10px", background: C.navy800, color: C.white, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Enregistrer</button>
+                <button type="button" onClick={() => { setEditText(comment.text || ""); setIsEditing(false); }} style={{ border: "none", borderRadius: 6, padding: "5px 10px", background: C.navy50, color: LI_SECONDARY, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Annuler</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 14, color: LI_TEXT, lineHeight: 1.55, marginTop: 6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{displayText}</div>
+          )}
           {Array.isArray(comment.media) && comment.media.length > 0 && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
               {comment.media.map((item, index) => item?.url ? (
@@ -678,6 +927,17 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
               </span>
             )}
             <button onClick={() => { setReplying(false); onStartReply?.(comment); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: LI_SECONDARY, padding: "4px 0 4px 8px" }}>Répondre</button>
+            <div style={{ position: "relative", marginLeft: "auto" }}>
+              <button type="button" onClick={() => setShowMenu((value) => !value)} aria-label="Options du commentaire" aria-expanded={showMenu} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "none", color: LI_SECONDARY, cursor: "pointer", padding: 4 }}><MoreHorizontal size={15} /></button>
+              {showMenu && (
+                <div className="post-viewer-comment-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => { setShowMenu(false); onReportComment?.(comment.id); }}><Flag size={14} /> Signaler</button>
+                  <button type="button" role="menuitem" onClick={() => { setShowMenu(false); onHideComment?.(comment.id); }}><EyeOff size={14} /> Masquer</button>
+                  {(comment.isOwn || String(commentAuthorId) === String(currentUser?.id)) && <button type="button" role="menuitem" onClick={() => { setShowMenu(false); setIsEditing(true); }}><Pencil size={14} /> Modifier</button>}
+                  {(comment.isOwn || String(commentAuthorId) === String(currentUser?.id)) && <button type="button" role="menuitem" onClick={() => { setShowMenu(false); onDeleteComment?.(comment.id); }} className="post-viewer-comment-menu-danger"><Trash2 size={14} /> Supprimer</button>}
+                </div>
+              )}
+            </div>
           </div>
           {/* Reply input */}
           {replying && (
@@ -702,7 +962,7 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
       )}
       {showReplies && comment.replies && comment.replies.length > 0 && (
         <div style={{ marginTop: 8, marginLeft: 50, display: "flex", flexDirection: "column" }}>
-          {comment.replies.map((r) => <CommentItem key={r.id} comment={r} currentUser={currentUser} onToggleLike={onToggleLike} onReply={onReply} onStartReply={onStartReply} onToggleCommentReaction={onToggleCommentReaction} postId={postId} postAuthorId={postAuthorId} depth={depth + 1} />)}
+          {comment.replies.map((r) => <CommentItem key={r.id} comment={r} currentUser={currentUser} onToggleLike={onToggleLike} onReply={onReply} onStartReply={onStartReply} onToggleCommentReaction={onToggleCommentReaction} onReportComment={onReportComment} onHideComment={onHideComment} onEditComment={onEditComment} onDeleteComment={onDeleteComment} postId={postId} postAuthorId={postAuthorId} depth={depth + 1} />)}
         </div>
       )}
     </>
@@ -734,14 +994,17 @@ export default function PostViewerPreview({
   const [sortOpen, setSortOpen] = useState(false);
   const [sortBy, setSortBy] = useState("recent");
   const [showAllComments, setShowAllComments] = useState(false);
+  const [hiddenCommentIds, setHiddenCommentIds] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [attachedMedia, setAttachedMedia] = useState([]);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(!Array.isArray(post?.comments));
   const commentsPanelRef = useRef(null);
   const commentInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const isFilePostContent = isFilePost(post);
+  const isSponsoredPost = Boolean(post?.isSponsored || post?.campaignId);
   const isJobPost = post?.variant === "job";
   const jobId = post?.jobId || post?.id;
   const [jobEngagement, setJobEngagement] = useState(null);
@@ -751,7 +1014,7 @@ export default function PostViewerPreview({
     if (!isJobPost || !post?.companyPageId || !jobId) return;
     const refreshEngagement = () => {
       const requestId = ++engagementRequestRef.current;
-      return fetch(`/api/company/jobs/engagement?ownerId=${encodeURIComponent(post.companyPageId)}&jobId=${encodeURIComponent(jobId)}`)
+      return fetchBackendApi(`/api/company/jobs/engagement?ownerId=${encodeURIComponent(post.companyPageId)}&jobId=${encodeURIComponent(jobId)}`)
       .then((response) => response.ok ? response.json() : null)
       .then((data) => { if (data && requestId === engagementRequestRef.current) setJobEngagement(data); })
       .catch(() => {});
@@ -768,22 +1031,34 @@ export default function PostViewerPreview({
     setShowAllComments(false);
   }, [post?.id]);
 
+  useEffect(() => {
+    setCommentsLoading(!Array.isArray(post?.comments));
+  }, [post?.id, post?.comments]);
+
   const viewerPost = isJobPost && jobEngagement ? { ...post, ...jobEngagement } : post;
   const media = normalizeMedia(viewerPost?.media);
   const comments = Array.isArray(viewerPost?.comments)
     ? (isJobPost ? decorateJobComments(viewerPost.comments, currentUser?.id) : viewerPost.comments)
     : [];
+  const visibleCommentSource = filterHiddenComments(comments, hiddenCommentIds);
   const reaction = isJobPost
     ? Object.entries(jobEngagement?.reactions || {}).find(([, ids]) => ids.includes(currentUser?.id))?.[0] || null
     : post?.reaction || (post?.liked ? "ok" : null);
-  const commentsCount = countComments(comments);
+  const commentsCount = countComments(visibleCommentSource);
   const repostCount = getRepostCount(post);
   const reactionCount = getReactionCount(viewerPost);
   const engagementReactions = getEngagementReactions(viewerPost, reaction);
   const isOwn = currentUser?.id === post?.authorId || currentUser?.id === post?.userId;
-  const isPagePost = Boolean(post?.companyPageId);
+  const isPagePost = Boolean(post?.authorType === "page" || post?.companyPageId || post?.pageId);
+  const isAnnouncement = Boolean(post?.presentation?.type === "announcement" || post?.presentation === "announcement" || (typeof post?.presentation === "string" && post.presentation.includes('"type":"announcement"')));
+  const isOfficialPost = Boolean(post?.isPlatformAdmin || isAnnouncement);
+  const announcementAuthor = isAnnouncement ? "LynoraLink" : (post?.author || "Utilisateur");
+  const announcementAvatar = isAnnouncement ? (post?.presentation?.avatarUrl || "/logo_lynora.svg") : (post?.avatarUrl || null);
+  const group = post?.group || null;
+  const groupCoverUrl = group?.coverUrl || group?.cover || group?.bannerUrl || group?.backgroundImage || null;
   const isOwnPage = isCompanyAccount && isPagePost && String(post.companyPageId) === String(currentUser?.id);
-  const isPageFollowed = isPagePost && followedPageIds.some((id) => String(id) === String(post.companyPageId));
+  const pageProfileId = post?.companyPageId || post?.pageId || post?.authorId;
+  const isPageFollowed = isPagePost && followedPageIds.some((id) => String(id) === String(pageProfileId));
 
   const addComment = async (text, media = []) => {
     const result = await onAddComment?.(post.id, text, media.length ? media : undefined);
@@ -857,7 +1132,7 @@ export default function PostViewerPreview({
     }
   };
 
-  const sortedComments = [...comments].sort((first, second) => {
+  const sortedComments = [...visibleCommentSource].sort((first, second) => {
     if (sortBy === "relevant") return (second.likes || 0) - (first.likes || 0);
     return new Date(second.time || second.createdAt || 0).getTime() - new Date(first.time || first.createdAt || 0).getTime();
   });
@@ -872,18 +1147,18 @@ export default function PostViewerPreview({
   const jobDescription = post?.description || post?.text || post?.excerpt || "";
   const handleViewerLike = async () => {
     if (!isJobPost) return onToggleLike?.(post.id);
-    const response = await fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction: reaction || "ok" }) });
+    const response = await fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction: reaction || "ok" }) });
     if (response.ok) setJobEngagement(await response.json());
   };
   const handleViewerReaction = async (reactionKey) => {
     if (!isJobPost) return onReact?.(post.id, reactionKey);
-    const response = await fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction: reactionKey }) });
+    const response = await fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction: reactionKey }) });
     if (response.ok) setJobEngagement(await response.json());
   };
   const handleCommentReaction = async (postId, commentId, reactionKey) => {
     if (!isJobPost) return onToggleCommentReaction?.(postId, commentId, reactionKey);
     ++engagementRequestRef.current;
-    const response = await fetch("/api/company/jobs/engagement", {
+    const response = await fetchBackendApi("/api/company/jobs/engagement", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "commentReaction", commentId, reaction: reactionKey }),
@@ -895,7 +1170,7 @@ export default function PostViewerPreview({
   const handleCommentReply = async (postId, parentCommentId, text, media = []) => {
     if (!isJobPost) return onReplyComment?.(postId, parentCommentId, text, media);
     ++engagementRequestRef.current;
-    const response = await fetch("/api/company/jobs/engagement", {
+    const response = await fetchBackendApi("/api/company/jobs/engagement", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "commentReply", parentCommentId, text, media }),
@@ -904,36 +1179,160 @@ export default function PostViewerPreview({
     const result = await response.json();
     setJobEngagement((current) => ({ ...current, comments: result.comments || current?.comments || [] }));
   };
+  const handleHideComment = (commentId) => {
+    setHiddenCommentIds((current) => [...new Set([...current, String(commentId)])]);
+  };
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Supprimer ce commentaire ?")) return;
+    const response = await fetchBackendApi(`/api/posts/${post.id}/comments/${commentId}`, { method: "DELETE" });
+    if (response.ok) handleHideComment(commentId);
+  };
+  const handleEditComment = async (commentId, text) => {
+    const response = await fetchBackendApi(`/api/posts/${post.id}/comments/${commentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) throw new Error("Impossible de modifier le commentaire");
+  };
+  const handleReportComment = async (commentId) => {
+    const reason = window.prompt("Pourquoi signalez-vous ce commentaire ?", "Contenu inapproprié");
+    if (!reason) return;
+    await fetchBackendApi("/api/admin/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "comment", targetId: String(commentId), targetLabel: `Commentaire ${commentId}`, reason, details: "Signalement depuis le viewer de publication" }),
+    });
+  };
 
   return (
     <div className="post-viewer-overlay" style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(8, 28, 48, 0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, backdropFilter: "blur(6px)" }} onClick={onClose}>
       <style>{`
-        .post-viewer-modal { width: min(1120px, 100%); height: min(88vh, 820px); }
-        .post-viewer-left { flex: 0 0 58%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
-        .post-viewer-right { flex: 1 1 42%; min-height: 0; }
-        @media (min-width: 901px) {
-          .post-viewer-job-description {
-            height: min(320px, 42vh) !important;
-            max-height: 320px !important;
-            flex: 0 0 auto !important;
-            overflow-y: scroll !important;
-            overflow-x: hidden !important;
-            scrollbar-width: thin !important;
-            scrollbar-color: #8ca0b3 #eff4f9;
-          }
-          .post-viewer-job-description::-webkit-scrollbar {
-            width: 8px;
-          }
-          .post-viewer-job-description::-webkit-scrollbar-thumb {
-            background: #8ca0b3;
-            border-radius: 8px;
-          }
-          .post-viewer-job-description::-webkit-scrollbar-track {
-            background: #eff4f9;
-          }
+        .post-viewer-modal {
+          width: min(1120px, 100%);
+          height: min(88vh, 820px);
+          min-height: 0;
+          box-sizing: border-box;
+          overflow: hidden;
         }
-        .post-viewer-job-description { height: min(320px, 42vh); min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+        .post-viewer-left {
+          flex: 0 0 58%;
+          height: 100%;
+          max-height: 100%;
+          min-height: 0;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          overscroll-behavior: contain;
+          scrollbar-width: thin;
+          scrollbar-color: #7890a5 #edf3f8;
+          scrollbar-gutter: stable;
+        }
+        .post-viewer-left::-webkit-scrollbar,
+        .post-viewer-modal::-webkit-scrollbar {
+          width: 10px;
+        }
+        .post-viewer-left::-webkit-scrollbar-thumb,
+        .post-viewer-modal::-webkit-scrollbar-thumb {
+          background: #7890a5;
+          border: 2px solid #edf3f8;
+          border-radius: 10px;
+        }
+        .post-viewer-left::-webkit-scrollbar-track,
+        .post-viewer-modal::-webkit-scrollbar-track {
+          background: #edf3f8;
+        }
+        .post-viewer-right { flex: 1 1 42%; min-height: 0; }
+        .post-viewer-comment-menu {
+          position: absolute;
+          right: calc(100% + 8px);
+          bottom: auto;
+          top: 0;
+          z-index: 30;
+          min-width: 180px;
+          overflow: hidden;
+          background: ${C.white};
+          border: 1px solid ${LI_BORDER};
+          border-radius: 12px;
+          box-shadow: 0 10px 28px rgba(15,51,82,0.14);
+        }
+        .post-viewer-comment-menu button {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 10px 12px;
+          border: none;
+          background: transparent;
+          color: ${LI_TEXT};
+          text-align: left;
+          font: inherit;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .post-viewer-comment-menu button:hover { background: ${C.navy50}; }
+        .post-viewer-comment-menu button.post-viewer-comment-menu-danger { background: #FBEDED; color: ${C.danger}; }
+        .post-viewer-comment-menu button.post-viewer-comment-menu-danger:hover { background: #F6E2E2; }
+        .post-viewer-modal,
+        .post-viewer-left,
+        .post-viewer-right,
+        .post-viewer-author-header,
+        .post-viewer-media,
+        .post-viewer-job-description {
+          border-radius: 0 !important;
+        }
+        .reaction-picker {
+          border-radius: 999px !important;
+        }
+        .post-viewer-job-description {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+          overflow-x: hidden;
+        }
+        .post-viewer-job-card {
+          max-height: min(560px, calc(100dvh - 250px));
+          overflow-y: auto !important;
+          overflow-x: hidden;
+          overscroll-behavior: contain;
+          scrollbar-width: thin;
+          scrollbar-color: #7890a5 #edf3f8;
+          scrollbar-gutter: stable;
+        }
+        .post-viewer-job-card::-webkit-scrollbar { width: 10px; }
+        .post-viewer-job-card::-webkit-scrollbar-thumb { background: #7890a5; border: 2px solid #edf3f8; border-radius: 10px; }
+        .post-viewer-job-card::-webkit-scrollbar-track { background: #edf3f8; }
         .post-viewer-media { min-height: 360px !important; }
+        .post-viewer-sponsored-card { overflow: visible !important; }
+        .post-viewer-sponsored-card .post-viewer-media {
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+        }
+        /* Facebook-style sponsored ad in PostViewer (navy/gold) */
+        .pv-sponsored-block {
+          border: 1px solid rgba(217,165,54,0.45);
+          border-radius: 12px;
+          overflow: hidden;
+          background: #FFFDF7;
+          box-shadow: 0 4px 14px rgba(217,165,54,0.10);
+          transition: box-shadow 220ms ease, border-color 220ms ease;
+        }
+        .pv-sponsored-block:hover {
+          border-color: rgba(217,165,54,0.7);
+          box-shadow: 0 6px 20px rgba(217,165,54,0.16);
+        }
+        .pv-sponsored-header span:first-child { transition: color 160ms ease; }
+        .pv-sponsored-toggle:hover { text-decoration: underline !important; }
+        .pv-sponsored-cta:hover { filter: brightness(0.95); transform: translateY(-1px); }
+        .pv-sponsored-cta:active { transform: translateY(0); filter: brightness(0.9); }
+        .pv-sponsored-wa:hover { background: #F0F6F2; border-color: #127A3D; }
+        @media (prefers-reduced-motion: reduce) {
+          .pv-sponsored-block, .pv-sponsored-cta, .pv-sponsored-wa {
+            transition: none !important;
+          }
+          .pv-sponsored-cta:hover { transform: none; }
+        }
         .post-viewer-slider-button {
           position: absolute;
           top: 50%;
@@ -963,10 +1362,30 @@ export default function PostViewerPreview({
             min-height: 42px;
           }
           .post-viewer-action-btn > span { display: none !important; }
+          .post-viewer-modal {
+            width: 100vw !important;
+            max-width: none !important;
+            min-width: 100vw !important;
+            margin-left: calc(50% - 50vw) !important;
+            border-radius: 0 !important;
+          }
+          .post-viewer-left,
+          .post-viewer-right,
+          .post-viewer-author-header,
+          .post-viewer-media,
+          .post-viewer-job-description {
+            border-radius: 0 !important;
+          }
+          .reaction-picker {
+            border-radius: 999px !important;
+          }
         }
         .post-viewer-author-header { position: sticky; top: 0; z-index: 12; background: var(--app-surface); backdrop-filter: blur(10px); border-bottom: 1px solid ${LI_BORDER}; }
         @media (max-width: 900px) {
           .post-viewer-overlay {
+            width: 100vw !important;
+            max-width: none !important;
+            margin-left: calc(50% - 50vw) !important;
             padding: 0 !important;
             align-items: stretch !important;
             display: block !important;
@@ -980,35 +1399,41 @@ export default function PostViewerPreview({
             -webkit-backdrop-filter: none !important;
           }
           .post-viewer-modal {
-            width: 100% !important;
-            max-width: 100% !important;
+            width: 100vw !important;
+            max-width: none !important;
+            min-width: 100vw !important;
             height: 100dvh !important;
             min-height: 0 !important;
             max-height: 100dvh !important;
             border-radius: 0 !important;
             flex-direction: column !important;
             display: flex !important;
-            overflow-y: auto !important;
+            overflow: hidden !important;
             overflow-x: hidden !important;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+            padding-bottom: 0 !important;
+            box-sizing: border-box !important;
           }
           .post-viewer-left {
-            flex: 0 0 auto !important;
+            flex: 0 0 54dvh !important;
             width: 100% !important;
+            height: 54dvh !important;
             min-height: 0 !important;
-            max-height: none !important;
-            overflow: visible !important;
+            max-height: 54dvh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
             overscroll-behavior: auto !important;
             border-bottom: 1px solid ${LI_BORDER};
           }
           .post-viewer-right {
-            flex: 0 0 auto !important;
+            flex: 1 1 46dvh !important;
             width: 100% !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            overflow: visible !important;
+            min-width: 0 !important;
+            min-height: 300px !important;
+            height: 46dvh !important;
+            max-height: 46dvh !important;
+            overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
             background: ${C.white} !important;
@@ -1023,17 +1448,28 @@ export default function PostViewerPreview({
           .post-viewer-left > div:nth-child(6) { padding: 0 8px !important; }
           .post-viewer-media { min-height: 0 !important; max-height: none !important; height: auto !important; overflow: visible !important; }
           .post-viewer-media img, .post-viewer-media video { width: auto !important; max-width: 100% !important; max-height: 52dvh !important; height: auto !important; }
-          .post-viewer-job-description { height: min(42dvh, 320px); max-height: none; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+          .post-viewer-job-description {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+            overflow-x: hidden;
+          }
+          .post-viewer-job-card {
+            max-height: min(520px, 58dvh);
+          }
           .post-viewer-slider-button { width: 34px; height: 34px; }
           .post-viewer-slider-previous { left: 8px; }
           .post-viewer-slider-next { right: 8px; }
           .post-viewer-right > div:first-child { padding: 12px 16px !important; }
           .post-viewer-right > div:nth-child(2) {
+            width: 100% !important;
+            min-width: 0 !important;
             padding: 0 16px !important;
-            flex: 0 0 auto !important;
+            flex: 1 1 auto !important;
             height: auto !important;
             max-height: none !important;
-            overflow: visible !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
             padding-bottom: 72px !important;
             background: ${C.white} !important;
           }
@@ -1090,9 +1526,10 @@ export default function PostViewerPreview({
           height: "min(88vh, 820px)",
           maxHeight: "calc(100dvh - 48px)",
           background: C.white,
-          borderRadius: 16,
+          borderRadius: isAnnouncement ? 16 : 0,
+          border: isAnnouncement ? "1px solid rgba(217,165,54,0.55)" : "none",
           overflow: "hidden",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
+          boxShadow: isAnnouncement ? "0 8px 24px rgba(15,51,82,0.12), 0 0 0 1px rgba(217,165,54,0.08)" : "0 4px 24px rgba(0,0,0,0.2)",
           display: "flex",
           flexDirection: "row",
           position: "relative",
@@ -1120,33 +1557,98 @@ export default function PostViewerPreview({
         {/*  LEFT PANEL — POST CONTENT                                   */}
         {/* ============================================================ */}
         <div className="post-viewer-left" style={{ flex: "0 0 58%", display: "flex", flexDirection: "column", overflowY: "auto", minHeight: 0, minWidth: 0, overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+          {isAnnouncement && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", background: "linear-gradient(100deg, #0F3352 0%, #1B5386 72%, #D9A536 100%)", color: "#fff", fontSize: 11.5, fontWeight: 800, letterSpacing: "0.045em", textTransform: "uppercase", flexShrink: 0 }}>
+              <Megaphone size={15} color="#F6D374" />
+              <span>Annonce officielle LynoraLink</span>
+            </div>
+          )}
           {/* --- Header --- */}
           <div className="post-viewer-author-header" style={{ padding: "20px 24px 12px", display: "flex", alignItems: "flex-start", gap: 12 }}>
-            {post?.authorId ? (
-              <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId)}`} aria-label={`Voir le profil de ${post.author}`} style={{ display: "inline-flex", flexShrink: 0 }}>
-                <Avatar initials={post?.initials || "U"} imgUrl={post?.avatarUrl} size={48} />
-              </Link>
-            ) : <Avatar initials={post?.initials || "U"} imgUrl={post?.avatarUrl} size={48} />}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 7, fontSize: 16, fontWeight: 700, color: LI_TEXT }}>
-                  {post?.authorId ? <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId)}`} style={{ overflow: "hidden", textOverflow: "ellipsis", color: "inherit", textDecoration: "none" }}>{post?.author || "Utilisateur"}</Link> : <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{post?.author || "Utilisateur"}</span>}
-                  {post?.isPlatformAdmin && <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />}
-                  {!post?.isPlatformAdmin && post?.isPremium && <PremiumBadge size={14} />}
+            {group ? (
+              <div style={{ position: "relative", width: 54, height: 46, flexShrink: 0 }}>
+                <ProfileHoverPreview type="group" entity={group}>
+                  <Link href={`/feed?view=groups&groupId=${encodeURIComponent(group.id)}`} aria-label={`Voir le groupe ${group.name}`} style={{ display: "inline-flex" }}>
+                    <div
+                    className="pc-group-cover"
+                    aria-label={`Couverture de ${group.name}`}
+                    style={{
+                      position: "absolute", left: 0, top: 0, width: 42, height: 42, borderRadius: 8,
+                      background: group.coverGradient || navyGrad,
+                      backgroundImage: groupCoverUrl ? `url(${groupCoverUrl})` : undefined,
+                      backgroundSize: "cover", backgroundPosition: "center", border: `2px solid ${C.white}`,
+                      boxShadow: "0 1px 4px rgba(15,51,82,0.16)",
+                      cursor: "pointer",
+                    }}
+                    />
+                  </Link>
+                </ProfileHoverPreview>
+                <div style={{ position: "absolute", right: 0, bottom: 0 }}>
+                  <ProfileHoverPreview type={isPagePost ? "page" : "person"} fallback={{ id: isPagePost ? post?.companyPageId : post?.authorId, name: post?.author || "Utilisateur", avatarUrl: post?.avatarUrl, coverUrl: post?.pageCoverUrl || post?.coverUrl, bio: post?.description, location: post?.location, followersCount: post?.followersCount }}>
+                    <Link href={isPagePost ? `/feed?view=company&pageId=${encodeURIComponent(post?.companyPageId || "")}` : `/feed?view=profile&userId=${encodeURIComponent(post?.authorId || "")}`} aria-label={`Voir ${isPagePost ? "la page" : "le profil"} de ${post?.author || "Utilisateur"}`} style={{ display: "inline-flex" }}>
+                      <Avatar initials={post?.initials || "U"} imgUrl={post?.avatarUrl} size={28} />
+                    </Link>
+                  </ProfileHoverPreview>
                 </div>
-                {isPagePost && !isOwnPage && (
-                  <button
-                    type="button"
-                    onClick={() => onFollowPage?.(post.companyPageId)}
-                    disabled={isPageFollowed || !onFollowPage}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: "1px solid #D9A536", background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: "#0F3352", fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
-                  >
-                    {isPageFollowed ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}
-                  </button>
-                )}
               </div>
-              {followers != null && (
-                <div style={{ fontSize: 14, color: LI_SECONDARY, marginTop: 1 }}>{typeof followers === "number" ? `${formatCount(followers)} abonn\u00e9s` : followers}</div>
+            ) : post?.authorId ? (
+              <ProfileHoverPreview type={isPagePost ? "page" : "person"} fallback={{ id: isPagePost ? post?.companyPageId : post?.authorId, name: announcementAuthor, avatarUrl: announcementAvatar, coverUrl: post?.pageCoverUrl || post?.coverUrl, bio: post?.description, location: post?.location, followersCount: post?.followersCount }}>
+                <Link href={isPagePost ? `/feed?view=company&pageId=${encodeURIComponent(post?.companyPageId || "")}` : `/feed?view=profile&userId=${encodeURIComponent(post.authorId)}`} aria-label={`Voir ${isPagePost ? "la page" : "le profil"} de ${announcementAuthor}`} style={{ display: "inline-flex", flexShrink: 0 }}>
+                  <Avatar initials={isAnnouncement ? "LL" : (post?.initials || "U")} imgUrl={announcementAvatar} size={48} />
+                </Link>
+              </ProfileHoverPreview>
+            ) : <Avatar initials={isAnnouncement ? "LL" : (post?.initials || "U")} imgUrl={announcementAvatar} size={48} />}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {group ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 7, fontSize: 16, fontWeight: 700, color: LI_TEXT }}>
+                      <ProfileHoverPreview type="group" entity={group}>
+                        <Link href={`/feed?view=groups&groupId=${encodeURIComponent(group.id)}`} style={{ overflow: "hidden", textOverflow: "ellipsis", color: "inherit", textDecoration: "none" }}>{group.name}</Link>
+                      </ProfileHoverPreview>
+                    </div>
+                    {isPagePost && !isOwnPage && (
+                      <button
+                        type="button"
+                        onClick={() => onFollowPage?.(post.companyPageId)}
+                        disabled={isPageFollowed || !onFollowPage}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: "1px solid #D9A536", background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: "#0F3352", fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
+                      >
+                        {isPageFollowed ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: LI_SECONDARY, marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    {post?.authorId ? (
+                      <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId)}`} style={{ color: LI_TEXT, fontWeight: 600, textDecoration: "none" }}>{post?.author || "Utilisateur"}</Link>
+                    ) : <span style={{ color: LI_TEXT, fontWeight: 600 }}>{post?.author || "Utilisateur"}</span>}
+                    {post?.isPlatformAdmin && <EnterpriseBadge size={13} label="Administrateur officiel LynoraLink" />}
+                    {!post?.isPlatformAdmin && post?.isPremium && <PremiumBadge size={13} />}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 7, fontSize: 16, fontWeight: 700, color: LI_TEXT }}>
+                      {post?.authorId && !isAnnouncement ? <ProfileHoverPreview type={isPagePost ? "page" : "person"} fallback={{ id: isPagePost ? post?.companyPageId : post?.authorId, name: announcementAuthor, avatarUrl: announcementAvatar, coverUrl: post?.pageCoverUrl || post?.coverUrl, bio: post?.description, location: post?.location, followersCount: post?.followersCount }}><Link href={isPagePost ? `/feed?view=company&pageId=${encodeURIComponent(post?.companyPageId || "")}` : `/feed?view=profile&userId=${encodeURIComponent(post.authorId)}`} style={{ overflow: "hidden", textOverflow: "ellipsis", color: "inherit", textDecoration: "none" }}>{announcementAuthor}</Link></ProfileHoverPreview> : <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{announcementAuthor}</span>}
+                      {isOfficialPost && <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />}
+                      {!isOfficialPost && post?.isPremium && <PremiumBadge size={14} />}
+                    </div>
+                    {isPagePost && !isOwnPage && (
+                      <button
+                        type="button"
+                        onClick={() => onFollowPage?.(post.companyPageId)}
+                        disabled={isPageFollowed || !onFollowPage}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: "1px solid #D9A536", background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: "#0F3352", fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
+                      >
+                        {isPageFollowed ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}
+                      </button>
+                    )}
+                  </div>
+                  {followers != null && (
+                    <div style={{ fontSize: 14, color: LI_SECONDARY, marginTop: 1 }}>{typeof followers === "number" ? `${formatCount(followers)} abonn\u00e9s` : followers}</div>
+                  )}
+                </>
               )}
               <div style={{ fontSize: 13, color: LI_SECONDARY, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
                 <span>{post?.time ? <RelativeTime date={post.time} /> : "maintenant"}</span>
@@ -1177,7 +1679,7 @@ export default function PostViewerPreview({
               <FileViewerBanner post={post} />
             </>
           ) : isJobPost ? (
-            <div style={{ margin: "8px 24px 20px", border: `1px solid ${LI_BORDER}`, borderRadius: 14, overflow: "hidden", background: C.white, boxShadow: "0 5px 16px rgba(15,51,82,0.06)" }}>
+            <div className="post-viewer-job-card" style={{ margin: "8px 24px 20px", border: `1px solid ${LI_BORDER}`, borderRadius: 0, overflow: "hidden", background: C.white, boxShadow: "0 5px 16px rgba(15,51,82,0.06)" }}>
               <div style={{ padding: "18px 20px 20px", background: "linear-gradient(135deg, #0F3352 0%, #1B5386 100%)", color: "#fff" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 9px", border: "1px solid rgba(246,211,116,.35)", borderRadius: 999, background: "rgba(246,211,116,.12)", color: "#F6D374", fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase" }}>
@@ -1200,6 +1702,8 @@ export default function PostViewerPreview({
                 <PostText text={jobDescription} />
               </div>
             </div>
+          ) : isSponsoredPost ? (
+            <SponsoredViewerCard post={post} />
           ) : (
             <div style={{ padding: "16px 24px" }}>
               <PostText text={post?.headline || post?.text || post?.excerpt} />
@@ -1207,7 +1711,7 @@ export default function PostViewerPreview({
           )}
 
           {/* --- Media --- */}
-          {media.length > 0 && (
+          {!isSponsoredPost && media.length > 0 && (
             <div style={{ padding: "0 24px" }}>
               <MediaGallery items={media} />
             </div>
@@ -1324,13 +1828,22 @@ export default function PostViewerPreview({
 
           {/* --- Comments List (scrollable) --- */}
           <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
-            {visibleComments.map((comment) => (
+            {(commentsLoading || post?.loadingComments) && (
+              <div style={{ width: "100%", padding: "16px 0 8px" }}>
+                <CommentSkeleton count={4} />
+              </div>
+            )}
+            {!commentsLoading && !post?.loadingComments && visibleComments.map((comment) => (
               <div key={comment.id} style={{ borderBottom: `1px solid ${LI_BORDER}` }}>
                 <CommentItem
                   comment={comment}
                   currentUser={currentUser}
                   onToggleLike={onToggleCommentLike || (() => {})}
                   onToggleCommentReaction={handleCommentReaction}
+                  onReportComment={handleReportComment}
+                  onHideComment={handleHideComment}
+                  onEditComment={handleEditComment}
+                  onDeleteComment={handleDeleteComment}
                   onReply={(commentId, text) => handleCommentReply(post.id, commentId, text)}
                   onStartReply={(comment) => { setReplyingTo(comment); commentInputRef.current?.focus(); }}
                   postId={post.id}
@@ -1338,13 +1851,22 @@ export default function PostViewerPreview({
                 />
               </div>
             ))}
-            {(hiddenCount > 0 || showAllComments) && (
+            {!commentsLoading && !post?.loadingComments && (hiddenCount > 0 || showAllComments) && (
               <button onClick={() => setShowAllComments((visible) => !visible)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600, color: LINKEDIN_BLUE, padding: "14px 0", width: "100%", textAlign: "left" }}>
                 {showAllComments ? "Réduire les commentaires" : `Voir les ${hiddenCount} autres commentaires`}
                 <ChevronDown size={16} style={{ transform: showAllComments ? "rotate(180deg)" : "none", transition: "transform 160ms ease" }} />
               </button>
             )}
-            {comments.length === 0 && !post?.loadingComments && (
+            {!commentsLoading && !post?.loadingComments && hiddenCommentIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHiddenCommentIds([])}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: LINKEDIN_BLUE, padding: "8px 0 14px", width: "100%", textAlign: "left" }}
+              >
+                Réafficher les commentaires masqués
+              </button>
+            )}
+            {!commentsLoading && !post?.loadingComments && comments.length === 0 && (
               <div style={{ padding: "40px 0", textAlign: "center", color: LI_SECONDARY, fontSize: 14 }}>
                 Soyez le premier à commenter cette publication.
               </div>

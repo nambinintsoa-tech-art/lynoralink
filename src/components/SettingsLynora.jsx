@@ -12,6 +12,7 @@ import {
   UserX,
 } from 'lucide-react';
 import { TopNav } from './TopNav';
+import { fetchBackendApi } from '@/lib/backend-api';
 
 export const DEFAULT_SETTINGS = {
   profile: {
@@ -394,7 +395,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
     const cachedAppearance = (() => {
       try { return JSON.parse(localStorage.getItem('lynoralink:appearance') || 'null'); } catch { return null; }
     })();
-    fetch('/api/settings')
+    fetchBackendApi('/api/settings')
       .then(async (r) => { if (!r.ok) throw new Error('Impossible de charger les paramètres'); return r.json(); })
       .then((data) => {
         if (cancelled) return;
@@ -444,7 +445,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
 
   /* ---- Load sessions ---- */
   useEffect(() => {
-    fetch('/api/sessions')
+    fetchBackendApi('/api/sessions')
       .then((r) => r.ok ? r.json() : Promise.resolve({ sessions: [] }))
       .then((data) => {
         if (Array.isArray(data.sessions)) {
@@ -466,7 +467,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('/api/settings', {
+      const res = await fetchBackendApi('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile: draft.profile, privacy: draft.privacy, notifications: draft.notifications, appearance: draft.appearance, account: draft.account }),
@@ -484,7 +485,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
 
   const handleUnblock = async (userId) => {
     try {
-      const res = await fetch(`/api/removed-connections?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+      const res = await fetchBackendApi(`/api/removed-connections?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Impossible de débloquer cet utilisateur');
       const next = draft.removedConnections.filter((user) => user.id !== userId);
       setDraft((prev) => ({ ...prev, removedConnections: next }));
@@ -512,7 +513,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
       const form = new FormData();
       form.append('file', blob, fileName);
       form.append('type', 'image');
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const res = await fetchBackendApi('/api/upload', { method: 'POST', body: form });
       if (!res.ok) throw new Error('Upload échoué');
       const data = await res.json();
       return data.url;
@@ -572,7 +573,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
       const nextProfile = { ...draft.profile, avatarSrc: url };
       update('profile', { avatarSrc: url });
       setSaved((prev) => ({ ...prev, profile: { ...prev.profile, avatarSrc: url } }));
-      const saveRes = await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: nextProfile }) });
+      const saveRes = await fetchBackendApi('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: nextProfile }) });
       if (!saveRes.ok) { const data = await saveRes.json().catch(() => ({})); throw new Error(data.error || 'Impossible de sauvegarder la photo'); }
       if (typeof updateSession === 'function') await updateSession();
       setAvatarModalOpen(false);
@@ -598,7 +599,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
       const nextProfile = { ...draft.profile, coverSrc: url };
       update('profile', { coverSrc: url });
       setSaved((prev) => ({ ...prev, profile: { ...prev.profile, coverSrc: url } }));
-      const saveRes = await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: nextProfile }) });
+      const saveRes = await fetchBackendApi('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: nextProfile }) });
       if (!saveRes.ok) { const data = await saveRes.json().catch(() => ({})); throw new Error(data.error || 'Impossible de sauvegarder la couverture'); }
       if (typeof updateSession === 'function') await updateSession();
       setCoverModalOpen(false);
@@ -641,7 +642,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
   /* ---- Session / Password / Export / Delete ---- */
   const removeSession = async (id) => {
     try {
-      const res = await fetch(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const res = await fetchBackendApi(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Impossible de révoquer la session');
       setDraft((prev) => ({ ...prev, sessions: prev.sessions.filter((s) => s.id !== id) }));
       setSaved((prev) => ({ ...prev, sessions: prev.sessions.filter((s) => s.id !== id) }));
@@ -654,7 +655,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
     if (!passwordForm.current || !passwordForm.next) { setPasswordError('Tous les champs sont requis'); return; }
     if (passwordForm.next !== passwordForm.confirm) { setPasswordError('Les mots de passe ne correspondent pas'); return; }
     try {
-      const res = await fetch('/api/account/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: passwordForm.current, newPassword: passwordForm.next, otp: passwordTwoFactorRequired ? passwordForm.otp : undefined }) });
+      const res = await fetchBackendApi('/api/account/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: passwordForm.current, newPassword: passwordForm.next, otp: passwordTwoFactorRequired ? passwordForm.otp : undefined }) });
       const data = await res.json();
       if (data.requiresTwoFactor) {
         setPasswordTwoFactorRequired(true);
@@ -676,7 +677,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
       return;
     }
     try {
-      const res = await fetch('/api/account/email', {
+      const res = await fetchBackendApi('/api/account/email', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(emailForm),
@@ -710,7 +711,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
     setEmailError(null);
     setEmailResending(true);
     try {
-      const res = await fetch('/api/auth/2fa/request', {
+      const res = await fetchBackendApi('/api/auth/2fa/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: acc.email, password: emailForm.currentPassword }),
@@ -740,7 +741,7 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
     if (!deletePassword) { setDeleteError('Veuillez entrer votre mot de passe pour confirmer.'); return; }
     setDeleteLoading(true); setDeleteError(null);
     try {
-      const res = await fetch('/api/account', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: deletePassword }) });
+      const res = await fetchBackendApi('/api/account', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: deletePassword }) });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Suppression impossible'); }
       await signOut({ callbackUrl: '/' });
     } catch (e) { setDeleteError(e.message); } finally { setDeleteLoading(false); }

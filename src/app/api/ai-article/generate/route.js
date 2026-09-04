@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getSubscriptionAccess } from "@/lib/subscription";
 import { callGroq, callGroqVision, extractStructuredJson } from "@/lib/groq";
 
 function buildTopicBoundArticle(topic, tone, length, format) {
@@ -46,7 +49,8 @@ function cleanArticleText(value) {
     .replace(/^\s*#{1,6}\s*/gm, "")
     .replace(/\*{2,3}([^*\n]+)\*{2,3}/g, "$1")
     .replace(/(^|\n)\s*\*([^*\n]+)\*(?=\s*(?:\n|$))/g, "$1$2")
-    .replace(/(^|\n)\s*[-*+]\s+/g, "$1")
+    .replace(/(^|\n)\s*[-*+]\s+/g, "$1• ")
+    .replace(/`([^`]+)`/g, "$1")
     .replace(/^\s*(?:conclusion|introduction|corps de l'article|article)\s*:?\s*$/gim, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -122,6 +126,16 @@ function parseArticleResponse(response, topic) {
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
+    }
+
+    const access = await getSubscriptionAccess(session.user.id);
+    if (!access.isPremium) {
+      return NextResponse.json({ error: "Le VisuelFocus est réservé au plan Premium." }, { status: 403 });
+    }
+
     const body = await req.json();
     const topic = String(body?.topic || "").trim();
     const tone = String(body?.tone || "pro").trim();
@@ -162,7 +176,7 @@ export async function POST(req) {
             { role: "system", content: systemMessage },
             { role: "user", content: userContent },
           ],
-          { temperature: 0.3, max_tokens: 1200 }
+          { temperature: 0.3, max_tokens: 2400 }
         );
         provider = "groq-vision";
       } catch (visionError) {
@@ -174,7 +188,7 @@ export async function POST(req) {
               content: `${content}\nLes images sont jointes à la publication, mais leur analyse visuelle n'est pas disponible avec le modèle actif. Ne prétends pas avoir identifié des éléments précis dans les images.`,
             },
           ],
-          { temperature: 0.2, max_tokens: 1200 }
+            { temperature: 0.2, max_tokens: 2400 }
         );
         provider = "groq-text-fallback";
       }
@@ -184,7 +198,7 @@ export async function POST(req) {
           { role: "system", content: systemMessage },
           { role: "user", content: userContent },
         ],
-        { temperature: 0.2, max_tokens: 1200 }
+        { temperature: 0.2, max_tokens: 2400 }
       );
     }
 

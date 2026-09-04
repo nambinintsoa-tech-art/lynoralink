@@ -50,6 +50,10 @@ model User {
   sentNotifications       Notification[]       @relation("NotificationSender")
   notifications           Notification[]
   posts                   Post[]
+  reelComments            ReelComment[]
+  reelCommentReactions    ReelCommentReaction[]
+  reelSaves               ReelSave[]
+  reelShares              ReelShare[]
   companyPosts            Post[]               @relation("CompanyPosts")
   postShares              PostShare[]
   pushSubscriptions       PushSubscription[]
@@ -61,6 +65,7 @@ model User {
   stories                 Story[]
   storyReactions          StoryReaction[]
   storyViews              StoryView[]
+  reelReactions           ReelReaction[]
   subscription            Subscription?
   supportRequests         SupportRequest[]
   userSettings            UserSetting[]
@@ -510,4 +515,106 @@ model StoryReaction {
 
   @@unique([storyId, userId])
   @@index([storyId])
+}
+
+model Reel {
+  id            String         @id @default(cuid())
+  videoUrl      String
+  poster        String?
+  tone          String?
+  authorId      String?
+  companyPageId String?
+  authorType    String?
+  authorName    String?
+  authorHandle  String?
+  authorAvatar  String?
+  authorVerified Boolean        @default(false)
+  caption       String?
+  sound         String?
+  likes         Int            @default(0)
+  comments      Int            @default(0)
+  shares        Int            @default(0)
+  following     Boolean        @default(false)
+  liked         Boolean        @default(false)
+  saved         Boolean        @default(false)
+  status        String         @default("published")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  reactions     ReelReaction[]
+  reelComments  ReelComment[]
+  saves         ReelSave[]
+  reelShares    ReelShare[]
+
+  @@index([status, createdAt, id])
+}
+
+model ReelSave {
+  id        String   @id @default(cuid())
+  reelId    String
+  userId    String
+  createdAt DateTime @default(now())
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([userId, createdAt])
+}
+
+model ReelShare {
+  id        String   @id @default(cuid())
+  reelId    String
+  userId    String
+  createdAt DateTime @default(now())
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reelId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ReelComment {
+  id        String        @id @default(cuid())
+  reelId    String
+  authorId  String
+  text      String
+  parentId  String?
+  mediaData String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  reel      Reel          @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    ReelComment?  @relation("ReelCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ReelComment[] @relation("ReelCommentReplies")
+  reactions ReelCommentReaction[]
+
+  @@index([reelId, createdAt])
+  @@index([parentId])
+}
+
+model ReelCommentReaction {
+  id        String      @id @default(cuid())
+  commentId String
+  userId    String
+  reaction  String      @default("ok")
+  createdAt DateTime    @default(now())
+  comment   ReelComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+model ReelReaction {
+  id        String   @id @default(cuid())
+  reelId    String
+  userId    String
+  reaction  String   @default("ok")
+  createdAt DateTime @default(now())
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
 }

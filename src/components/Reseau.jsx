@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { fetchBackendApi } from "@/lib/backend-api";
 import {
   Users, MessageCircle, UserPlus, Check, UserX, X, Clock,
   Building2, ChevronRight, Contact, Gift, ListChecks, Settings,
@@ -75,9 +76,9 @@ function EmptyState({ icon: Icon, text }) {
   );
 }
 
-function MutualRow({ mutual, label = "ami(e)s en commun", avatars = [] }) {
+function MutualRow({ mutual, label = "relations en commun", avatars = [] }) {
   if (mutual === undefined || mutual === null) return null;
-  const slots = [avatars[0] || null, avatars[1] || null];
+  const slots = avatars.filter(Boolean).slice(0, 2);
   return (
     <div className="fb-mutual-row">
       <span className="fb-mutual-avatars">
@@ -86,8 +87,7 @@ function MutualRow({ mutual, label = "ami(e)s en commun", avatars = [] }) {
             key={i}
             className="fb-mutual-avatar"
             style={{
-              backgroundImage: url ? `url(${url})` : undefined,
-              backgroundColor: url ? undefined : (i === 0 ? "#CFD5DB" : "#B8C0C9"),
+              backgroundImage: `url(${url})`,
               marginLeft: i ? -7 : 0,
               zIndex: 2 - i,
             }}
@@ -95,6 +95,58 @@ function MutualRow({ mutual, label = "ami(e)s en commun", avatars = [] }) {
         ))}
       </span>
       <span className="fb-mutual-text">{mutual} {label}</span>
+    </div>
+  );
+}
+
+function NetworkTabSkeleton({ tab }) {
+  if (tab === "connections") {
+    return <div className="fb-network-skeleton-list">{Array.from({ length: 5 }).map((_, index) => <div className="fb-network-skeleton-row" key={index}><span className="fb-skeleton-circle" /><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>)}</div>;
+  }
+  if (tab === "anniversaires") {
+    return <div className="fb-network-skeleton-list">{Array.from({ length: 4 }).map((_, index) => <div className="fb-network-skeleton-row" key={index}><span className="fb-skeleton-calendar" /><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>)}</div>;
+  }
+  if (tab === "listes") {
+    return <div className="fb-network-skeleton-list">{Array.from({ length: 3 }).map((_, index) => <div className="fb-network-skeleton-list-card" key={index}><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-medium" /><span className="fb-skeleton-button" /></div>)}</div>;
+  }
+  return <div className="fb-network-skeleton-grid">{Array.from({ length: 6 }).map((_, index) => <div className="fb-network-skeleton-card" key={index}><span className="fb-skeleton-cover" /><span className="fb-skeleton-avatar" /><span className="fb-skeleton-line fb-skeleton-line-medium" /><span className="fb-skeleton-line fb-skeleton-line-short" /><span className="fb-skeleton-button" /></div>)}</div>;
+}
+
+function NetworkOpeningSkeleton() {
+  return (
+    <div className="fb-network-opening-skeleton" aria-label="Chargement du réseau" role="status">
+      <aside className="fb-network-opening-sidebar">
+        <span className="fb-skeleton-line fb-skeleton-line-title" />
+        {Array.from({ length: 6 }).map((_, index) => <div className="fb-network-opening-nav" key={index}><span className="fb-skeleton-circle" /><span className="fb-skeleton-line fb-skeleton-line-wide" /></div>)}
+      </aside>
+      <main className="fb-network-opening-content">
+        <div className="fb-network-opening-header"><span className="fb-skeleton-line fb-skeleton-line-heading" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>
+        <NetworkTabSkeleton tab="suggestions" />
+      </main>
+      <style>{`
+        .fb-network-opening-skeleton { display: flex; min-height: calc(100dvh - var(--lynora-header-offset, 0px)); height: 100%; background: ${FB.pageBg}; color: ${FB.text}; }
+        .fb-network-opening-sidebar { width: ${SIDEBAR_WIDTH}px; flex: 0 0 ${SIDEBAR_WIDTH}px; padding: 24px 16px; border-right: 1px solid ${FB.border}; background: ${FB.sidebarBg}; }
+        .fb-network-opening-content { flex: 1; min-width: 0; padding: 28px; overflow: hidden; }
+        .fb-network-opening-nav { display: flex; align-items: center; gap: 12px; min-height: 52px; }
+        .fb-network-opening-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .fb-network-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+        .fb-network-skeleton-card { display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 220px; padding: 12px; overflow: hidden; border: 1px solid ${FB.border}; border-radius: 12px; background: ${FB.cardBg}; }
+        .fb-skeleton-cover { width: calc(100% + 24px); height: 62px; margin: -12px -12px 2px; background: ${FB.borderSoft}; }
+        .fb-skeleton-avatar, .fb-skeleton-circle { display: block; flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: ${FB.borderSoft}; }
+        .fb-skeleton-circle { width: 36px; height: 36px; }
+        .fb-skeleton-line { display: block; height: 10px; border-radius: 999px; background: ${FB.borderSoft}; }
+        .fb-skeleton-line-wide { width: min(70%, 220px); }
+        .fb-skeleton-line-medium { width: 68%; }
+        .fb-skeleton-line-short { width: 38%; }
+        .fb-skeleton-button { display: block; width: 82%; height: 28px; margin-top: auto; border-radius: 6px; background: ${FB.borderSoft}; }
+        .fb-skeleton-line-title { width: 128px; height: 22px; margin-bottom: 24px; }
+        .fb-skeleton-line-heading { width: 220px; height: 22px; }
+        .fb-network-opening-skeleton .fb-network-skeleton-card, .fb-network-opening-skeleton .fb-network-opening-nav, .fb-network-opening-skeleton .fb-skeleton-line { animation: fb-skeleton-pulse 1.1s ease-in-out infinite alternate; }
+        @media (max-width: 700px) {
+          .fb-network-opening-sidebar { display: none; }
+          .fb-network-opening-content { padding: 18px 12px; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -163,11 +215,15 @@ export default function Reseau({
   const [invitations, setInvitations] = useState(invitationsProp ?? []);
   const [suggestions, setSuggestions] = useState(suggestionsProp ?? []);
   const [connectedIds, setConnectedIds] = useState([]);
+  const [acceptedInvitationIds, setAcceptedInvitationIds] = useState([]);
   const [pendingRequestIds, setPendingRequestIds] = useState([]);
   const [removingConnectionIds, setRemovingConnectionIds] = useState([]);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState([]);
   const [toast, setToast] = useState(null);
   const [suggestionLimit, setSuggestionLimit] = useState(10);
+  const [openingLoading, setOpeningLoading] = useState(
+    connectionsProp === undefined || invitationsProp === undefined || suggestionsProp === undefined
+  );
   const [isMobile, setIsMobile] = useState(false);
   const [lists, setLists] = useState([]);
   const [listForm, setListForm] = useState({ name: "", description: "", color: "#D4A72C" });
@@ -186,7 +242,7 @@ export default function Reseau({
   useEffect(() => {
     const loadNetworkNotificationSettings = async () => {
       try {
-        const response = await fetch("/api/settings", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/settings", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         const network = data?.notifications?.network || {};
@@ -207,7 +263,7 @@ export default function Reseau({
   const saveNetworkNotificationSettings = async () => {
     setSavingNotificationSettings(true);
     try {
-      const response = await fetch("/api/settings", {
+      const response = await fetchBackendApi("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -273,6 +329,7 @@ export default function Reseau({
   }, [pendingRequestIdsProp]);
 
   const handleTabChange = (nextTab) => {
+    if (nextTab === tab) return;
     setTab(nextTab);
     onTabChange?.(nextTab);
   };
@@ -289,7 +346,7 @@ export default function Reseau({
   const refreshConnections = async () => {
     if (sessionStatus !== "authenticated") return;
     try {
-      const res = await fetch("/api/connections");
+      const res = await fetchBackendApi("/api/connections");
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data.connections)) updateConnections(data.connections);
@@ -305,7 +362,7 @@ export default function Reseau({
   const refreshSuggestions = async () => {
     if (sessionStatus !== "authenticated") return;
     try {
-      const res = await fetch("/api/users");
+      const res = await fetchBackendApi("/api/users");
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data.suggestions)) setSuggestions(data.suggestions);
@@ -319,21 +376,25 @@ export default function Reseau({
   const acceptInvitation = async (id) => {
     const inv = invitations.find((i) => i.id === id);
     if (!inv) return;
+    setAcceptedInvitationIds((current) => current.includes(id) ? current : [...current, id]);
     try {
-      const response = await fetch("/api/connections", {
+      const response = await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: inv.userId, action: "accept" }),
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        setAcceptedInvitationIds((current) => current.filter((invitationId) => invitationId !== id));
+        return;
+      }
       const data = await response.json();
       if (data?.accepted || data?.connection) {
-        showToast(`Vous êtes maintenant ami(e) avec ${inv.name}`, Check);
+        showToast(`Vous êtes maintenant en relation avec ${inv.name}`, Check);
         await refreshConnections();
         await refreshSuggestions();
       }
     } catch (error) {
-      // ignore update if persistence failed
+      setAcceptedInvitationIds((current) => current.filter((invitationId) => invitationId !== id));
     }
   };
 
@@ -341,7 +402,7 @@ export default function Reseau({
     const inv = invitations.find((i) => i.id === id);
     if (!inv) return;
     try {
-      const response = await fetch("/api/connections", {
+      const response = await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: inv.userId, action: "decline" }),
@@ -359,7 +420,7 @@ export default function Reseau({
     if (removingConnectionIds.includes(connectionId)) return;
     setRemovingConnectionIds((ids) => [...ids, connectionId]);
     try {
-      const response = await fetch("/api/connections", {
+      const response = await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: connection.userId || connection.id, action: "remove" }),
@@ -397,7 +458,7 @@ export default function Reseau({
     showToast("Demande envoyée", Clock);
 
     try {
-      const response = await fetch("/api/connections", {
+      const response = await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: id }),
@@ -422,7 +483,7 @@ export default function Reseau({
     if (sessionStatus !== "authenticated") return undefined;
     if (connectionsProp || invitationsProp) return undefined;
     let mounted = true;
-    fetch("/api/connections")
+    fetchBackendApi("/api/connections")
       .then((r) => r.json())
       .then((data) => {
         if (!mounted || !data) return;
@@ -431,8 +492,9 @@ export default function Reseau({
         if (Array.isArray(data.pendingRequests) && data.pendingRequests.length > 0) {
           setPendingRequestIds(data.pendingRequests.map((pr) => pr.userId));
         }
+        setOpeningLoading(false);
       })
-      .catch(() => {});
+      .catch(() => setOpeningLoading(false));
     return () => { mounted = false; };
   }, [connectionsProp, invitationsProp, sessionStatus]);
 
@@ -440,7 +502,7 @@ export default function Reseau({
     if (sessionStatus !== "authenticated") return undefined;
     if (suggestionsProp && suggestionsProp.length > 0) return undefined;
     let mounted = true;
-    fetch("/api/users")
+    fetchBackendApi("/api/users")
       .then((r) => r.json())
       .then((data) => {
         if (!mounted || !data) return;
@@ -461,7 +523,7 @@ export default function Reseau({
     let active = true;
     const loadLists = async () => {
       try {
-        const response = await fetch("/api/network-lists", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/network-lists", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         if (!active || !Array.isArray(data.lists)) return;
@@ -502,7 +564,7 @@ export default function Reseau({
         color: listForm.color,
       };
 
-      const response = await fetch("/api/network-lists", {
+      const response = await fetchBackendApi("/api/network-lists", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -522,7 +584,7 @@ export default function Reseau({
   const handleDeleteList = async (listId) => {
     try {
       setListBusyId(listId);
-      const response = await fetch(`/api/network-lists?id=${encodeURIComponent(listId)}`, { method: "DELETE" });
+      const response = await fetchBackendApi(`/api/network-lists?id=${encodeURIComponent(listId)}`, { method: "DELETE" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Suppression impossible.");
       setLists(Array.isArray(data.lists) ? data.lists : lists.filter((list) => list.id !== listId));
@@ -545,7 +607,7 @@ export default function Reseau({
 
     try {
       setListBusyId(listId);
-      const response = await fetch("/api/network-lists", {
+      const response = await fetchBackendApi("/api/network-lists", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: listId, memberIds: nextMemberIds }),
@@ -576,34 +638,27 @@ export default function Reseau({
       return Number.isNaN(date.getTime()) ? null : date;
     };
 
-    const getNextBirthday = (date) => {
-      const now = new Date();
-      const thisYear = new Date(now.getFullYear(), date.getMonth(), date.getDate());
-      if (thisYear < now) {
-        return new Date(now.getFullYear() + 1, date.getMonth(), date.getDate());
-      }
-      return thisYear;
-    };
+    const today = new Date();
 
     return connections
       .map((connection) => {
         const birthDate = parseDate(connection.birthDate);
         if (!birthDate) return null;
 
-        const nextBirthday = getNextBirthday(birthDate);
+        const isToday = birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate();
+        if (!isToday) return null;
+
         const label = birthDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        const isToday = nextBirthday.toDateString() === new Date().toDateString();
 
         return {
           ...connection,
           birthDate,
-          nextBirthday,
           label,
-          isToday,
+          isToday: true,
         };
       })
       .filter(Boolean)
-      .sort((a, b) => a.nextBirthday - b.nextBirthday);
+      .sort((a, b) => a.birthDate - b.birthDate);
   }, [connections]);
 
   /* ---- Navigation latérale (libellés adaptés au mode "page") ---- */
@@ -619,6 +674,8 @@ export default function Reseau({
   const suggestionHeader = tab === "accueil" ? "Vous connaissez peut-être" : "Suggestions pour vous";
 
   const profileHref = (id) => `/feed?view=profile&userId=${encodeURIComponent(id)}`;
+
+  if (openingLoading) return <NetworkOpeningSkeleton />;
 
   return (
     <div
@@ -736,6 +793,25 @@ export default function Reseau({
         .fb-mutual-avatars { display: inline-flex; align-items: center; flex-shrink: 0; }
         .fb-mutual-avatar { width: 16px; height: 16px; border-radius: 50%; background-size: cover; background-position: center; border: 1.5px solid ${FB.white}; display: inline-block; }
         .fb-mutual-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .fb-network-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+        .fb-network-skeleton-card, .fb-network-skeleton-list-card { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid ${FB.border}; border-radius: 12px; background: ${FB.cardBg}; }
+        .fb-network-skeleton-card { min-height: 220px; align-items: center; }
+        .fb-network-skeleton-list { display: flex; flex-direction: column; gap: 10px; }
+        .fb-network-skeleton-row { display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 12px 14px; border: 1px solid ${FB.border}; border-radius: 10px; background: ${FB.cardBg}; }
+        .fb-skeleton-cover { width: calc(100% + 24px); height: 62px; margin: -12px -12px 2px; background: ${FB.borderSoft}; }
+        .fb-skeleton-avatar, .fb-skeleton-circle, .fb-skeleton-calendar { display: block; flex-shrink: 0; background: ${FB.borderSoft}; }
+        .fb-skeleton-avatar { width: 48px; height: 48px; margin-top: -28px; border: 3px solid ${FB.cardBg}; border-radius: 50%; }
+        .fb-skeleton-circle { width: 44px; height: 44px; border-radius: 50%; }
+        .fb-skeleton-calendar { width: 38px; height: 38px; border-radius: 8px; }
+        .fb-skeleton-line, .fb-skeleton-button { display: block; height: 10px; border-radius: 999px; background: ${FB.borderSoft}; }
+        .fb-skeleton-line-wide { width: min(54%, 230px); }
+        .fb-skeleton-line-medium { width: 68%; }
+        .fb-skeleton-line-short { width: 38%; }
+        .fb-skeleton-button { width: 72%; height: 28px; margin-top: auto; border-radius: 6px; }
+        .fb-network-skeleton-card > .fb-skeleton-button { width: 82%; }
+        .fb-network-skeleton-card, .fb-network-skeleton-list-card, .fb-network-skeleton-row { animation: fb-skeleton-pulse 1.1s ease-in-out infinite alternate; }
+        @keyframes fb-skeleton-pulse { from { opacity: .55; } to { opacity: 1; } }
 
         .fb-btn {
           width: 100%; border-radius: 6px; border: none; padding: 7px 10px; font-size: 14px; font-weight: 600;
@@ -889,6 +965,7 @@ export default function Reseau({
             </div>
           )}
 
+          <>
           {/* ---- Accueil / Suggestions ---- */}
           {(tab === "accueil" || tab === "suggestions") && (
             <>
@@ -912,7 +989,7 @@ export default function Reseau({
                     const pending = pendingRequestIds.includes(s.id);
                     const avatarUrl = s.avatarUrl || s.image || s.logoUrl || s.photoUrl || null;
                     const coverUrl = s.coverUrl || s.cover || s.bannerUrl || s.backgroundImage || null;
-                    const mutualLabel = isCompany ? "abonnés" : "ami(e)s en commun";
+                    const mutualLabel = isCompany ? "abonnés" : "relations en commun";
                     const mutualValue = isCompany ? (s.followers ?? s.mutual ?? 0) : s.mutual;
 
                     return (
@@ -1013,6 +1090,7 @@ export default function Reseau({
               ) : (
                 <div className="fb-grid">
                   {invitations.map((inv) => {
+                    const accepted = acceptedInvitationIds.includes(inv.id);
                     const coverUrl = inv.coverUrl || inv.bannerUrl || inv.backgroundImage || null;
                     const avatarUrl = inv.image || inv.avatarUrl || inv.logoUrl || inv.photoUrl || null;
                     const title = inv.title || "Professionnel";
@@ -1071,13 +1149,14 @@ export default function Reseau({
                           <div style={{ fontSize: 11, color: FB.textSecondary, fontWeight: 500, minHeight: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {title}
                           </div>
-                          <MutualRow mutual={inv.mutual} label={isPageMode ? "abonnés" : "ami(e)s en commun"} avatars={inv.mutualAvatars || []} />
+                          <MutualRow mutual={inv.mutual} label={isPageMode ? "abonnés" : "relations en commun"} avatars={inv.mutualAvatars || []} />
 
                           <button
                             onClick={() => acceptInvitation(inv.id)}
+                            disabled={accepted}
                             className="fb-btn fb-btn-primary"
                             style={{
-                              background: "#D4A72C",
+                              background: accepted ? "#2E9C7C" : "#D4A72C",
                               color: FB.white,
                               border: "none",
                               boxShadow: "0 1px 2px rgba(15, 51, 82, 0.12)",
@@ -1086,15 +1165,17 @@ export default function Reseau({
                               marginTop: 4,
                             }}
                           >
-                            <Check size={14} /> {isPageMode ? "Accepter" : "Confirmer"}
+                            <Check size={14} /> {accepted ? "Connecté" : (isPageMode ? "Accepter" : "Confirmer")}
                           </button>
-                          <button
-                            onClick={() => declineInvitation(inv.id)}
-                            className="fb-btn fb-btn-secondary"
-                            style={{ fontSize: 11, padding: "7px 10px", marginTop: 0 }}
-                          >
-                            Refuser
-                          </button>
+                          {!accepted && (
+                            <button
+                              onClick={() => declineInvitation(inv.id)}
+                              className="fb-btn fb-btn-secondary"
+                              style={{ fontSize: 11, padding: "7px 10px", marginTop: 0 }}
+                            >
+                              Refuser
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1317,6 +1398,7 @@ export default function Reseau({
               </div>
             </>
           )}
+          </>
         </main>
       </div>
 

@@ -253,6 +253,142 @@ html[data-density="comfortable"] .lynora-feed-page { --feed-card-gap: 12px; }
   box-sizing: border-box;
 }
 
+.lynora-skeleton-menu {
+  display: none;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .lynora-groups-grid-skeleton {
+    width: 100vw !important;
+    margin-left: 0 !important;
+    overflow-x: hidden;
+  }
+
+  .lynora-skeleton-groups-shell {
+    display: block !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+  }
+
+  .lynora-skeleton-groups-sidebar {
+    display: none !important;
+  }
+
+  .lynora-skeleton-groups-content {
+    width: 100% !important;
+    padding: 0 0 calc(56px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .lynora-skeleton-menu {
+    display: block !important;
+    width: 100%;
+    padding: 0 0 12px;
+  }
+
+  .lynora-skeleton-menu > * {
+    width: 100% !important;
+    height: 48px !important;
+    border-radius: 0 !important;
+  }
+
+  .lynora-skeleton-groups-content > div > div:first-child {
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
+
+  .lynora-skeleton-group-cards {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .lynora-groups-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .lynora-groups-card-grid > .lynora-card {
+    min-width: 0 !important;
+    border-radius: 10px !important;
+  }
+
+  .lynora-groups-card-grid > .lynora-card > div:first-child {
+    height: 76px !important;
+  }
+
+  .lynora-groups-card-grid > .lynora-card > div:nth-child(2) {
+    padding: 10px !important;
+  }
+
+  .lynora-groups-card-grid h3 {
+    font-size: 12.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  .lynora-groups-card-grid p {
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 7px !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .lynora-groups-card-grid button {
+    padding: 7px 5px !important;
+    font-size: 10.5px !important;
+  }
+
+  .lynora-groups-card-grid > .lynora-card > div:nth-child(2) > div:not(:first-child) {
+    font-size: 10.5px !important;
+  }
+
+  .lynora-group-detail-skeleton {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 8px 0 calc(56px + env(safe-area-inset-bottom)) !important;
+    gap: 12px !important;
+  }
+
+  .lynora-skeleton-detail-toolbar {
+    padding: 0 14px;
+  }
+
+  .lynora-group-detail-skeleton > div:nth-child(2) {
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .lynora-group-detail-skeleton > div:nth-child(2) > div {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .lynora-skeleton-stat-row {
+    overflow-x: hidden !important;
+  }
+
+  .lynora-skeleton-stat-row > div {
+    min-width: 0 !important;
+    padding: 10px 8px !important;
+  }
+
+  .lynora-skeleton-detail-tabs {
+    overflow: hidden;
+    padding: 0 14px !important;
+    gap: 12px !important;
+  }
+
+  .lynora-skeleton-detail-columns {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .lynora-skeleton-detail-columns > * {
+    border-radius: 0 !important;
+  }
+}
+
 html,
 body {
   padding: 0;
@@ -532,7 +668,8 @@ html[data-device-preview] .lynora-feed-page {
     padding: 24px 20px calc(24px + env(safe-area-inset-bottom)) !important;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 36px !important;
   }
 
   .notification-page-modal {

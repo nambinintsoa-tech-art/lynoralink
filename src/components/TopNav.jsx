@@ -407,6 +407,7 @@ export const TopNav = forwardRef(function TopNav({
   const [query, setQuery] = useState("");
   const [containerWidth, setContainerWidth] = useState(1200);
   const headerRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const inputRef = useRef(null);
   const profileAvatar = profile?.avatarUrl || profile?.image || profile?.photoUrl || null;
   const isPageMode = accountMode === "company" || profile?.accountType === "company";
@@ -442,6 +443,15 @@ export const TopNav = forwardRef(function TopNav({
       document.documentElement.style.overflow = previousRootOverflow;
     };
   }, [menuOpen, isCompact]);
+
+  useEffect(() => {
+    if (!menuOpen && !searchOpen) return undefined;
+    const handleOutsidePointerDown = (event) => {
+      if (menuOpen && profileMenuRef.current && !profileMenuRef.current.contains(event.target)) setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
+  }, [menuOpen, searchOpen]);
 
   const goHome = () => {
     onNavigate("feed");
@@ -674,6 +684,16 @@ export const TopNav = forwardRef(function TopNav({
             {isCompact && (
               <>
                 <IconButton
+                  icon={Mail}
+                  label="Messages"
+                  onClick={() => onNavigate("messages")}
+                  active={view === "messages"}
+                  badge={unreadMessages}
+                  badgeSize="sm"
+                  size={20}
+                  boxSize={34}
+                />
+                <IconButton
                   icon={Bell}
                   label="Notifications"
                   onClick={() => onNavigate("notifications")}
@@ -687,7 +707,7 @@ export const TopNav = forwardRef(function TopNav({
             )}
 
             {/* Menu profil */}
-            <div style={{ position: "relative" }}>
+            <div ref={profileMenuRef} style={{ position: "relative" }}>
               {!isCompact && (
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
@@ -716,7 +736,7 @@ export const TopNav = forwardRef(function TopNav({
               {menuOpen && (
                 <>
                   {isCompact && (
-                    <div className="tn-profile-menu-backdrop" style={{ position: "fixed", inset: 0, zIndex: 65, background: "var(--app-surface)" }} onClick={() => setMenuOpen(false)} />
+                    <div className="tn-profile-menu-backdrop" style={{ position: "fixed", inset: 0, zIndex: 39, background: "var(--app-surface)" }} onClick={() => setMenuOpen(false)} />
                   )}
                   <div
                     role="menu"

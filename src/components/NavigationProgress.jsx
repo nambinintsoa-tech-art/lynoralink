@@ -12,6 +12,7 @@ export default function NavigationProgress() {
   const previousLocation = useRef(locationKey);
   const fallbackTimer = useRef(null);
   const finishTimer = useRef(null);
+  const navigationStartTimer = useRef(null);
   const [status, setStatus] = useState("idle");
 
   useEffect(() => {
@@ -22,24 +23,54 @@ export default function NavigationProgress() {
       fallbackTimer.current = window.setTimeout(() => setStatus("finishing"), 10000);
     };
 
-    const handleDocumentClick = (event) => {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-
-      const link = event.target.closest("a[href]");
-      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
-
-      const url = new URL(link.href, window.location.href);
-      if (url.origin !== window.location.origin || url.href === window.location.href) return;
-      start();
+    const scheduleStart = () => {
+      clearTimeout(navigationStartTimer.current);
+      navigationStartTimer.current = window.setTimeout(() => {
+        navigationStartTimer.current = null;
+        start();
+      }, 0);
     };
 
-    const handlePopState = () => start();
-    document.addEventListener("click", handleDocumentClick, true);
+    const handlePopState = scheduleStart;
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    const handleNavigationStart = scheduleStart;
+    const handleNavigationComplete = () => {
+      clearTimeout(fallbackTimer.current);
+      setStatus((currentStatus) => (currentStatus === "idle" ? "idle" : "finishing"));
+      clearTimeout(finishTimer.current);
+      finishTimer.current = window.setTimeout(() => setStatus("idle"), 260);
+    };
+
+    window.history.pushState = function (...args) {
+      const currentUrl = window.location.href;
+      const nextUrl = args[2] ? new URL(args[2], window.location.href).href : window.location.href;
+      const result = originalPushState.apply(this, args);
+      if (nextUrl !== currentUrl) {
+        window.dispatchEvent(new Event("lynora:navigation-start"));
+      }
+      return result;
+    };
+    window.history.replaceState = function (...args) {
+      const currentUrl = window.location.href;
+      const nextUrl = args[2] ? new URL(args[2], window.location.href).href : window.location.href;
+      const result = originalReplaceState.apply(this, args);
+      if (nextUrl !== currentUrl) {
+        window.dispatchEvent(new Event("lynora:navigation-start"));
+      }
+      return result;
+    };
     window.addEventListener("popstate", handlePopState);
+    window.addEventListener("lynora:navigation-start", handleNavigationStart);
+    window.addEventListener("lynora:navigation-complete", handleNavigationComplete);
 
     return () => {
-      document.removeEventListener("click", handleDocumentClick, true);
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("lynora:navigation-start", handleNavigationStart);
+      window.removeEventListener("lynora:navigation-complete", handleNavigationComplete);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      clearTimeout(navigationStartTimer.current);
       clearTimeout(fallbackTimer.current);
       clearTimeout(finishTimer.current);
     };
@@ -48,9 +79,7 @@ export default function NavigationProgress() {
   useEffect(() => {
     if (previousLocation.current === locationKey) return;
     previousLocation.current = locationKey;
-    clearTimeout(fallbackTimer.current);
-    setStatus((currentStatus) => (currentStatus === "idle" ? "idle" : "finishing"));
-    finishTimer.current = window.setTimeout(() => setStatus("idle"), 260);
+    window.dispatchEvent(new Event("lynora:navigation-complete"));
   }, [locationKey]);
 
   if (status === "idle") return null;

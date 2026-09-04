@@ -36,13 +36,25 @@ const STYLE_CSS = `
 .lyn-static { background: ${C.base}; }
 .lyn-media-fade { animation: lyn-fade-in .45s ease both; }
 .lyn-spin { animation: lyn-spin .9s linear infinite; }
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .lynora-skeleton-feed-shell { min-height: 100dvh !important; overflow-x: hidden; }
-  .lynora-skeleton-feed-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; padding: calc(max(96px, var(--lynora-header-offset, 96px)) + 8px) 12px 12px !important; }
+  .lynora-skeleton-feed-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; padding: calc(max(96px, var(--lynora-header-offset, 96px)) + 12px) 12px 12px !important; }
   .lynora-skeleton-feed-grid > aside { display: none !important; }
   .lynora-skeleton-fixed-sidebar { display: none !important; }
-  .lynora-skeleton-feed-grid > main { width: 100%; }
+  .lynora-skeleton-feed-grid > main { width: 100%; max-width: 680px; margin: 0 auto; }
   .lynora-skeleton-feed-grid { padding: 12px !important; gap: 12px !important; }
+  .lynora-feed-skeleton-wrapper { width: 100%; max-width: 680px; margin: 0 auto; }
+  .lynora-feed-skeleton-card,
+  .lynora-feed-skeleton-card > *,
+  .lynora-feed-skeleton-card .lynora-skeleton-media,
+  .lynora-feed-skeleton-card .lynora-skeleton-cover,
+  .lynora-feed-skeleton-card .lynora-skeleton-avatar {
+    border-radius: 14px !important;
+  }
+  .lynora-feed-skeleton-card {
+    border: 1px solid ${C.line} !important;
+    box-shadow: none !important;
+  }
   .lynora-skeleton-stat-row { flex-wrap: wrap !important; gap: 12px !important; }
   .lynora-skeleton-stat-row > div { min-width: calc(50% - 6px); }
   .lynora-skeleton-stat-row > div[style*="width: 1px"] { display: none; }
@@ -80,12 +92,68 @@ const STYLE_CSS = `
   .lynora-company-skeleton .lynora-company-tabs { gap: 16px !important; overflow-x: auto !important; }
   .lynora-company-skeleton .lynora-company-content { display: block !important; }
   .lynora-company-skeleton .lynora-company-sidebar { display: none !important; }
-  .lynora-group-detail-skeleton { padding: 0 0 24px !important; gap: 16px !important; }
-  .lynora-group-detail-skeleton > div:first-child { border-radius: 0 !important; }
-  .lynora-group-detail-skeleton > div:first-child > .lyn-shimmer { height: 150px !important; }
-  .lynora-group-detail-skeleton > div:last-child { display: block !important; }
-  .lynora-group-detail-skeleton > div:last-child > div { width: 100% !important; margin-bottom: 16px; }
-  .lynora-group-detail-skeleton .lynora-skeleton-stat-row > div { border-left: 0 !important; }
+  .lynora-group-detail-skeleton { width: 100% !important; max-width: none !important; padding: 8px 12px 24px !important; gap: 12px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-toolbar { padding: 0 4px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-header { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-header-body { padding-left: 16px !important; padding-right: 16px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-header-toprow { flex-wrap: wrap !important; margin-top: -24px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-columns { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-sidebar { order: 1; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-feed { order: 2; }
+  .lynora-group-detail-skeleton .lynora-skeleton-stat-row { overflow: hidden !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-stat-row > div { min-width: 0 !important; padding: 10px 8px !important; border-left: 0 !important; }
+  .lynora-skeleton-detail-toolbar { padding: 0 14px !important; }
+  .lynora-skeleton-detail-tabs { overflow-x: auto !important; padding-inline: 14px !important; }
+  .lynora-groups-grid-skeleton {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    overflow-x: hidden;
+  }
+  .lynora-skeleton-groups-shell {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+    align-items: stretch !important;
+  }
+  .lynora-skeleton-groups-sidebar { display: none !important; }
+  .lynora-skeleton-groups-content {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 12px 12px 48px !important;
+    box-sizing: border-box !important;
+  }
+  .lynora-skeleton-groups-feed {
+    width: 100% !important;
+    max-width: 700px !important;
+  }
+  .lynora-skeleton-menu { display: block !important; width: 100%; margin-bottom: 12px; }
+  .lynora-skeleton-menu > * { width: 100% !important; height: 48px !important; border-radius: 0 !important; }
+  .lynora-skeleton-group-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+}
+@media (max-width: 560px) {
+  .lynora-skeleton-feed-grid { padding: 8px 12px 12px !important; }
+  .lynora-feed-skeleton-wrapper { width: 100%; max-width: none; margin: 0; }
+  .lynora-feed-skeleton-card,
+  .lynora-feed-skeleton-card > *,
+  .lynora-feed-skeleton-card .lynora-skeleton-media,
+  .lynora-feed-skeleton-card .lynora-skeleton-cover,
+  .lynora-feed-skeleton-card .lynora-skeleton-avatar {
+    border-radius: 12px !important;
+  }
+  .lynora-group-detail-skeleton { padding: 8px 10px 20px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-toolbar { flex-direction: column !important; align-items: stretch !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-toolbar > div { width: 100% !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-header-body { padding: 0 16px 18px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-header-toprow { gap: 12px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-tabs { gap: 12px !important; padding-inline: 0 !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-tabs > div { min-width: 70px !important; }
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-sidebar,
+  .lynora-group-detail-skeleton .lynora-skeleton-detail-feed { width: 100% !important; }
+  .lynora-skeleton-groups-content { padding: 8px 12px 40px !important; }
+  .lynora-skeleton-group-cards { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+  .lynora-skeleton-group-cards > div { border-radius: 12px !important; }
+  .lynora-skeleton-menu { width: 100% !important; }
+  .lynora-skeleton-menu > * { width: 100% !important; height: 44px !important; border-radius: 10px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lyn-shimmer, .lyn-pulse { animation: none; background: ${C.base}; }
@@ -348,36 +416,44 @@ function Frame({ children, style = {}, className = "" }) {
   );
 }
 
+function FeedSkeletonFrame({ children, style = {}, className = "" }) {
+  return (
+    <div className={`lynora-feed-skeleton-card ${className}`.trim()} style={{ background: C.white, border: `1px solid ${C.line}`, borderRadius: 16, ...style }}>
+      {children}
+    </div>
+  );
+}
+
 export function SkeletonPostCard({ media = "none" }) {
   // media: "none" | "image" | "video"
   return (
-    <Frame style={{ padding: 16 }}>
+    <FeedSkeletonFrame style={{ padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <SkeletonAvatar size={44} radius={999} />
+        <SkeletonAvatar size={44} radius={999} className="lynora-skeleton-avatar" />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
           <Skeleton width="35%" height={13} radius={6} />
           <Skeleton width="22%" height={10} radius={6} />
         </div>
       </div>
       <SkeletonText lines={3} lastLineWidth="45%" style={{ marginBottom: media !== "none" ? 14 : 4 }} />
-      {media === "image" && <SkeletonImage ratio="16/9" />}
-      {media === "video" && <SkeletonVideo ratio="16/9" />}
+      {media === "image" && <SkeletonImage ratio="16/9" className="lynora-skeleton-media" style={{ borderRadius: 0 }} />}
+      {media === "video" && <SkeletonVideo ratio="16/9" style={{ borderRadius: 0 }} />}
       <div style={{ display: "flex", gap: 18, marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
         <Skeleton width={54} height={22} radius={8} />
         <Skeleton width={54} height={22} radius={8} />
         <Skeleton width={54} height={22} radius={8} />
       </div>
-    </Frame>
+    </FeedSkeletonFrame>
   );
 }
 
 function SponsoredSkeletonCard() {
   return (
-    <Frame style={{ overflow: "hidden" }}>
+    <FeedSkeletonFrame style={{ overflow: "hidden" }}>
       <div style={{ padding: "12px 16px 4px" }}>
         <Skeleton width="34%" height={11} style={{ marginBottom: 10 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <SkeletonAvatar size={38} />
+          <SkeletonAvatar size={38} className="lynora-skeleton-avatar" />
           <div style={{ flex: 1 }}>
             <Skeleton width="48%" height={12} style={{ marginBottom: 6 }} />
             <Skeleton width="30%" height={9} />
@@ -388,38 +464,38 @@ function SponsoredSkeletonCard() {
         <Skeleton width="72%" height={17} style={{ marginBottom: 8 }} />
         <SkeletonText lines={2} lastLineWidth="82%" lineHeight={10} />
       </div>
-      <SkeletonImage ratio="16/9" />
+      <SkeletonImage ratio="16/9" style={{ borderRadius: 0 }} className="lynora-skeleton-media" />
       <div style={{ display: "flex", justifyContent: "center", gap: 18, padding: "11px 16px 13px", borderTop: `1px solid ${C.line}` }}>
         <Skeleton width={64} height={14} radius={5} />
         <Skeleton width={58} height={14} radius={5} />
         <Skeleton width={68} height={14} radius={5} />
       </div>
-    </Frame>
+    </FeedSkeletonFrame>
   );
 }
 
 function PageSuggestionsSkeleton() {
   return (
-    <Frame style={{ padding: "18px 16px" }}>
+    <FeedSkeletonFrame style={{ padding: "18px 16px" }}>
       <Skeleton width="42%" height={16} style={{ marginBottom: 16 }} />
       <div className="feed-suggestions-rail" style={{ display: "flex", gap: 12, overflow: "hidden", paddingBottom: 8 }}>
         {Array.from({ length: 5 }).map((_, index) => (
           <div key={index} style={{ display: "flex", flex: "0 0 132px", flexDirection: "column", alignItems: "center", gap: 10, padding: 12, border: `1px solid ${C.line}`, borderRadius: 12 }}>
-            <SkeletonAvatar size={50} />
+            <SkeletonAvatar size={50} className="lynora-skeleton-avatar" />
             <Skeleton width="82%" height={12} />
             <Skeleton width="66%" height={10} />
             <Skeleton width="100%" height={28} radius={8} />
           </div>
         ))}
       </div>
-    </Frame>
+    </FeedSkeletonFrame>
   );
 }
 
 export function FeedSkeleton({ count = 5 }) {
   const patterns = ["image", "none", "video"];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="lynora-feed-skeleton-wrapper" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {Array.from({ length: count }).map((_, i) => (
         <React.Fragment key={i}>
           <SkeletonPostCard media={patterns[i % patterns.length]} />
@@ -433,9 +509,9 @@ export function FeedSkeleton({ count = 5 }) {
 
 export function ComposerSkeleton() {
   return (
-    <Frame style={{ padding: 16 }}>
+    <FeedSkeletonFrame style={{ padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <SkeletonAvatar size={42} />
+        <SkeletonAvatar size={42} className="lynora-skeleton-avatar" />
         <Skeleton width="100%" height={38} radius={22} />
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
@@ -443,7 +519,7 @@ export function ComposerSkeleton() {
         <Skeleton width="100%" height={30} radius={10} />
         <Skeleton width="100%" height={30} radius={10} />
       </div>
-    </Frame>
+    </FeedSkeletonFrame>
   );
 }
 
@@ -918,35 +994,93 @@ export function GroupWorkspaceSkeleton() {
 
 export function GroupDetailSkeleton() {
   return (
-    <div className="lynora-group-detail-skeleton" style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 24px 60px", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ borderRadius: 20, border: `1px solid ${C.line}`, overflow: "hidden", background: C.white }}>
+    <div className="lynora-group-detail-skeleton" style={{ maxWidth: 1180, margin: "0 auto", padding: "8px 20px 60px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="lynora-skeleton-detail-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <Skeleton width={82} height={36} radius={10} />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Skeleton width={90} height={36} radius={10} />
+          <Skeleton width={84} height={36} radius={10} />
+          <Skeleton width={38} height={36} radius={10} />
+        </div>
+      </div>
+
+      <div className="lynora-skeleton-detail-header" style={{ borderRadius: 8, border: `1px solid ${C.line}`, overflow: "hidden", background: C.white, boxShadow: "0 18px 45px rgba(15,51,82,0.09)" }}>
         <Skeleton width="100%" height={190} radius={0} />
-        <div style={{ padding: "0 28px 26px" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: -34, marginBottom: 18 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[1, 2, 3, 4].map((item) => <SkeletonAvatar key={item} size={48} radius={24} style={{ border: `4px solid ${C.white}`, marginLeft: item === 1 ? 0 : -14 }} />)}
+        <div className="lynora-skeleton-detail-header-body" style={{ padding: "0 24px 24px" }}>
+          <div className="lynora-skeleton-detail-header-toprow" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: -28, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[1, 2, 3].map((item) => <SkeletonAvatar key={item} size={48} radius={24} style={{ border: `4px solid ${C.white}`, marginLeft: item === 1 ? 0 : -14 }} />)}
             </div>
-            <Skeleton width={220} height={26} radius={14} />
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {[1, 2].map((item) => <Skeleton key={item} width={72} height={22} radius={8} />)}
+            </div>
           </div>
-          <div style={{ paddingLeft: 16, borderLeft: `3px solid ${C.base}` }}>
-            <Skeleton width={150} height={10} radius={5} style={{ marginBottom: 10 }} />
-            <Skeleton width="48%" height={30} radius={8} style={{ marginBottom: 10 }} />
-            <Skeleton width="78%" height={13} radius={6} style={{ marginBottom: 7 }} />
-            <Skeleton width="38%" height={12} radius={6} />
-          </div>
-          <div className="lynora-skeleton-stat-row" style={{ display: "flex", marginTop: 22, borderRadius: 14, border: `1px solid ${C.line}`, overflow: "hidden", background: C.baseHi }}>
+
+          <Skeleton width={190} height={26} radius={7} style={{ marginBottom: 8 }} />
+          <Skeleton width="82%" height={13} radius={5} style={{ marginBottom: 7 }} />
+          <Skeleton width="56%" height={12} radius={5} style={{ marginBottom: 18 }} />
+
+          <div className="lynora-skeleton-stat-row" style={{ display: "flex", borderRadius: 8, border: `1px solid ${C.line}`, overflow: "hidden", background: C.baseHi }}>
             {[1, 2, 3, 4].map((item) => (
-              <div key={item} style={{ flex: "1 1 0", display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderLeft: item === 1 ? "none" : `1px solid ${C.line}` }}>
-                <Skeleton width={34} height={34} radius={10} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}><Skeleton width="55%" height={17} radius={5} /><Skeleton width="75%" height={10} radius={5} /></div>
+              <div key={item} style={{ flex: "1 1 0", padding: "11px 12px", borderLeft: item === 1 ? "none" : `1px solid ${C.line}` }}>
+                <Skeleton width={28} height={28} radius={8} style={{ marginBottom: 6 }} />
+                <Skeleton width="55%" height={15} radius={5} />
+                <Skeleton width="75%" height={9} radius={4} style={{ marginTop: 5 }} />
               </div>
             ))}
           </div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(0, 2fr)", gap: 24 }}>
-        <Skeleton width="100%" height={220} radius={16} />
-        <Skeleton width="100%" height={360} radius={16} />
+
+      <div className="lynora-skeleton-detail-tabs" style={{ display: "flex", gap: 18, borderBottom: `1px solid ${C.line}`, padding: "0 4px", overflowX: "auto" }}>
+        {[1, 2, 3, 4].map((item) => <Skeleton key={item} width={72} height={34} radius={6} />)}
+      </div>
+
+      <div className="lynora-skeleton-detail-columns" style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1fr) minmax(0, 2fr)", gap: 16 }}>
+        <div className="lynora-skeleton-detail-sidebar" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ padding: 18, border: `1px solid ${C.line}`, borderRadius: 8, background: C.white }}>
+            <Skeleton width="30%" height={11} radius={5} style={{ marginBottom: 14 }} />
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: item === 4 ? 0 : 12 }}>
+                <Skeleton width={14} height={14} radius={4} />
+                <Skeleton width={item % 2 === 0 ? "62%" : "52%"} height={12} radius={5} />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ padding: 18, border: `1px solid ${C.line}`, borderRadius: 8, background: C.white }}>
+            <Skeleton width="36%" height={11} radius={5} style={{ marginBottom: 12 }} />
+            {[1, 2, 3].map((item) => (
+              <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: item === 3 ? 0 : 12 }}>
+                <SkeletonAvatar size={30} radius={15} />
+                <Skeleton width={item === 1 ? "58%" : item === 2 ? "62%" : "45%"} height={12} radius={5} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="lynora-skeleton-detail-feed" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[1, 2].map((item) => (
+            <div key={item} style={{ padding: 16, border: `1px solid ${C.line}`, borderRadius: 8, background: C.white }}>
+              <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                <SkeletonAvatar size={38} radius={19} />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width="42%" height={12} radius={5} />
+                  <Skeleton width="28%" height={9} radius={4} style={{ marginTop: 6 }} />
+                </div>
+              </div>
+              <Skeleton width="100%" height={12} radius={5} />
+              <Skeleton width="84%" height={12} radius={5} style={{ marginTop: 7 }} />
+              <Skeleton width="62%" height={12} radius={5} style={{ marginTop: 7 }} />
+              <Skeleton width="100%" height={170} radius={10} style={{ marginTop: 16 }} />
+              <div style={{ display: "flex", gap: 14, marginTop: 14 }}>
+                <Skeleton width={76} height={24} radius={8} />
+                <Skeleton width={76} height={24} radius={8} />
+                <Skeleton width={88} height={24} radius={8} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -954,40 +1088,58 @@ export function GroupDetailSkeleton() {
 
 export function GroupsGridSkeleton({ count = 6 }) {
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 24px 60px" }}>
-      {/* Bandeau hero */}
-      <div style={{ borderRadius: 24, padding: "34px 32px", marginBottom: 32, background: `linear-gradient(160deg, ${C.navy800} 0%, ${C.navy900} 100%)`, overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Skeleton width={140} height={20} radius={20} />
-            <Skeleton width={260} height={34} radius={8} />
-            <Skeleton width={380} height={14} radius={6} />
+    <div className="lynora-groups-grid-skeleton" style={{ width: "100%", minHeight: "100dvh", background: C.navy50 }}>
+      <div className="lynora-skeleton-groups-shell" style={{ display: "flex", width: "100%", minHeight: "100dvh" }}>
+        <aside className="lynora-skeleton-groups-sidebar" style={{ width: 360, flexShrink: 0, padding: "18px 12px", background: C.white, borderRight: `1px solid ${C.line}`, boxSizing: "border-box" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <Skeleton width={110} height={25} radius={7} />
+            <Skeleton width={32} height={32} radius={16} />
           </div>
-          <Skeleton width={160} height={44} radius={12} />
-        </div>
-      </div>
+          <Skeleton width="100%" height={40} radius={20} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {[1, 2, 3].map((item) => <Skeleton key={item} width="100%" height={40} radius={10} />)}
+          </div>
+          <Skeleton width="100%" height={40} radius={8} style={{ marginTop: 12 }} />
+          <Skeleton width={150} height={14} radius={5} style={{ margin: "22px 4px 10px" }} />
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <SkeletonAvatar size={40} radius={8} />
+              <Skeleton width="65%" height={12} radius={5} />
+            </div>
+          ))}
+        </aside>
 
-      {/* Grille de cartes */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(300px, 100%), 1fr))", gap: 22 }}>
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} style={{ borderRadius: 18, border: `1px solid ${C.line}`, overflow: "hidden", background: C.white }}>
-            {/* Couverture */}
-            <Skeleton width="100%" height={108} radius={0} />
-            <div style={{ padding: "16px 18px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
-              <Skeleton width="80%" height={16} radius={6} />
-              <Skeleton width="100%" height={12} radius={5} />
-              <Skeleton width="55%" height={12} radius={5} />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <SkeletonAvatar size={22} radius={11} />
-                  <SkeletonAvatar size={22} radius={11} />
-                  <SkeletonAvatar size={22} radius={11} />
+        <main className="lynora-skeleton-groups-content" style={{ flex: 1, minWidth: 0, width: "100%", padding: "20px 28px 64px", boxSizing: "border-box" }}>
+          <div className="lynora-skeleton-groups-feed" style={{ width: "100%", maxWidth: 700, margin: 0 }}>
+            <div className="lynora-skeleton-menu"><Skeleton width={150} height={42} radius={8} /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ padding: 16, border: `1px solid ${C.line}`, borderRadius: 8, background: C.white }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <SkeletonAvatar size={42} radius={21} />
+                  <Skeleton width="100%" height={42} radius={22} />
                 </div>
-                <Skeleton width={96} height={32} radius={8} />
+                <Skeleton width="100%" height={1} radius={0} style={{ margin: "14px 0 10px" }} />
+                <Skeleton width="75%" height={12} radius={5} />
+              </div>
+
+              <Skeleton width="38%" height={14} radius={5} />
+
+              <div className="lynora-skeleton-group-cards" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+                {Array.from({ length: count }).map((_, i) => (
+                  <div key={i} style={{ borderRadius: 8, border: `1px solid ${C.line}`, overflow: "hidden", background: C.white }}>
+                    <Skeleton width="100%" height={100} radius={0} />
+                    <div style={{ padding: "12px 14px 14px" }}>
+                      <Skeleton width="78%" height={15} radius={5} />
+                      <Skeleton width="100%" height={11} radius={4} style={{ marginTop: 9 }} />
+                      <Skeleton width="58%" height={11} radius={4} style={{ marginTop: 6 }} />
+                      <Skeleton width="35%" height={10} radius={4} style={{ marginTop: 14 }} />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        ))}
+        </main>
       </div>
     </div>
   );

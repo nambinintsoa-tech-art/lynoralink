@@ -7,8 +7,7 @@ import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Loader2, Mail, Zap, Users, TrendingUp } from "lucide-react";
 import LogoBadge from "@/components/LogoBadge";
 import BrandName from "@/components/BrandName";
-import FacebookIcon from "@/components/FacebookIcon";
-import AuthRedirectTransition from "@/components/AuthRedirectTransition";
+import { fetchBackendApi } from "@/lib/backend-api";
 import { useEffect } from "react";
 
 const getSafeRedirectTarget = (value) => {
@@ -25,12 +24,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(null);
   const [error, setError] = useState("");
-  const [redirecting, setRedirecting] = useState(false);
-  const [transitionName, setTransitionName] = useState("");
-  const [redirectTarget, setRedirectTarget] = useState("/feed");
-  const [navigationTransition, setNavigationTransition] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [twoFactorStep, setTwoFactorStep] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
@@ -52,7 +46,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     if (!twoFactorStep) {
-      const challenge = await fetch("/api/auth/2fa/request", {
+      const challenge = await fetchBackendApi("/api/auth/2fa/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -83,7 +77,7 @@ export default function LoginPage() {
     }
 
     try {
-      const accountResponse = await fetch("/api/account");
+      const accountResponse = await fetchBackendApi("/api/account");
       const accountData = await accountResponse.json();
       const authenticatedAccount = accountData?.accounts?.[0];
       if (accountResponse.ok && authenticatedAccount?.id) {
@@ -95,55 +89,15 @@ export default function LoginPage() {
       }
     } catch {}
 
-    const displayName = email.trim().split("@")[0] || "";
-    setTransitionName(displayName);
     const callbackUrl = params.get("verified")
       ? "/welcome"
       : getSafeRedirectTarget(params.get("callbackUrl"));
-    setRedirectTarget(callbackUrl);
-    setRedirecting(true);
-  };
-
-  const handleOAuth = async (provider) => {
-    setOauthLoading(provider);
-    const callbackUrl = getSafeRedirectTarget(params.get("callbackUrl"));
-    try {
-      await signIn(provider, { callbackUrl });
-    } catch (e) {
-      setOauthLoading(null);
-    }
+    router.replace(callbackUrl);
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-navy900 via-navy800 to-navy900 font-inter">
-      {redirecting && (
-        <AuthRedirectTransition
-          mode="login"
-          userName={transitionName}
-          duration={1400}
-          onComplete={() => {
-            const target = getSafeRedirectTarget(redirectTarget);
-            window.location.replace(target);
-          }}
-        />
-      )}
-      {navigationTransition && (
-        <AuthRedirectTransition
-          mode={navigationTransition}
-          navigation
-          duration={900}
-          onComplete={() => router.push(`/${navigationTransition}`)}
-        />
-      )}
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 animate-float rounded-full bg-gold400 opacity-10 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 animate-float-delayed rounded-full bg-navy700 opacity-20 blur-3xl"></div>
-        <div className="absolute top-1/3 left-1/4 h-60 w-60 animate-rotate-slow rounded-full bg-gold600 opacity-5 blur-2xl"></div>
-      </div>
-
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#081827] font-inter">
+      <div className="absolute inset-0 opacity-70 bg-[linear-gradient(120deg,rgba(27,83,134,.55),transparent_45%),linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:auto,4rem_4rem,4rem_4rem]" />
 
       <div className="auth-page-shell relative z-10 flex w-full max-w-6xl items-center justify-center gap-12 px-4">
         {/* Left side - Text content */}
@@ -194,39 +148,12 @@ export default function LoginPage() {
         {/* Right side - Login card */}
         <div className="w-full max-w-md animate-scale-in">
           <div className="auth-page-card rounded-2xl border border-navy100 bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex flex-col items-center gap-3 lg:hidden">
+            <div className="mb-7 flex flex-col items-center gap-3 text-center">
               <LogoBadge />
               <h1 className="font-brand text-2xl font-bold text-navy900">Bon retour parmi nous</h1>
               <p className="text-sm text-muted">
                 Connectez-vous à votre compte <BrandName />
               </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => handleOAuth("google")}
-                disabled={!!oauthLoading}
-                className="flex items-center justify-center gap-2.5 rounded-full border border-navy100 py-2.5 text-sm font-semibold text-ink hover:bg-navy50 disabled:opacity-60 transition-all hover:shadow-md"
-              >
-                {oauthLoading === "google" ? <Loader2 size={16} className="animate-spin" /> : <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-sm"><svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.79-.07-1.54-.2-2.27H12v4.29h5.39a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.97-4.33 2.97-7.54Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.89 6.61-2.41l-3.24-2.5c-.9.6-2.05.96-3.37.96-2.59 0-4.79-1.75-5.58-4.1H3.07v2.58A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.42 13.95A6.02 6.02 0 0 1 6.42 10.05V7.47H3.07a10 10 0 0 0 0 12.96l3.35-2.48Z"/><path fill="#EA4335" d="M12 6.04c1.46 0 2.78.5 3.82 1.48l2.86-2.86A9.96 9.96 0 0 0 12 2a10 10 0 0 0-8.93 5.47l3.35 2.58C7.21 7.79 9.41 6.04 12 6.04Z"/></svg></span>}
-                Continuer avec Google
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOAuth("facebook")}
-                disabled={!!oauthLoading}
-                className="flex items-center justify-center gap-2.5 rounded-full border border-navy100 py-2.5 text-sm font-semibold text-ink hover:bg-navy50 disabled:opacity-60 transition-all hover:shadow-md"
-              >
-                {oauthLoading === "facebook" ? <Loader2 size={16} className="animate-spin" /> : <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1877F2] shadow-sm overflow-hidden"><FacebookIcon className="h-5 w-5 text-white bg-transparent" /></span>}
-                Continuer avec Facebook
-              </button>
-            </div>
-
-            <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-navy100" />
-              <span className="text-xs text-muted">ou</span>
-              <div className="h-px flex-1 bg-navy100" />
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -314,7 +241,7 @@ export default function LoginPage() {
               href="/register"
               onClick={(event) => {
                 event.preventDefault();
-                setNavigationTransition("register");
+                router.push("/register");
               }}
               className="font-semibold text-gold400 hover:text-gold600 transition-colors"
             >

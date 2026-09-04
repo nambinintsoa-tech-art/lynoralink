@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { sendVerificationEmail } from "@/lib/emailVerification";
+import { sendRegistrationCode } from "@/lib/emailVerification";
 import { isStrongPassword } from "@/lib/passwordPolicy";
 
 const parseBirthDate = (value) => {
@@ -65,8 +65,8 @@ export async function POST(req) {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const code = String(crypto.randomInt(100000, 1000000));
+    const expires = new Date(Date.now() + 10 * 60 * 1000);
     await prisma.pendingRegistration.upsert({
       where: { email: normalizedEmail },
       update: { name, title: title || null, birthDate: normalizedBirthDate, password: hashed },
@@ -75,18 +75,18 @@ export async function POST(req) {
 
     await prisma.verificationToken.deleteMany({ where: { identifier: normalizedEmail } });
     await prisma.verificationToken.create({
-      data: { identifier: normalizedEmail, token, expires },
+      data: { identifier: normalizedEmail, token: code, expires },
     });
 
     try {
-      await sendVerificationEmail(normalizedEmail, token);
+      await sendRegistrationCode(normalizedEmail, code);
     } catch (error) {
       await prisma.pendingRegistration.delete({ where: { email: normalizedEmail } });
-      await prisma.verificationToken.delete({ where: { token } });
+      await prisma.verificationToken.delete({ where: { token: code } });
       throw error;
     }
 
-    return NextResponse.json({ message: "Un lien de confirmation a été envoyé à votre adresse email." }, { status: 201 });
+    return NextResponse.json({ message: "Un code de confirmation à 6 chiffres a été envoyé à votre adresse email." }, { status: 201 });
   } catch (err) {
     console.error("Erreur inscription:", err);
     return NextResponse.json({ error: "Erreur serveur, réessayez." }, { status: 500 });

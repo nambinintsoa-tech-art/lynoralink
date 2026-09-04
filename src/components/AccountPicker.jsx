@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Trash2 } from "lucide-react";
 
 /**
  * AccountPicker — LynoraLink
@@ -8,7 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
  * reliés + halos de couleur), cohérente du mobile au desktop sans variante
  * "à trous" (pas de blocs entiers masqués en media query).
  *
- * Reçoit des comptes métier via `accounts`, `onSelect`, `onAddAccount`, `onContinue`, `onSignOut`.
+ * Reçoit des comptes métier via `accounts`, `onSelect`, `onRemoveAccount`, `onAddAccount`, `onContinue`, `onSignOut`.
  * accounts: { id, name, handle, online?, photoUrl?, verified? }[]
  */
 
@@ -358,6 +358,33 @@ const ACCOUNT_PICKER_CSS = `
   .ll-row-btn:focus-visible .ll-row-inner {
     outline: none;
     border-color: ${BRAND.navy};
+  }
+
+  .ll-remove-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: ${BRAND.slateLight};
+    cursor: pointer;
+    padding: 0;
+    transition: all 150ms ease;
+  }
+
+  .ll-remove-btn:hover {
+    border-color: rgba(209,67,67,0.2);
+    background: rgba(209,67,67,0.08);
+    color: #D14343;
+  }
+
+  .ll-remove-btn:focus-visible {
+    outline: 2px solid ${BRAND.navy};
+    outline-offset: 2px;
   }
 
   .ll-row-inner.ll-selected {
@@ -870,6 +897,8 @@ function Avatar({ name, photoUrl, tintIndex = 0, size = 44, selected = false, ve
 export default function AccountPicker({
   accounts = [],
   onSelect,
+  onRemoveAccount,
+  canRemoveAccount = () => true,
   onAddAccount,
   onRegister,
   onContinue,
@@ -1144,12 +1173,20 @@ export default function AccountPicker({
               resolvedAccounts.map((account, i) => {
                 const selected = account.id === selectedId;
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={account.id}
                     className="ll-row-btn"
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selected}
                     style={{ animationDelay: `${100 + i * 60}ms` }}
                     onClick={() => handleSelect(account.id, true)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleSelect(account.id, true);
+                      }
+                    }}
                   >
                     <div className={`ll-row-inner ${selected ? "ll-selected" : ""}`}>
                       <Avatar
@@ -1177,8 +1214,22 @@ export default function AccountPicker({
                         </div>
                         <span style={{ fontSize: 12.5, color: BRAND.slate }}>{account.handle}</span>
                       </div>
+                      {onRemoveAccount && canRemoveAccount(account) && (
+                        <button
+                          type="button"
+                          className="ll-remove-btn"
+                          aria-label={`Supprimer ${account.name} de cet appareil`}
+                          title="Supprimer de cet appareil"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onRemoveAccount(account);
+                          }}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}

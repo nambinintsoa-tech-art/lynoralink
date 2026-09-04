@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
-import { verifyEmailToken } from "@/lib/emailVerification";
+import { verifyEmailToken, verifyRegistrationCode } from "@/lib/emailVerification";
 
 export async function POST(req) {
-  const token = new URL(req.url).searchParams.get("token") || (await req.json().catch(() => ({}))).token;
+  const body = await req.json().catch(() => ({}));
+  const token = new URL(req.url).searchParams.get("token") || body.token;
+  const email = body.email;
+  const code = body.code;
+  if (email && code) {
+    try {
+      const verified = await verifyRegistrationCode(email, code);
+      if (!verified) return NextResponse.json({ error: "Code expiré, invalide ou déjà utilisé." }, { status: 400 });
+      return NextResponse.json({ verified: true, message: "Adresse email confirmée. Vous pouvez vous connecter." });
+    } catch (error) {
+      console.error("Erreur confirmation par code:", error);
+      return NextResponse.json({ error: "Impossible de confirmer cette adresse email." }, { status: 500 });
+    }
+  }
   if (!token) return NextResponse.json({ error: "Lien de confirmation invalide." }, { status: 400 });
 
   try {

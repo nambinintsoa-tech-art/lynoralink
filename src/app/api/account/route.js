@@ -30,33 +30,7 @@ export async function GET() {
     provider: "email",
   };
 
-  const linkedAccounts = (user.accounts || []).map((account) => {
-    const providerLabel =
-      account.provider === "google"
-        ? "Google"
-        : account.provider === "facebook"
-        ? "Facebook"
-        : account.provider === "linkedin"
-        ? "LinkedIn"
-        : account.provider;
-
-    return {
-      id: `${user.id}-${account.provider}-${account.providerAccountId}`,
-      name: providerLabel,
-      handle:
-        account.provider === "google"
-          ? "Connexion Google"
-          : account.provider === "facebook"
-          ? "Connexion Facebook"
-          : account.provider === "linkedin"
-          ? "Connexion LinkedIn"
-          : "Compte lié",
-      online: true,
-      verified: true,
-      photoUrl: null,
-      provider: account.provider,
-    };
-  });
+  const linkedAccounts = [];
 
   return NextResponse.json({
     accounts: [primaryAccount, ...linkedAccounts],

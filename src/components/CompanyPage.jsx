@@ -1,5 +1,7 @@
 
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import {
   ArrowLeft, ArrowRightLeft, MapPin, Globe, Users, Briefcase, Image as ImageIcon,
   LayoutDashboard, UserCheck, Activity, Settings, Bell, Search, ChevronRight, ChevronLeft,
@@ -7,7 +9,9 @@ import {
   UtensilsCrossed, Palette, SlidersHorizontal, UserRoundPlus, Clock, ExternalLink,
   CircleDot, Filter, Menu, Eye, ThumbsUp, MessageCircle, X, Check, Wand2,
   Heart, Building2, TrendingUp, CalendarDays, MoreHorizontal, Trash2, HeartPulse,
-  LayoutGrid, Compass, GraduationCap, ShoppingBag, Landmark, Wallet, Bookmark
+  LayoutGrid, Compass, GraduationCap, ShoppingBag, Landmark, Wallet, Bookmark,
+  Share2, Sparkles, ChevronDown, ChevronUp, Info, Smartphone, Columns3, Target,
+  MousePointerClick, Users2
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -17,43 +21,61 @@ import PostCard from "./PostCard";
 import PostViewerPreview from "./PostViewerPreview";
 import PremiumBadge from "./PremiumBadge";
 import { getCampaignSchedule } from "@/lib/campaignSchedule";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ---------------------------------------------------------------
    Design tokens — Updated palette inspired by reference images
 ----------------------------------------------------------------*/
 const C = {
-  ink: "#1C1E21",
-  inkSoft: "#65676B",
-  inkFaint: "#8A8D91",
-  surface: "#F0F2F5",
+  ink: "#161A24",
+  inkSoft: "#5B6272",
+  inkFaint: "#8B92A3",
+  surface: "#F5F7FC",
   card: "#FFFFFF",
-  border: "#E4E6EB",
+  border: "#E7E9F2",
   /* Navy Blue palette */
-  navy: "#1D2F5C",
-  navyMid: "#2A4278",
-  navyLight: "#E7EDFB",
-  navySoft: "#F0F3FA",
+  navy: "#0E1B3D",
+  navyMid: "#1B2C58",
+  navyDeep: "#080F26",
+  navyLight: "#EAEFFC",
+  navySoft: "#F1F4FB",
+  navyGlow: "#2E4784",
   /* Golden Yellow palette */
-  gold: "#F5A623",
-  goldDeep: "#D4891A",
-  goldLight: "#FFF8EB",
-  goldSoft: "#FEF3D8",
+  gold: "#EEAF23",
+  goldBright: "#FFCE55",
+  goldDeep: "#A66A16",
+  goldLight: "#FFF8EA",
+  goldSoft: "#FDF1D6",
   /* Aliases for backward compatibility */
-  blue: "#1D2F5C",
-  blueDeep: "#1D2F5C",
-  blueSoft: "#E7EDFB",
-  blueMid: "#2A4278",
-  green: "#2E9E6D",
-  greenSoft: "#E8F6EF",
-  red: "#D8544A",
-  redSoft: "#FEF2F2",
-  orange: "#F97316",
-  orangeSoft: "#FFF7ED",
+  blue: "#0E1B3D",
+  blueDeep: "#0E1B3D",
+  blueSoft: "#EAEFFC",
+  blueMid: "#1B2C58",
+  green: "#22946A",
+  greenSoft: "#E6F6EF",
+  red: "#D6483F",
+  redSoft: "#FDEEEE",
+  orange: "#F2790F",
+  orangeSoft: "#FFF3E8",
+  /* Signature gradients */
+  navyGradSolid: "linear-gradient(135deg, #1B2C58 0%, #080F26 100%)",
+  goldGrad: "linear-gradient(135deg, #FFCE55 0%, #A66A16 100%)",
+  /* Elevation scale — soft, layered, tuned to the navy hue for a more premium feel */
+  shadowXs: "0 1px 2px rgba(14,27,61,.05)",
+  shadowSm: "0 2px 8px rgba(14,27,61,.06)",
+  shadowMd: "0 8px 24px rgba(14,27,61,.10)",
+  shadowLg: "0 20px 48px rgba(14,27,61,.16)",
+  shadowGold: "0 8px 20px rgba(166,106,22,.24)",
+  /* Radius scale */
+  r_sm: 10,
+  r_md: 14,
+  r_lg: 20,
+  r_xl: 26,
 };
 
 /* Sidebar navigation items for the Pages directory */
 const SIDEBAR_NAV_PRIMARY = [
-  { id: "suite", label: "Suite Entreprise", icon: LayoutDashboard, chevron: true },
+  { id: "suite", label: "Ma page", icon: LayoutDashboard, chevron: true },
   { id: "messagerie", label: "Messagerie", icon: MessageCircle, chevron: true },
   { id: "statistiques", label: "Statistiques", icon: Activity, chevron: true },
 ];
@@ -62,6 +84,52 @@ const SIDEBAR_NAV_SECONDARY = [
   { id: "followed", label: "Pages suivies", icon: Bookmark },
   { id: "invitations", label: "Invitations", icon: UserRoundPlus },
 ];
+
+function CompanyDirectorySettingsModal({ open, onClose, onSaved }) {
+  const [settings, setSettings] = useState({ showSuggestions: true, compactCards: false, emailNotifications: true });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    setError("");
+    fetchBackendApi("/api/company/directory-settings", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || "Impossible de charger les paramètres.");
+        setSettings(data.settings);
+      })
+      .catch((requestError) => setError(requestError.message))
+      .finally(() => setLoading(false));
+  }, [open]);
+
+  if (!open) return null;
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetchBackendApi("/api/company/directory-settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Impossible d’enregistrer les paramètres.");
+      onSaved?.(data.settings);
+      onClose();
+    } catch (requestError) { setError(requestError.message); } finally { setSaving(false); }
+  };
+  const options = [
+    { key: "showSuggestions", label: "Afficher les suggestions", description: "Proposer des pages à découvrir." },
+    { key: "compactCards", label: "Cartes compactes", description: "Afficher davantage de pages à l’écran." },
+    { key: "emailNotifications", label: "Notifications par e-mail", description: "Recevoir les invitations et mises à jour importantes." },
+  ];
+  return <div className="company-directory-settings-overlay" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1400, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(19,28,51,.55)" }}>
+    <div onClick={(event) => event.stopPropagation()} style={{ width: "100%", maxWidth: 480, borderRadius: 14, background: C.card, boxShadow: "0 24px 64px rgba(19,28,51,.25)", overflow: "hidden" }}>
+      <div style={{ padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: C.blueDeep, color: "#fff" }}><div><div style={{ color: "#FFD77A", fontSize: 10, fontWeight: 800, letterSpacing: .8, textTransform: "uppercase" }}>Préférences</div><h2 style={{ margin: "4px 0 0", fontSize: 18 }}>Paramètres des pages</h2></div><button type="button" onClick={onClose} aria-label="Fermer" style={{ width: 32, height: 32, border: 0, borderRadius: 8, background: "rgba(255,255,255,.14)", color: "#fff", cursor: "pointer" }}><X size={15} /></button></div>
+      <div style={{ padding: 20 }}>{loading ? <div style={{ padding: 24, textAlign: "center", color: C.inkFaint }}>Chargement...</div> : options.map((option) => <label key={option.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}><input type="checkbox" checked={Boolean(settings[option.key])} onChange={(event) => setSettings((current) => ({ ...current, [option.key]: event.target.checked }))} style={{ width: 18, height: 18, accentColor: C.gold }} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: C.ink, fontSize: 13 }}>{option.label}</strong><small style={{ display: "block", marginTop: 3, color: C.inkFaint, fontSize: 11.5 }}>{option.description}</small></span></label>)}{error && <p style={{ margin: "14px 0 0", color: C.red, fontSize: 12 }}>{error}</p>}</div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 20px 20px" }}><button type="button" onClick={onClose} style={{ padding: "9px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.inkSoft, fontWeight: 700, cursor: "pointer" }}>Annuler</button><button type="button" onClick={save} disabled={loading || saving} style={{ padding: "9px 16px", border: 0, borderRadius: 8, background: C.gold, color: C.blueDeep, fontWeight: 800, cursor: "pointer", opacity: loading || saving ? .6 : 1 }}>{saving ? "Enregistrement..." : "Enregistrer"}</button></div>
+    </div>
+  </div>;
+}
 
 /* ---------------------------------------------------------------
    Subtle weave divider
@@ -123,19 +191,26 @@ function Pill({ children, bg, fg }) {
 function StatCard({ label, value, delta, icon: Icon, tone }) {
   return (
     <div
-      className="company-stat-card min-w-0 rounded-2xl p-3 sm:p-4 flex flex-col gap-1.5 sm:gap-2 transition-shadow hover:shadow-md"
-      style={{ background: C.card, border: `1px solid ${C.border}` }}
+      className="company-stat-card min-w-0 rounded-[16px] p-3.5 sm:p-4 flex flex-col gap-2 sm:gap-2.5 relative overflow-hidden"
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        boxShadow: C.shadowXs,
+        transition: "transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, border-color .2s ease",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = C.shadowMd; e.currentTarget.style.borderColor = (tone || C.navy) + "45"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = C.shadowXs; e.currentTarget.style.borderColor = C.border; }}
     >
-      <div className="flex items-center justify-between">
-        <span className="min-w-0 truncate text-[11px] sm:text-xs font-medium" style={{ color: C.inkFaint }}>{label}</span>
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: tone + "15" }}>
-          <Icon size={14} className="sm:hidden" style={{ color: tone }} />
-          <Icon size={15} className="hidden sm:block" style={{ color: tone }} />
+      <div className="flex items-center justify-between gap-2">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-[11px] flex items-center justify-center shrink-0" style={{ background: `linear-gradient(135deg, ${tone || C.navy}1F, ${tone || C.navy}0A)` }}>
+          <Icon size={15} className="sm:hidden" style={{ color: tone }} />
+          <Icon size={17} className="hidden sm:block" style={{ color: tone }} />
         </div>
+        {delta && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: C.green, background: C.greenSoft }}>{delta}</span>}
       </div>
-      <div className="flex items-end gap-2">
-        <span className="text-lg sm:text-xl font-bold tracking-tight truncate" style={{ color: C.ink }}>{value}</span>
-        {delta && <span className="text-[11px] font-semibold mb-0.5" style={{ color: C.green }}>{delta}</span>}
+      <div>
+        <span className="block text-lg sm:text-[22px] font-extrabold tracking-tight truncate" style={{ color: C.navy }}>{value}</span>
+        <span className="block min-w-0 truncate mt-0.5 text-[10.5px] sm:text-[11.5px] font-semibold uppercase tracking-wide" style={{ color: C.inkFaint }}>{label}</span>
       </div>
     </div>
   );
@@ -312,8 +387,8 @@ function CompanyInviteModal({ open, onClose, company }) {
     setMessage("");
     setLoading(true);
     Promise.all([
-      fetch("/api/users", { credentials: "include", cache: "no-store" }),
-      fetch("/api/company/pages", { credentials: "include", cache: "no-store" }),
+      fetchBackendApi("/api/users", { cache: "no-store" }),
+      fetchBackendApi("/api/company/pages", { cache: "no-store" }),
     ])
       .then(async ([usersResponse, pagesResponse]) => {
         if (!usersResponse.ok) throw new Error("Impossible de charger les utilisateurs.");
@@ -343,10 +418,14 @@ function CompanyInviteModal({ open, onClose, company }) {
     setSending(true);
     setMessage("");
     try {
-      const response = await fetch("/api/connections", {
+      if (selected.type === "Page") {
+        setMessage("Sélectionnez une personne, pas une page.");
+        return;
+      }
+      const response = await fetchBackendApi("/api/company/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: selected.id, action: "invite" }),
+        body: JSON.stringify({ targetUserId: selected.id }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Impossible d'envoyer l'invitation.");
@@ -363,7 +442,7 @@ function CompanyInviteModal({ open, onClose, company }) {
     <div className="company-invite-modal-overlay fixed inset-0 z-[1400] flex items-center justify-center p-4" style={{ background: "rgba(19,28,51,0.58)" }} onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="company-invite-title" className="company-invite-modal w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: C.card, boxShadow: "0 24px 64px rgba(19,28,51,0.3)" }} onClick={(event) => event.stopPropagation()}>
         <div className="px-5 sm:px-6 py-5 flex items-start justify-between gap-3" style={{ background: C.blueDeep }}>
-          <div><p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#FFD77A" }}>Administration de la page</p><h2 id="company-invite-title" className="text-xl font-bold mt-1" style={{ color: "#fff" }}>Inviter un membre</h2><p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.72)" }}>Envoyez une invitation de connexion à un collaborateur.</p></div>
+          <div><p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#FFD77A" }}>Administration de la page</p><h2 id="company-invite-title" className="text-xl font-bold mt-1" style={{ color: "#fff" }}>Inviter à suivre la page</h2><p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.72)" }}>Envoyez une invitation à suivre votre page entreprise.</p></div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ color: "#fff", background: "rgba(255,255,255,0.12)" }}><X size={18} /></button>
         </div>
         <div className="p-5 sm:p-6">
@@ -378,7 +457,7 @@ function CompanyInviteModal({ open, onClose, company }) {
           </div>
           {message && <p className="mt-4 text-sm" style={{ color: message.startsWith("Invitation") ? C.green : C.red }}>{message}</p>}
         </div>
-        <div className="px-5 sm:px-6 py-4 flex justify-end gap-2" style={{ borderTop: `1px solid ${C.border}` }}><button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ color: C.inkSoft }}>Annuler</button><button type="button" onClick={sendInvite} disabled={!selected || sending} className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ background: C.blueDeep, color: "#fff", opacity: !selected || sending ? 0.5 : 1 }}><UserRoundPlus size={15} /> {sending ? "Envoi..." : "Envoyer l'invitation"}</button></div>
+        <div className="px-5 sm:px-6 py-4 flex justify-end gap-2" style={{ borderTop: `1px solid ${C.border}` }}><button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ color: C.inkSoft }}>Annuler</button><button type="button" onClick={sendInvite} disabled={!selected || selected.type === "Page" || sending} className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ background: C.blueDeep, color: "#fff", opacity: !selected || selected.type === "Page" || sending ? 0.5 : 1 }}><UserRoundPlus size={15} /> {sending ? "Envoi..." : "Inviter à suivre"}</button></div>
       </div>
       <style>{`@media (max-width: 640px) { .company-invite-modal-overlay { padding: 0 !important; align-items: flex-start !important; } .company-invite-modal { width: 100vw !important; max-width: none !important; height: 100dvh !important; max-height: 100dvh !important; min-height: 100dvh !important; border-radius: 0 !important; } .company-invite-modal > div:nth-child(2) { overflow-y: auto; min-height: 0; } }`}</style>
     </div>
@@ -558,7 +637,7 @@ function JobOfferModal({ form, update, submit, saving, onClose, editing = false 
   </div>;
 }
 
-function JobsTab({ jobs = [], canManage = false, onCreateJob, onUpdateJob, onJobAction }) {
+function JobsTab({ jobs = [], company, canManage = false, onCreateJob, onUpdateJob, onJobAction }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ type: "Offre d'emploi", title: "", contract: "CDI", loc: "", description: "" });
@@ -595,7 +674,7 @@ function JobsTab({ jobs = [], canManage = false, onCreateJob, onUpdateJob, onJob
       {jobs.map((j) => (
         <div key={j.id || j.title} className="relative">
           {canManage && <button type="button" onClick={() => openEditForm(j)} title="Modifier l'annonce" aria-label={`Modifier ${j.title}`} className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold" style={{ background: C.card, border: `1px solid ${C.border}`, color: C.blueMid, boxShadow: "0 2px 8px rgba(19,28,51,.12)" }}><PenSquare size={13} /> Modifier</button>}
-          <PostCard variant="job" post={{ ...j, jobType: j.type, jobTitle: j.title, title: j.title, text: j.description }} onJobAction={onJobAction} />
+          <PostCard variant="job" post={{ ...j, jobType: j.type, jobTitle: j.title, title: j.title, text: j.description, isPremium: company?.isPremium, isPlatformAdmin: company?.isPlatformAdmin }} onJobAction={onJobAction} />
         </div>
       ))}
     </div>
@@ -657,7 +736,7 @@ function AdminDashboard({ onOpenSponsor, company, analytics = [] }) {
           <p className="text-white font-semibold text-sm">Amplifiez votre prochaine publication</p>
           <p className="text-white text-xs opacity-80 mt-1">Touchez de nouvelles audiences à Antananarivo et au-delà.</p>
         </div>
-        <button onClick={onOpenSponsor} className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity" style={{ background: C.gold, color: C.blueDeep }}><Megaphone size={16} /> Sponsoriser</button>
+        <button onClick={() => company?.isPremium && onOpenSponsor()} disabled={!company?.isPremium} title={!company?.isPremium ? "Réservé aux Pages Entreprise Premium" : undefined} className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50" style={{ background: C.gold, color: C.blueDeep }}><Megaphone size={16} /> Sponsoriser</button>
       </div>
     </div>
   );
@@ -668,7 +747,7 @@ function CampaignDashboard({ onOpenSponsor, company }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const loadCampaigns = () => {
-    fetch("/api/company/campaigns", { cache: "no-store" })
+    fetchBackendApi("/api/company/campaigns", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : response.json().then((data) => Promise.reject(new Error(data.error))))
       .then((data) => setCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []))
       .catch((requestError) => setError(requestError.message || "Impossible de charger les campagnes."))
@@ -676,7 +755,7 @@ function CampaignDashboard({ onOpenSponsor, company }) {
   };
   useEffect(loadCampaigns, []);
   const updateStatus = async (campaign, status) => {
-    const response = await fetch("/api/company/campaigns", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: campaign.storageId, status }) });
+    const response = await fetchBackendApi("/api/company/campaigns", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: campaign.storageId, status }) });
     if (!response.ok) return;
     const data = await response.json();
     setCampaigns((current) => current.map((item) => item.storageId === campaign.storageId ? data.campaign : item));
@@ -686,7 +765,7 @@ function CampaignDashboard({ onOpenSponsor, company }) {
     return { impressions: sum.impressions + (analytics.impressions || 0), clicks: sum.clicks + (analytics.clicks || 0), conversions: sum.conversions + (analytics.conversions || 0), spent: sum.spent + (analytics.spent || 0) };
   }, { impressions: 0, clicks: 0, conversions: 0, spent: 0 });
   return <div className="flex flex-col gap-5">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-bold" style={{ color: C.ink }}>Publicité</h3><p className="text-sm" style={{ color: C.inkFaint }}>Pilotez vos campagnes et leurs performances.</p></div><button type="button" onClick={onOpenSponsor} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: C.gold, color: C.blueDeep }}><Megaphone size={16} /> Créer une campagne publicitaire</button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-bold" style={{ color: C.ink }}>Publicité</h3><p className="text-sm" style={{ color: C.inkFaint }}>Pilotez vos campagnes et leurs performances.</p></div><button type="button" onClick={() => company?.isPremium && onOpenSponsor()} disabled={!company?.isPremium} title={!company?.isPremium ? "Réservé aux Pages Entreprise Premium" : undefined} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50" style={{ background: C.gold, color: C.blueDeep }}><Megaphone size={16} /> Créer une campagne publicitaire</button></div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[["Impressions", totals.impressions, Eye], ["Clics", totals.clicks, ExternalLink], ["Conversions", totals.conversions, Check], ["Dépenses", `${totals.spent} €`, Wallet]].map(([label, value, Icon]) => <StatCard key={label} label={label} value={value} icon={Icon} tone={C.blue} />)}</div>
     <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}` }}><div className="p-4 font-semibold text-sm" style={{ color: C.ink }}>Mes campagnes</div>{loading && <p className="p-5 text-sm" style={{ color: C.inkFaint }}>Chargement...</p>}{error && <p className="p-5 text-sm" style={{ color: C.red }}>{error}</p>}{!loading && !error && campaigns.length === 0 && <p className="p-5 text-sm" style={{ color: C.inkFaint }}>Aucune campagne créée.</p>}{campaigns.map((campaign) => <div key={campaign.storageId} className="p-4 flex flex-wrap items-center justify-between gap-3" style={{ borderTop: `1px solid ${C.border}` }}><div><p className="font-semibold text-sm" style={{ color: C.ink }}>{campaign.title || "Campagne sans titre"}</p><p className="text-xs mt-1" style={{ color: C.inkFaint }}>{campaign.objective} · {campaign.budget} € / {campaign.budgetMode === "total" ? "global" : "jour"} · {campaign.status}</p></div><div className="flex items-center gap-2"><span className="text-xs" style={{ color: C.inkFaint }}>{(campaign.analytics?.clicks || 0).toLocaleString("fr-FR")} clics</span>{campaign.status === "PAUSED" ? <button type="button" onClick={() => updateStatus(campaign, "APPROVED")} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: C.greenSoft, color: C.green }}>Relancer</button> : campaign.status === "APPROVED" ? <button type="button" onClick={() => updateStatus(campaign, "PAUSED")} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: C.goldSoft, color: C.goldDeep }}>Pause</button> : <span className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: C.blueSoft, color: C.blueDeep }}>En modération</span>}</div></div>)}</div>
   </div>;
@@ -789,7 +868,7 @@ function AdminSettings({ company, onUpdateCompany, onDeleted }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const pageName = company?.displayName || company?.name || "Mon entreprise";
   useEffect(() => {
-    fetch("/api/company/auto-reply", { cache: "no-store" })
+    fetchBackendApi("/api/company/auto-reply", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Impossible de charger le répondeur automatique.");
@@ -804,7 +883,7 @@ function AdminSettings({ company, onUpdateCompany, onDeleted }) {
     setAutoReplySaving(true);
     setAutoReplyError("");
     try {
-      const response = await fetch("/api/company/auto-reply", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+      const response = await fetchBackendApi("/api/company/auto-reply", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Impossible d'enregistrer la configuration.");
       setAutoReply(data);
@@ -837,7 +916,7 @@ function AdminSettings({ company, onUpdateCompany, onDeleted }) {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", file.type.startsWith("video/") ? "video" : "image");
-      const response = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+      const response = await fetchBackendApi("/api/upload", { method: "POST", body: formData });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.url) throw new Error(data.error || "Impossible d'envoyer le média.");
       await saveAutoReply({ media: [{ url: data.url, type: data.type, publicId: data.publicId }] });
@@ -850,7 +929,7 @@ function AdminSettings({ company, onUpdateCompany, onDeleted }) {
     setDeleteLoading(true);
     setDeleteError("");
     try {
-      const response = await fetch("/api/company", {
+      const response = await fetchBackendApi("/api/company", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmation }),
@@ -865,7 +944,7 @@ function AdminSettings({ company, onUpdateCompany, onDeleted }) {
   };
   const saveField = (field) => (event) => {
     const value = event.currentTarget.value.trim();
-    fetch("/api/company", {
+    fetchBackendApi("/api/company", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value }),
@@ -1050,13 +1129,22 @@ function AdministrationTab({ onOpenSponsor, onUpdateCompany, onDeleted, onOpenPr
 }
 
 /* ---------------------------------------------------------------
-   Sponsor modal
+   Sponsor modal — Facebook Ads-style creation experience
+   (single scrollable form + live "rendu final" preview panel,
+   mirroring Meta Ads Manager's "Boost / Créer une publicité" flow)
 ----------------------------------------------------------------*/
-const STEPS = ["Contenu", "Audience", "Budget & Paiement", "Aperçu"];
 const OBJECTIVES = [
-  { id: "visibilite", label: "Visibilité", sub: "Augmenter la notoriété", icon: Eye },
-  { id: "clics", label: "Clics", sub: "Augmenter les visites", icon: ExternalLink },
-  { id: "conversions", label: "Conversions", sub: "Obtenir des résultats", icon: Check },
+  { id: "visibilite", label: "Notoriété", sub: "Toucher un maximum de personnes", icon: Eye },
+  { id: "clics", label: "Trafic", sub: "Générer des visites vers votre lien", icon: MousePointerClick },
+  { id: "engagement", label: "Interactions", sub: "J'aime, commentaires, partages", icon: Heart },
+  { id: "prospects", label: "Prospects", sub: "Messages, appels, contacts", icon: Users2 },
+  { id: "conversions", label: "Ventes", sub: "Commandes et conversions", icon: Target },
+];
+const CTA_OPTIONS = ["En savoir plus", "Acheter maintenant", "Contacter", "S'inscrire", "Envoyer un message", "Télécharger", "Visiter le site", "Réserver"];
+const PLACEMENT_OPTIONS = [
+  { id: "post", label: "Fil d'actualité", sub: "Publication sponsorisée dans le fil", icon: LayoutGrid },
+  { id: "story", label: "Stories", sub: "Format plein écran immersif", icon: Smartphone },
+  { id: "sidebar", label: "Colonne de droite", sub: "Bannière discrète desktop", icon: Columns3 },
 ];
 
 function ReachDial({ pct }) {
@@ -1072,8 +1160,100 @@ function ReachDial({ pct }) {
   );
 }
 
+function SectionCard({ icon: Icon, title, subtitle, right, children }) {
+  return (
+    <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3.5">
+        <div className="flex items-start gap-2.5 min-w-0">
+          {Icon && <div className="mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: C.blueSoft, color: C.blueDeep }}><Icon size={16} /></div>}
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold" style={{ color: C.ink }}>{title}</h3>
+            {subtitle && <p className="text-xs mt-0.5" style={{ color: C.inkFaint }}>{subtitle}</p>}
+          </div>
+        </div>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function AdBadge() {
+  return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: C.inkFaint }}>Sponsorisé <Globe size={10} /></span>;
+}
+
+function FeedAdPreview({ pageName, avatarUrl, description, media, website, title, cta }) {
+  const domain = website ? website.replace(/^https?:\/\//i, "").replace(/\/$/, "").split("/")[0] : null;
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: `1px solid ${C.border}` }}>
+      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
+        {avatarUrl ? <img src={avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" /> : <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ background: C.blueDeep }}>{(pageName || "P")[0]}</div>}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: C.ink }}>{pageName || "Votre page"}</p>
+          <AdBadge />
+        </div>
+        <MoreHorizontal size={16} style={{ color: C.inkFaint }} />
+      </div>
+      {description && <p className="px-3 pb-2.5 text-[13px] whitespace-pre-wrap leading-snug" style={{ color: C.ink }}>{description}</p>}
+      <div className="w-full">
+        {media ? (media.type === "video" ? <video src={media.url} controls className="w-full max-h-64 object-cover block" /> : <img src={media.url} alt="" className="w-full max-h-64 object-cover block" />) : <div className="w-full h-40 flex items-center justify-center" style={{ background: C.surface }}><ImageIcon size={26} style={{ color: C.inkFaint }} /></div>}
+      </div>
+      {website && (
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5" style={{ background: "#F0F2F5" }}>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wide truncate" style={{ color: C.inkFaint }}>{domain}</p>
+            <p className="text-[13px] font-semibold truncate" style={{ color: C.ink }}>{title || "Votre campagne"}</p>
+          </div>
+          <span className="shrink-0 px-3 py-1.5 rounded-md text-xs font-bold" style={{ background: "#E4E6EB", color: C.ink }}>{cta}</span>
+        </div>
+      )}
+      <div className="flex items-center justify-around px-1 py-1" style={{ borderTop: `1px solid ${C.border}` }}>
+        <span className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold" style={{ color: C.inkSoft }}><ThumbsUp size={14} /> J'aime</span>
+        <span className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold" style={{ color: C.inkSoft }}><MessageCircle size={14} /> Commenter</span>
+        <span className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold" style={{ color: C.inkSoft }}><Share2 size={14} /> Partager</span>
+      </div>
+    </div>
+  );
+}
+
+function StoryAdPreview({ pageName, avatarUrl, description, media, cta }) {
+  return (
+    <div className="rounded-2xl overflow-hidden relative mx-auto" style={{ width: 190, height: 336, background: C.navyDeep }}>
+      <div className="absolute top-0 inset-x-0 flex gap-1 p-1.5 z-10"><span className="flex-1 h-0.5 rounded-full" style={{ background: "rgba(255,255,255,.8)" }} /></div>
+      <div className="absolute top-3 left-2 right-2 flex items-center gap-1.5 z-10">
+        {avatarUrl ? <img src={avatarUrl} className="w-6 h-6 rounded-full object-cover" style={{ boxShadow: "0 0 0 1px rgba(255,255,255,.6)" }} alt="" /> : <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: C.gold, color: C.blueDeep }}>{(pageName || "P")[0]}</div>}
+        <span className="text-[11px] font-semibold truncate" style={{ color: "#fff" }}>{pageName || "Votre page"}</span>
+        <span className="text-[10px]" style={{ color: "rgba(255,255,255,.7)" }}>· Sponsorisé</span>
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        {media ? (media.type === "video" ? <video src={media.url} className="w-full h-full object-cover" /> : <img src={media.url} className="w-full h-full object-cover" alt="" />) : <ImageIcon size={28} style={{ color: "rgba(255,255,255,.35)" }} />}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 p-3 pb-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,.75))" }}>
+        {description && <p className="text-[11px] mb-2" style={{ color: "rgba(255,255,255,.92)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{description}</p>}
+        <span className="inline-flex items-center justify-center w-full py-1.5 rounded-full text-[11px] font-bold" style={{ background: "#fff", color: C.ink }}>{cta}</span>
+      </div>
+    </div>
+  );
+}
+
+function ColumnAdPreview({ pageName, avatarUrl, title, description, media }) {
+  return (
+    <div className="rounded-lg overflow-hidden mx-auto" style={{ background: "#fff", border: `1px solid ${C.border}`, maxWidth: 220 }}>
+      {media ? (media.type === "video" ? <video src={media.url} className="w-full h-28 object-cover" /> : <img src={media.url} className="w-full h-28 object-cover" alt="" />) : <div className="w-full h-28 flex items-center justify-center" style={{ background: C.surface }}><ImageIcon size={20} style={{ color: C.inkFaint }} /></div>}
+      <div className="p-2.5">
+        <p className="text-[10px] font-bold" style={{ color: C.inkFaint }}>Sponsorisé</p>
+        <p className="text-[12px] font-semibold mt-0.5 truncate" style={{ color: C.ink }}>{title || "Votre campagne"}</p>
+        {description && <p className="text-[11px] mt-0.5" style={{ color: C.inkSoft, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{description}</p>}
+        <div className="flex items-center gap-1.5 mt-1.5">
+          {avatarUrl ? <img src={avatarUrl} className="w-4 h-4 rounded-full object-cover" alt="" /> : null}
+          <span className="text-[10px] truncate" style={{ color: C.inkFaint }}>{pageName}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SponsorModal({ onClose, company }) {
-  const [step, setStep] = useState(0);
   const [objective, setObjective] = useState("");
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState("post");
@@ -1082,34 +1262,43 @@ export function SponsorModal({ onClose, company }) {
   const [cta, setCta] = useState("En savoir plus");
   const [media, setMedia] = useState(null);
   const [currency, setCurrency] = useState("eur");
-  const [age, setAge] = useState([18, 45]);
+  const [audienceMode, setAudienceMode] = useState("advantage");
+  const [age, setAge] = useState([18, 65]);
   const [gender, setGender] = useState("Tous");
   const [location, setLocation] = useState("");
   const [interests, setInterests] = useState("");
   const [website, setWebsite] = useState(company?.website || "");
   const [whatsapp, setWhatsapp] = useState("");
-  const [budget, setBudget] = useState(5);
+  const [placementMode, setPlacementMode] = useState("automatic");
+  const [budgetMode, setBudgetMode] = useState("daily");
+  const [durationDays, setDurationDays] = useState(7);
+  const [budget, setBudget] = useState(35);
   const [dailyBudget, setDailyBudget] = useState(5);
   const [paymentMethod, setPaymentMethod] = useState("stripe");
   const [published, setPublished] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const pageName = company?.displayName || company?.name || "Votre page";
+  const avatarUrl = company?.avatarUrl || company?.logoUrl || company?.image || null;
   const schedule = getCampaignSchedule(budget, dailyBudget);
   const reachPct = Math.min(96, 20 + budget * 1.6);
-  const estViews = `${Math.round(budget * 500)} – ${Math.round(budget * 850)}`;
-  const next = () => {
-    if (step === 0 && !objective) { setError("Sélectionnez un objectif pour continuer."); return; }
-    if (step === 1 && !location) { setError("Sélectionnez une zone pour votre audience."); return; }
-    if (step === 2 && (!Number.isFinite(dailyBudget) || dailyBudget < 1 || dailyBudget > budget)) { setError("Le budget quotidien doit être compris entre 1 et le budget total."); return; }
-    setError("");
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
-  };
-  const prev = () => setStep((s) => Math.max(s - 1, 0));
+  const estReach = `${Math.round(budget * 120)} – ${Math.round(budget * 260)}`;
+  const estResult = objective === "clics" ? `${Math.round(budget * 8)} – ${Math.round(budget * 15)} clics` : objective === "engagement" ? `${Math.round(budget * 10)} – ${Math.round(budget * 20)} interactions` : objective === "prospects" ? `${Math.round(budget * 1.2)} – ${Math.round(budget * 3)} contacts` : objective === "conversions" ? `${Math.round(budget * 0.6)} – ${Math.round(budget * 1.5)} conversions` : `${estReach} personnes touchées`;
+
+  useEffect(() => {
+    if (budgetMode !== "daily") return;
+    setBudget(Number((dailyBudget * durationDays).toFixed(2)));
+  }, [budgetMode, dailyBudget, durationDays]);
+  useEffect(() => {
+    if (budgetMode !== "total") return;
+    setDailyBudget(Number((budget / Math.max(1, durationDays)).toFixed(2)));
+  }, [budgetMode, budget, durationDays]);
 
   useEffect(() => {
     if (!company?.id) return;
-    fetch("/api/company/campaigns", { cache: "no-store" })
+    fetchBackendApi("/api/company/campaigns", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : {})
       .then((data) => data.currency && setCurrency(String(data.currency).toUpperCase()))
       .catch(() => {});
@@ -1123,227 +1312,285 @@ export function SponsorModal({ onClose, company }) {
     reader.readAsDataURL(file);
   };
 
+  const selectPlacement = (id) => { setPlacementMode("manual"); setFormat(id); };
+
+  const publish = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      if (!company?.isPremium) throw new Error("La création de campagnes sponsorisées est réservée aux Pages Entreprise Premium.");
+      if (!objective) throw new Error("Sélectionnez un objectif pour votre campagne.");
+      if (!title.trim() || !description.trim()) throw new Error("Ajoutez un titre et une description à la campagne.");
+      if (!location) throw new Error("Indiquez une zone de diffusion pour votre audience.");
+      if (!Number.isFinite(dailyBudget) || dailyBudget <= 0) throw new Error("Indiquez un budget quotidien valide.");
+      const postResponse = await fetchBackendApi("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: description, headline: title.trim(), excerpt: description, media: media ? [media] : [], companyPageId: company?.id, isSponsored: true, visibility: "public" }),
+      });
+      const postData = await postResponse.json().catch(() => ({}));
+      if (!postResponse.ok) throw new Error(postData?.error || "Impossible de créer le contenu publicitaire.");
+      const response = await fetchBackendApi("/api/company/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId: company?.id, postId: postData.post.id, title, description, cta, objective, website, whatsapp, ageMin: age[0], ageMax: age[1], gender, location, interests, budget, dailyBudget, budgetMode: "total", currency, format, contentType, paymentMethod }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Impossible d'enregistrer la campagne.");
+      if (["stripe", "paypal", "mobile_money"].includes(paymentMethod)) {
+        let checkoutId = data.campaign?.storageId || null;
+        if (!checkoutId) {
+          const campaignsResponse = await fetchBackendApi("/api/company/campaigns", { cache: "no-store" });
+          const campaignsData = await campaignsResponse.json().catch(() => ({}));
+          checkoutId = campaignsData.campaigns?.find((campaign) => campaign.id === data.campaign?.id)?.storageId || null;
+        }
+        if (!checkoutId) throw new Error("Impossible de retrouver la campagne créée.");
+        const checkoutResponse = await fetchBackendApi("/api/company/campaigns/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: checkoutId }) });
+        const checkout = await checkoutResponse.json().catch(() => ({}));
+        if (!checkoutResponse.ok) throw new Error(checkout?.error || "Impossible d'ouvrir le paiement.");
+        if (checkout.pending) { setPaymentPending(true); return; }
+        if (checkout.url) { window.location.href = checkout.url; return; }
+      }
+      window.dispatchEvent(new CustomEvent("lynoralink:ads-updated"));
+      setPublished(true);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderPreviewPane = () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: C.ink }}><Eye size={15} /> Aperçu</h3>
+        <span className="text-[11px]" style={{ color: C.inkFaint }}>Rendu final</span>
+      </div>
+      <div className="flex gap-1.5 p-1 rounded-xl" style={{ background: C.surface }}>
+        {PLACEMENT_OPTIONS.map((p) => (
+          <button type="button" key={p.id} onClick={() => setFormat(p.id)} className="flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-colors" style={{ background: format === p.id ? C.card : "transparent", color: format === p.id ? C.blueDeep : C.inkFaint, boxShadow: format === p.id ? C.shadowXs : "none" }}>{p.label}</button>
+        ))}
+      </div>
+      <div className="flex items-center justify-center py-1">
+        {format === "post" && <FeedAdPreview pageName={pageName} avatarUrl={avatarUrl} description={description} media={media} website={website} title={title} cta={cta} />}
+        {format === "story" && <StoryAdPreview pageName={pageName} avatarUrl={avatarUrl} description={description} media={media} cta={cta} />}
+        {format === "sidebar" && <ColumnAdPreview pageName={pageName} avatarUrl={avatarUrl} title={title} description={description} media={media} />}
+      </div>
+      <div className="rounded-xl p-4 flex items-center gap-4" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+        <ReachDial pct={reachPct} />
+        <div className="text-xs" style={{ color: C.inkSoft }}>
+          <p className="font-semibold" style={{ color: C.ink }}>Résultats estimés</p>
+          <p className="mt-1">Portée quotidienne : <span className="font-semibold" style={{ color: C.ink }}>{estReach}</span></p>
+          <p className="mt-0.5">Résultat visé : <span className="font-semibold" style={{ color: C.ink }}>{estResult}</span></p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="company-sponsor-modal-overlay fixed left-0 right-0 bottom-0 z-50 flex items-start justify-center overflow-y-auto p-0 pt-0 sm:items-center sm:p-5" style={{ top: "var(--lynora-header-offset, 0px)", background: "rgba(19,28,51,0.62)", backdropFilter: "blur(5px)" }}>
-      <div role="dialog" aria-modal="true" className="company-sponsor-modal my-0 sm:my-auto w-screen h-dvh sm:h-auto sm:w-full max-w-none sm:max-w-2xl rounded-none sm:rounded-[24px] overflow-hidden flex flex-col max-h-none sm:max-h-[calc(100dvh-var(--lynora-header-offset,0px)-40px)]" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(19,28,51,0.3)", animation: "modalPop .28s cubic-bezier(.22,1,.36,1)" }}>
+      <div role="dialog" aria-modal="true" className="company-sponsor-modal my-0 sm:my-auto w-screen h-dvh sm:h-auto sm:w-full max-w-none sm:max-w-5xl rounded-none sm:rounded-[24px] overflow-hidden flex flex-col max-h-none sm:max-h-[calc(100dvh-var(--lynora-header-offset,0px)-40px)]" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(19,28,51,0.3)", animation: "modalPop .28s cubic-bezier(.22,1,.36,1)" }}>
         <div className="sticky top-0 z-10 shrink-0 px-4 sm:px-7 pt-5 pb-5 flex items-start justify-between gap-3" style={{ background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`, borderBottom: `1px solid ${C.blueDeep}` }}>
           <div className="flex items-start gap-3">
             <div className="mt-0.5 w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(245,166,35,0.18)", color: "#FFD77A" }}><Megaphone size={19} /></div>
-            <div><div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#FFD77A" }}>Espace entreprise · Publicité</div><h2 className="text-xl font-bold mt-1" style={{ color: "#fff" }}>{published ? "Campagne programmée" : "Créer une campagne"}</h2><p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.72)" }}>Configurez votre diffusion en quelques étapes.</p></div>
+            <div><div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#FFD77A" }}>Espace entreprise · Publicité</div><h2 className="text-xl font-bold mt-1" style={{ color: "#fff" }}>{published ? "Campagne programmée" : "Créer une publicité"}</h2><p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.72)" }}>Configurez le contenu, l'audience et le budget de votre campagne.</p></div>
           </div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors" style={{ color: "#fff" }}><X size={18} /></button>
         </div>
-        {!published && (
-          <div className="shrink-0 px-4 sm:px-7 pt-4 pb-1 grid grid-cols-4 gap-2" style={{ background: C.blueSoft }}>
-            {STEPS.map((label, i) => (
-              <button type="button" key={label} onClick={() => i < step && setStep(i)} className="flex flex-col items-center gap-1.5 pb-3" style={{ cursor: i < step ? "pointer" : "default" }}>
-                <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold" style={{ background: i <= step ? C.blueDeep : C.card, color: i <= step ? "#fff" : C.inkFaint, border: `1px solid ${i <= step ? C.blueDeep : C.border}`, boxShadow: i === step ? `0 0 0 3px ${C.gold}33` : "none" }}>{i + 1}</span>
-                <span className="text-[10px] sm:text-xs font-semibold truncate max-w-full" style={{ color: i <= step ? C.blueDeep : C.inkFaint }}>{label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex-1 min-h-0 px-4 sm:px-6 py-5 overflow-y-auto">
-          {published || paymentPending ? (
-            <div className="flex flex-col items-center text-center gap-3 py-6">
+
+        {published || paymentPending ? (
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-7 py-6">
+            <div className="flex flex-col items-center text-center gap-3 mb-6">
               <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: paymentPending ? C.goldSoft : C.greenSoft }}><Check size={26} style={{ color: paymentPending ? C.goldDeep : C.green }} /></div>
               <p className="font-semibold" style={{ color: C.ink }}>{paymentPending ? "Paiement en attente de confirmation" : "Votre publicité est en cours de diffusion"}</p>
-              <p className="text-sm max-w-sm" style={{ color: C.inkFaint }}>{paymentPending ? "Votre campagne sera activée dès que le paiement Mobile Money sera confirmé." : `Objectif « ${OBJECTIVES.find((o) => o.id === objective)?.label} » · ${budget} € / jour · audience ${age[0]}–${age[1]} ans, ${gender.toLowerCase()}.`}</p>
+              <p className="text-sm max-w-sm" style={{ color: C.inkFaint }}>{paymentPending ? "Votre campagne sera activée dès que le paiement Mobile Money sera confirmé." : `Objectif « ${OBJECTIVES.find((o) => o.id === objective)?.label} » · ${dailyBudget} ${currency} / jour · audience ${audienceMode === "advantage" ? "automatique" : `${age[0]}–${age[1]} ans, ${gender.toLowerCase()}`}.`}</p>
             </div>
-          ) : (
-            <>
-              {step === 0 && (
-                <div>
-                  <Field label="Titre de la campagne"><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex. Offre de rentrée" className="w-full px-3 py-2 rounded-lg text-sm outline-none mb-4" style={inputStyle} /></Field>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 mb-5">
-                    <Field label="Format de diffusion"><select value={format} onChange={(event) => setFormat(event.target.value)} className="px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}><option value="post">Post sponsorisé</option><option value="sidebar">Bannière sidebar</option><option value="story">Story / vidéo</option></select></Field>
-                    <Field label="Contenu"><select value={contentType} onChange={(event) => setContentType(event.target.value)} className="px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}><option value="text">Texte sponsorisé</option><option value="image">Image</option><option value="video">Vidéo</option></select></Field>
-                  </div>
-                  <Field label={`Texte publicitaire (${description.length}/280)`}>
-                    <textarea required value={description} maxLength={280} onChange={(event) => setDescription(event.target.value)} placeholder="Présentez votre offre en quelques mots..." className="w-full min-h-24 px-3 py-2 rounded-lg text-sm outline-none resize-y" style={inputStyle} />
+            <div className="max-w-sm mx-auto">
+              <p className="text-xs font-semibold mb-2 text-center" style={{ color: C.inkFaint }}>Rendu final de votre publicité</p>
+              <FeedAdPreview pageName={pageName} avatarUrl={avatarUrl} description={description} media={media} website={website} title={title} cta={cta} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden lg:grid lg:grid-cols-[1fr_380px]">
+            <div className="overflow-y-auto px-4 sm:px-6 py-5 space-y-4">
+              {error && <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: C.redSoft, color: C.red }}>{error}</div>}
+
+              <SectionCard icon={PenSquare} title="Contenu de la publicité" subtitle="Ce que verront les personnes ciblées">
+                <Field label="Titre de la campagne"><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex. Offre de rentrée" className="w-full px-3 py-2 rounded-lg text-sm outline-none mb-4" style={inputStyle} /></Field>
+                <Field label={`Texte publicitaire (${description.length}/3000)`}>
+                  <textarea required value={description} maxLength={3000} onChange={(event) => setDescription(event.target.value)} placeholder="Présentez votre offre en détail..." className="w-full min-h-24 px-3 py-2 rounded-lg text-sm outline-none resize-y mb-4" style={inputStyle} />
+                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <Field label="Bouton d'action (CTA)"><select value={cta} onChange={(event) => setCta(event.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}>{CTA_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select></Field>
+                  <Field label="Visuel (image ou vidéo)">
+                    <label onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); readMedia(event.dataTransfer.files[0]); }} className="flex items-center gap-2 min-h-10 px-3 rounded-lg text-xs cursor-pointer" style={{ ...inputStyle, borderStyle: "dashed" }}><UploadCloud size={15} /> {media ? media.name : "Glissez-déposez ou choisissez un fichier"}<input type="file" accept="image/*,video/*" className="sr-only" onChange={(event) => readMedia(event.target.files[0])} /></label>
                   </Field>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 mb-5">
-                    <Field label="Bouton d'action"><select value={cta} onChange={(event) => setCta(event.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}><option>En savoir plus</option><option>Acheter</option><option>Visiter</option></select></Field>
-                    <Field label="Visuel (image ou vidéo)">
-                      <label onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); readMedia(event.dataTransfer.files[0]); }} className="flex items-center gap-2 min-h-10 px-3 rounded-lg text-xs cursor-pointer" style={{ ...inputStyle, borderStyle: "dashed" }}><UploadCloud size={15} /> {media ? media.name : "Glissez-déposez ou choisissez un fichier"}<input type="file" accept="image/*,video/*" className="sr-only" onChange={(event) => readMedia(event.target.files[0])} /></label>
-                    </Field>
+                </div>
+                {media && (
+                  <div className="mb-4 flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+                    <span className="text-xs font-medium truncate" style={{ color: C.inkSoft }}>{media.name}</span>
+                    <button type="button" onClick={() => setMedia(null)} className="text-xs font-semibold hover:underline shrink-0" style={{ color: C.red }}>Retirer</button>
                   </div>
-                  {media && (
-                    <div className="mb-5 rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: C.surface }}>
-                      <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
-                        <span className="text-xs font-semibold" style={{ color: C.ink }}>Aperçu de la bannière</span>
-                        <button type="button" onClick={() => setMedia(null)} className="text-xs font-semibold hover:underline" style={{ color: C.red }}>Retirer</button>
-                      </div>
-                      <div className="relative aspect-[16/6] min-h-[120px] max-h-52 overflow-hidden" style={{ background: C.blueDeep }}>
-                        {media.type === "video" ? <video src={media.url} controls className="w-full h-full object-cover" /> : <img src={media.url} alt="Aperçu de la bannière publicitaire" className="w-full h-full object-cover" />}
-                        <div className="absolute inset-x-0 bottom-0 px-3 py-2 pointer-events-none" style={{ background: "linear-gradient(transparent, rgba(19,28,51,0.78))" }}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FFD77A" }}>Sponsorisé</span>
-                          <p className="text-sm font-semibold truncate" style={{ color: "#fff" }}>{title || "Titre de votre campagne"}</p>
-                        </div>
-                      </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Lien externe">
+                    <div className="flex items-center gap-2">
+                      <Globe size={15} style={{ color: C.inkFaint }} />
+                      <input value={website} onChange={(event) => setWebsite(event.target.value)} placeholder="https://votre-site.com" className="min-w-0 flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
                     </div>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                    <Field label="Lien externe">
-                      <div className="flex items-center gap-2">
-                        <Globe size={15} style={{ color: C.inkFaint }} />
-                        <input value={website} onChange={(event) => setWebsite(event.target.value)} placeholder="https://votre-site.com" className="min-w-0 flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
-                      </div>
-                    </Field>
-                    <Field label="WhatsApp (indicatif pays inclus)">
-                      <div className="flex items-center gap-2">
-                        <MessageCircle size={15} style={{ color: "#25D366" }} />
-                        <input value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} placeholder="+261 34 00 000 00" className="min-w-0 flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
-                      </div>
-                    </Field>
+                  </Field>
+                  <Field label="WhatsApp (indicatif pays inclus)">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle size={15} style={{ color: "#25D366" }} />
+                      <input value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} placeholder="+261 34 00 000 00" className="min-w-0 flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
+                    </div>
+                  </Field>
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={Target} title="Objectif de la campagne" subtitle="Quel résultat souhaitez-vous obtenir ?">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {OBJECTIVES.map((o) => {
+                    const active = objective === o.id;
+                    return (
+                      <button type="button" key={o.id} onClick={() => setObjective(o.id)} className="rounded-xl p-3 flex flex-col items-center gap-1.5 text-center transition-colors" style={{ border: `1.5px solid ${active ? C.blueDeep : C.border}`, background: active ? C.blueSoft : C.surface }}>
+                        <o.icon size={19} style={{ color: active ? C.blueDeep : C.inkSoft }} />
+                        <span className="text-xs font-semibold" style={{ color: C.ink }}>{o.label}</span>
+                        <span className="text-[10px] leading-tight" style={{ color: C.inkFaint }}>{o.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={Users} title="Audience" subtitle="Qui doit voir votre publicité ?">
+                <div className="flex gap-2 mb-4">
+                  <button type="button" onClick={() => setAudienceMode("advantage")} className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5 text-left" style={{ border: `1.5px solid ${audienceMode === "advantage" ? C.blueDeep : C.border}`, background: audienceMode === "advantage" ? C.blueSoft : C.surface }}>
+                    <Sparkles size={16} style={{ color: audienceMode === "advantage" ? C.blueDeep : C.inkSoft }} />
+                    <span><span className="block text-xs font-bold" style={{ color: C.ink }}>Audience avantage+</span><span className="block text-[10px]" style={{ color: C.inkFaint }}>Optimisation automatique (recommandé)</span></span>
+                  </button>
+                  <button type="button" onClick={() => setAudienceMode("manual")} className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5 text-left" style={{ border: `1.5px solid ${audienceMode === "manual" ? C.blueDeep : C.border}`, background: audienceMode === "manual" ? C.blueSoft : C.surface }}>
+                    <SlidersHorizontal size={16} style={{ color: audienceMode === "manual" ? C.blueDeep : C.inkSoft }} />
+                    <span><span className="block text-xs font-bold" style={{ color: C.ink }}>Audience personnalisée</span><span className="block text-[10px]" style={{ color: C.inkFaint }}>Définir l'âge, le genre, les centres d'intérêt</span></span>
+                  </button>
+                </div>
+                <Field label="Pays ou région"><select value={location} onChange={(event) => setLocation(event.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none mb-4" style={inputStyle}><option value="">Sélectionnez une zone</option><option value="Madagascar">Madagascar</option><option value="France">France</option><option value="Canada">Canada</option><option value="Belgique">Belgique</option><option value="Afrique francophone">Afrique francophone</option><option value="Monde">Monde</option></select></Field>
+                {audienceMode === "manual" ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <Field label={`Âge : ${age[0]} – ${age[1]} ans`}>
+                        <div className="flex items-center gap-2"><input aria-label="Âge minimum" type="number" min="13" max={age[1]} value={age[0]} onChange={(e) => setAge([Math.min(Number(e.target.value), age[1]), age[1]])} className="w-20 px-2 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span>à</span><input aria-label="Âge maximum" type="number" min={age[0]} max="65" value={age[1]} onChange={(e) => setAge([age[0], Math.max(Number(e.target.value), age[0])])} className="w-20 px-2 py-2 rounded-lg text-sm outline-none" style={inputStyle} /></div>
+                        <input type="range" min="13" max="65" value={age[1]} onChange={(e) => setAge([age[0], Number(e.target.value)])} className="w-full mt-2" style={{ accentColor: C.blueDeep }} />
+                      </Field>
+                      <Field label="Genre">
+                        <div className="flex gap-2">
+                          {["Tous", "Homme", "Femme"].map((g) => (
+                            <button type="button" key={g} onClick={() => setGender(g)} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ background: gender === g ? C.blueDeep : C.surface, color: gender === g ? "#fff" : C.inkSoft, border: `1px solid ${C.border}` }}>{g}</button>
+                          ))}
+                        </div>
+                      </Field>
+                    </div>
+                    <Field label="Centres d'intérêt"><div className="flex flex-wrap gap-2">{["Entrepreneuriat", "Technologie", "Mode", "Finance", "Voyage", "Formation"].map((interest) => { const active = interests.split(",").map((item) => item.trim()).includes(interest); return <button type="button" key={interest} onClick={() => setInterests(active ? interests.split(",").filter((item) => item.trim() !== interest).join(", ") : [interests, interest].filter(Boolean).join(", "))} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: active ? C.blueDeep : C.surface, color: active ? "#fff" : C.inkSoft, border: `1px solid ${active ? C.blueDeep : C.border}` }}>{interest}</button>; })}</div></Field>
+                  </>
+                ) : (
+                  <div className="rounded-xl px-3.5 py-3 flex items-start gap-2.5" style={{ background: C.goldLight }}>
+                    <Info size={15} style={{ color: C.goldDeep, marginTop: 2 }} />
+                    <p className="text-xs" style={{ color: C.goldDeep }}>Le système ajuste automatiquement l'âge, le genre et les centres d'intérêt pour maximiser vos résultats sur la zone sélectionnée.</p>
                   </div>
-                  <h3 className="text-base font-semibold mb-1" style={{ color: C.ink }}>Objectif de la campagne</h3>
-                  <p className="text-sm mb-4" style={{ color: C.inkFaint }}>Quel est votre objectif principal ?</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {OBJECTIVES.map((o) => {
-                      const active = objective === o.id;
+                )}
+              </SectionCard>
+
+              <SectionCard icon={LayoutGrid} title="Emplacements" subtitle="Où votre publicité doit-elle apparaître ?">
+                <div className="flex gap-2 mb-4">
+                  <button type="button" onClick={() => setPlacementMode("automatic")} className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5 text-left" style={{ border: `1.5px solid ${placementMode === "automatic" ? C.blueDeep : C.border}`, background: placementMode === "automatic" ? C.blueSoft : C.surface }}>
+                    <Sparkles size={16} style={{ color: placementMode === "automatic" ? C.blueDeep : C.inkSoft }} />
+                    <span><span className="block text-xs font-bold" style={{ color: C.ink }}>Automatique</span><span className="block text-[10px]" style={{ color: C.inkFaint }}>Diffusion optimisée (recommandé)</span></span>
+                  </button>
+                  <button type="button" onClick={() => setPlacementMode("manual")} className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5 text-left" style={{ border: `1.5px solid ${placementMode === "manual" ? C.blueDeep : C.border}`, background: placementMode === "manual" ? C.blueSoft : C.surface }}>
+                    <SlidersHorizontal size={16} style={{ color: placementMode === "manual" ? C.blueDeep : C.inkSoft }} />
+                    <span><span className="block text-xs font-bold" style={{ color: C.ink }}>Manuel</span><span className="block text-[10px]" style={{ color: C.inkFaint }}>Choisir précisément l'emplacement</span></span>
+                  </button>
+                </div>
+                {placementMode === "manual" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {PLACEMENT_OPTIONS.map((p) => {
+                      const active = format === p.id;
                       return (
-                        <button key={o.id} onClick={() => setObjective(o.id)} className="rounded-xl p-4 flex flex-col items-center gap-2 text-center transition-colors hover:border-blue-300" style={{ border: `1.5px solid ${active ? C.blueDeep : C.border}`, background: active ? C.blueSoft : C.surface }}>
-                          <o.icon size={22} style={{ color: active ? C.blueDeep : C.inkSoft }} />
-                          <span className="text-sm font-semibold" style={{ color: C.ink }}>{o.label}</span>
-                          <span className="text-xs" style={{ color: C.inkFaint }}>{o.sub}</span>
+                        <button type="button" key={p.id} onClick={() => selectPlacement(p.id)} className="rounded-xl p-3 flex flex-col items-center gap-1.5 text-center" style={{ border: `1.5px solid ${active ? C.blueDeep : C.border}`, background: active ? C.blueSoft : C.surface }}>
+                          <p.icon size={18} style={{ color: active ? C.blueDeep : C.inkSoft }} />
+                          <span className="text-xs font-semibold" style={{ color: C.ink }}>{p.label}</span>
+                          <span className="text-[10px] leading-tight" style={{ color: C.inkFaint }}>{p.sub}</span>
                         </button>
                       );
                     })}
                   </div>
+                )}
+              </SectionCard>
+
+              <SectionCard icon={Wallet} title="Budget, durée & paiement" subtitle="Combien souhaitez-vous investir ?">
+                <div className="flex gap-2 mb-4">
+                  <button type="button" onClick={() => setBudgetMode("daily")} className="flex-1 rounded-xl px-3 py-2.5 text-xs font-bold" style={{ border: `1.5px solid ${budgetMode === "daily" ? C.blueDeep : C.border}`, background: budgetMode === "daily" ? C.blueSoft : C.surface, color: C.ink }}>Budget quotidien</button>
+                  <button type="button" onClick={() => setBudgetMode("total")} className="flex-1 rounded-xl px-3 py-2.5 text-xs font-bold" style={{ border: `1.5px solid ${budgetMode === "total" ? C.blueDeep : C.border}`, background: budgetMode === "total" ? C.blueSoft : C.surface, color: C.ink }}>Budget total</button>
                 </div>
-              )}
-              {step === 1 && (
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-base font-semibold" style={{ color: C.ink }}>Audience</h3>
-                  <Field label="Pays ou région"><select value={location} onChange={(event) => setLocation(event.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}><option value="">Sélectionnez une zone</option><option value="Madagascar">Madagascar</option><option value="France">France</option><option value="Canada">Canada</option><option value="Belgique">Belgique</option><option value="Afrique francophone">Afrique francophone</option><option value="Monde">Monde</option></select></Field>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label={`Âge : ${age[0]} – ${age[1]} ans`}>
-                      <div className="flex items-center gap-2"><input aria-label="Âge minimum" type="number" min="13" max={age[1]} value={age[0]} onChange={(e) => setAge([Math.min(Number(e.target.value), age[1]), age[1]])} className="w-20 px-2 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span>à</span><input aria-label="Âge maximum" type="number" min={age[0]} max="65" value={age[1]} onChange={(e) => setAge([age[0], Math.max(Number(e.target.value), age[0])])} className="w-20 px-2 py-2 rounded-lg text-sm outline-none" style={inputStyle} /></div>
-                      <input type="range" min="13" max="65" value={age[1]} onChange={(e) => setAge([age[0], Number(e.target.value)])} className="w-full mt-2" style={{ accentColor: C.blueDeep }} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  {budgetMode === "daily" ? (
+                    <Field label="Budget quotidien">
+                      <div className="flex items-center gap-2"><input type="number" min="1" step="0.5" value={dailyBudget} onChange={(e) => setDailyBudget(Math.max(1, Number(e.target.value)))} className="w-28 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span className="text-sm font-semibold" style={{ color: C.ink }}>{currency} / jour</span></div>
                     </Field>
-                    <Field label="Genre">
-                      <div className="flex gap-2">
-                        {["Tous", "Homme", "Femme"].map((g) => (
-                          <button key={g} onClick={() => setGender(g)} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ background: gender === g ? C.blueDeep : C.surface, color: gender === g ? "#fff" : C.inkSoft, border: `1px solid ${C.border}` }}>{g}</button>
-                        ))}
-                      </div>
+                  ) : (
+                    <Field label="Budget total">
+                      <div className="flex items-center gap-2"><input type="number" min="5" step="1" value={budget} onChange={(e) => setBudget(Math.max(5, Number(e.target.value)))} className="w-28 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span className="text-sm font-semibold" style={{ color: C.ink }}>{currency}</span></div>
                     </Field>
-                  </div>
-                  <Field label="Centres d'intérêt"><div className="flex flex-wrap gap-2">{["Entrepreneuriat", "Technologie", "Mode", "Finance", "Voyage", "Formation"].map((interest) => { const active = interests.split(",").map((item) => item.trim()).includes(interest); return <button type="button" key={interest} onClick={() => setInterests(active ? interests.split(",").filter((item) => item.trim() !== interest).join(", ") : [interests, interest].filter(Boolean).join(", "))} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: active ? C.blueDeep : C.surface, color: active ? "#fff" : C.inkSoft, border: `1px solid ${active ? C.blueDeep : C.border}` }}>{interest}</button>; })}</div></Field>
-                  <div className="rounded-xl p-4 flex items-center gap-4" style={{ background: C.surface }}>
-                    <ReachDial pct={reachPct} />
-                    <p className="text-sm" style={{ color: C.inkSoft }}>Portée estimée : <span className="font-semibold" style={{ color: C.ink }}>{Math.round(budget * 120)} – {Math.round(budget * 260)} personnes</span> selon votre audience.</p>
-                  </div>
-                </div>
-              )}
-              {step === 2 && (
-                <div className="flex flex-col gap-5">
-                  <h3 className="text-base font-semibold" style={{ color: C.ink }}>Budget, durée & paiement</h3>
-                  <Field label="Budget total de la campagne">
-                    <div className="flex items-center gap-2"><input type="number" min="5" max="10000" value={budget} onChange={(e) => { const nextBudget = Number(e.target.value); setBudget(nextBudget); setDailyBudget((current) => Math.min(current, nextBudget || 1)); }} className="w-32 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span className="text-sm font-semibold" style={{ color: C.ink }}>{currency}</span></div>
-                    <span className="text-xs mt-1" style={{ color: C.inkFaint }}>Montant maximum facturé pour toute la campagne.</span>
+                  )}
+                  <Field label="Durée de diffusion">
+                    <div className="flex items-center gap-2"><input type="number" min="1" max="90" value={durationDays} onChange={(e) => setDurationDays(Math.max(1, Number(e.target.value)))} className="w-20 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span className="text-sm font-semibold" style={{ color: C.ink }}>jour{durationDays > 1 ? "s" : ""}</span></div>
                   </Field>
-                  <Field label="Budget quotidien souhaité">
-                    <div className="flex items-center gap-2"><input type="number" min="1" max={Math.max(1, budget)} step="0.01" value={dailyBudget} onChange={(e) => setDailyBudget(Math.min(Number(e.target.value), budget || 1))} className="w-32 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle} /><span className="text-sm font-semibold" style={{ color: C.ink }}>{currency} / jour</span></div>
-                    <span className="text-xs mt-1" style={{ color: C.inkFaint }}>La durée s’adapte automatiquement à ce montant.</span>
-                  </Field>
-                  <Field label="Devise configurée"><select value={currency} disabled className="w-full px-3 py-2 rounded-lg text-sm outline-none opacity-80" style={inputStyle}><option value={currency}>{currency}</option></select></Field>
-                  <Field label="Moyen de paiement"><select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}><option value="stripe">Carte bancaire / Stripe</option><option value="paypal">PayPal</option><option value="mobile_money">Mobile Money</option></select></Field>
-                  <div className="rounded-xl p-4" style={{ background: C.blueSoft, border: `1px solid ${C.border}` }}>
-                    <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: C.ink }}><CalendarDays size={16} style={{ color: C.blue }} /> Période définie automatiquement</div>
-                    <p className="text-xs mt-2" style={{ color: C.inkFaint }}>{budget} {currency} au total à raison de {dailyBudget} {currency} par jour, soit {schedule.durationDays} jour{schedule.durationDays > 1 ? "s" : ""} de diffusion.</p>
-                    <p className="text-sm mt-1 font-semibold" style={{ color: C.blueDeep }}>{schedule.startDate} → {schedule.endDate}</p>
-                  </div>
                 </div>
-              )}
-              {step === 3 && (
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-base font-semibold" style={{ color: C.ink }}>Aperçu de la campagne</h3>
-                  <div className="rounded-xl p-4 flex items-center gap-4" style={{ background: C.surface }}>
-                    <ReachDial pct={reachPct} />
-                    <div className="text-sm" style={{ color: C.inkSoft }}>
-                      <p><span className="font-semibold" style={{ color: C.ink }}>Campagne : </span>{title || "Sans titre"}</p>
-                      <p><span className="font-semibold" style={{ color: C.ink }}>Objectif : </span>{OBJECTIVES.find((o) => o.id === objective)?.label}</p>
-                      <p><span className="font-semibold" style={{ color: C.ink }}>Audience : </span>{age[0]}–{age[1]} ans, {gender}</p>
-                      <p><span className="font-semibold" style={{ color: C.ink }}>Budget : </span>{budget} {currency} au total · {dailyBudget} {currency}/jour · {paymentMethod}</p>
-                    </div>
-                  </div>
-                  <div className="rounded-xl overflow-hidden" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
-                    {media?.type === "image" && <img src={media.url} alt="Aperçu de la publicité" className="w-full max-h-48 object-cover" />}
-                    {media?.type === "video" && <video src={media.url} controls className="w-full max-h-48 object-cover" />}
-                    <div className="p-4"><div className="text-[11px] font-bold" style={{ color: C.goldDeep }}>Sponsorisé</div><div className="font-semibold mt-1" style={{ color: C.ink }}>{title || "Votre campagne"}</div><p className="text-sm mt-1" style={{ color: C.inkSoft }}>{description || "Votre texte publicitaire apparaîtra ici."}</p><span className="inline-flex mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: C.blueDeep }}>{cta}</span></div>
-                  </div>
+                <div className="rounded-xl p-4 mb-4" style={{ background: C.blueSoft, border: `1px solid ${C.border}` }}>
+                  <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: C.ink }}><CalendarDays size={16} style={{ color: C.blue }} /> Période estimée</div>
+                  <p className="text-xs mt-2" style={{ color: C.inkFaint }}>{budgetMode === "daily" ? `${dailyBudget} ${currency}/jour` : `${budget} ${currency} au total`} · {durationDays} jour{durationDays > 1 ? "s" : ""} de diffusion, soit environ {budgetMode === "daily" ? budget.toFixed(2) : dailyBudget.toFixed(2)} {currency} {budgetMode === "daily" ? "au total" : "par jour"}.</p>
+                  <p className="text-sm mt-1 font-semibold" style={{ color: C.blueDeep }}>{schedule.startDate} → {schedule.endDate}</p>
                 </div>
-              )}
-            </>
-          )}
-        </div>
+                <Field label="Moyen de paiement"><select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="px-3 py-2 rounded-lg text-sm outline-none" style={inputStyle}><option value="stripe">Carte bancaire / Stripe</option><option value="paypal">PayPal</option><option value="mobile_money">Mobile Money</option></select></Field>
+              </SectionCard>
+
+              <div className="lg:hidden rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+                {renderPreviewPane()}
+              </div>
+            </div>
+
+            <div className="hidden lg:flex flex-col overflow-y-auto px-5 py-5" style={{ background: C.surface, borderLeft: `1px solid ${C.border}` }}>
+              {renderPreviewPane()}
+            </div>
+          </div>
+        )}
+
         <div className="z-10 shrink-0 mx-3 mb-3 rounded-xl border px-3 sm:mx-0 sm:mb-0 sm:rounded-none sm:border-0 sm:px-6 py-3 flex items-center justify-between gap-3" style={{ borderColor: C.border, borderTop: `1px solid ${C.border}`, background: "rgba(243,245,249,0.7)" }}>
           {published || paymentPending ? (
             <button type="button" onClick={onClose} className="ml-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: C.blueDeep }}>Fermer</button>
           ) : (
             <>
-              <button type="button" onClick={prev} disabled={step === 0} className="flex items-center gap-1.5 min-h-11 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ color: step === 0 ? C.inkFaint : C.inkSoft, opacity: step === 0 ? 0.5 : 1 }}><ChevronLeft size={16} /> Précédent</button>
-              {step < STEPS.length - 1 ? (
-                <button type="button" onClick={next} className="flex items-center gap-1.5 min-h-11 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: C.blueDeep }}>Suivant <ChevronRight size={16} /></button>
-              ) : (
-                <button type="button" disabled={saving} onClick={async () => {
-                  setSaving(true);
-                  setError("");
-                  try {
-                    if (!title.trim() || !description.trim()) throw new Error("Ajoutez un titre et une description à la campagne.");
-                    if (!location) throw new Error("Sélectionnez une zone pour votre audience.");
-                    const postResponse = await fetch("/api/posts", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ text: description, media: media ? [media] : [], companyPageId: company?.id, isSponsored: true, visibility: "public" }),
-                    });
-                    const postData = await postResponse.json().catch(() => ({}));
-                    if (!postResponse.ok) throw new Error(postData?.error || "Impossible de créer le contenu publicitaire.");
-                    const response = await fetch("/api/company/campaigns", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ pageId: company?.id, postId: postData.post.id, title, description, cta, objective, website, whatsapp, ageMin: age[0], ageMax: age[1], gender, location, interests, budget, dailyBudget, budgetMode: "total", currency, format, contentType, paymentMethod }),
-                    });
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok) throw new Error(data?.error || "Impossible d'enregistrer la campagne.");
-                    if (["stripe", "paypal", "mobile_money"].includes(paymentMethod)) {
-                      const checkoutResponse = await fetch("/api/company/campaigns/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: data.campaign.id }) });
-                      const checkout = await checkoutResponse.json().catch(() => ({}));
-                      if (!checkoutResponse.ok) throw new Error(checkout?.error || "Impossible d'ouvrir le paiement.");
-                      if (checkout.pending) { setPaymentPending(true); return; }
-                      if (checkout.url) { window.location.href = checkout.url; return; }
-                    }
-                      window.dispatchEvent(new CustomEvent("lynoralink:ads-updated"));
-                    setPublished(true);
-                  } catch (requestError) {
-                    setError(requestError.message);
-                  } finally {
-                    setSaving(false);
-                  }
-                }} className="flex items-center gap-1.5 min-h-11 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60" style={{ background: C.gold, color: C.blueDeep }}><Wand2 size={16} /> {saving ? "Enregistrement..." : "Publier la publicité"}</button>
-              )}
+              <span className="text-xs font-medium" style={{ color: C.inkFaint }}>Vous dépenserez environ <strong style={{ color: C.ink }}>{dailyBudget} {currency}/jour</strong> · <strong style={{ color: C.ink }}>{budget} {currency}</strong> au total sur {durationDays} jour{durationDays > 1 ? "s" : ""}.</span>
+              <button type="button" disabled={saving} onClick={publish} className="flex items-center gap-1.5 min-h-11 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 shrink-0" style={{ background: C.gold, color: C.blueDeep }}><Wand2 size={16} /> {saving ? "Enregistrement..." : "Publier la publicité"}</button>
             </>
           )}
         </div>
-        {error && <p className="px-4 pb-3 text-xs text-right" style={{ color: C.red }}>{error}</p>}
       </div>
-      <style>{`@media (max-width: 640px) { .company-sponsor-modal-overlay { top: var(--lynora-header-offset, 0px) !important; right: 0 !important; bottom: 0 !important; left: 0 !important; padding: 0 !important; align-items: flex-start !important; } .company-sponsor-modal { width: 100vw !important; max-width: none !important; height: calc(100dvh - var(--lynora-header-offset, 0px)) !important; max-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important; min-height: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; } .company-sponsor-modal > div:nth-child(3) { overflow-y: auto; min-height: 0; } }`}</style>
+      <style>{`@media (max-width: 640px) { .company-sponsor-modal-overlay { top: var(--lynora-header-offset, 0px) !important; right: 0 !important; bottom: 0 !important; left: 0 !important; padding: 0 !important; align-items: flex-start !important; } .company-sponsor-modal { width: 100vw !important; max-width: none !important; height: calc(100dvh - var(--lynora-header-offset, 0px)) !important; max-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important; min-height: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; } .company-sponsor-modal > div:nth-child(2) { overflow-y: auto; min-height: 0; } }`}</style>
     </div>
   );
 }
-
 /* ---------------------------------------------------------------
    Company detail page — REDESIGNED with hero banner, stats grid,
    media gallery, right sidebar (community + events)
 ----------------------------------------------------------------*/
-export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCreatePost = false, onSwitchAccount, onUpdateCompany, onOpenComposer, onOpenProfile, onToggleFollow, onMessage, onToggleLike, onSelectReaction, onToggleBookmark, onAddComment, onReplyComment, onToggleCommentLike, onShare, onFollowPage, followedPageIds = [], isCompanyAccount = false, headerOffset = 0 }) {
+export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCreatePost = false, onSwitchAccount, onUpdateCompany, onOpenComposer, onOpenSponsor, onOpenProfile, onToggleFollow, onMessage, onToggleLike, onSelectReaction, onToggleBookmark, onAddComment, onReplyComment, onToggleCommentLike, onShare, onFollowPage, followedPageIds = [], isCompanyAccount = false, headerOffset = 0 }) {
   const [tab, setTab] = useState("publications");
   const [posts, setPosts] = useState([]);
   const [openPost, setOpenPost] = useState(null);
   const [postsLoading, setPostsLoading] = useState(Boolean(company?.id));
   const [postsError, setPostsError] = useState("");
+  const [companyReels, setCompanyReels] = useState([]);
   const [sponsorOpen, setSponsorOpen] = useState(false);
   const [companyInviteOpen, setCompanyInviteOpen] = useState(false);
   const [uploadKind, setUploadKind] = useState(null);
@@ -1372,7 +1619,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
 
   const createJob = async (job) => {
     const nextJobs = [{ ...job, id: `job-${Date.now()}`, createdAt: new Date().toISOString() }, ...jobs];
-    const response = await fetch("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobs: nextJobs }) });
+    const response = await fetchBackendApi("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobs: nextJobs }) });
     const updated = await response.json();
     if (!response.ok) throw new Error(updated.error || "Impossible de publier l'annonce.");
     setJobs(nextJobs);
@@ -1381,7 +1628,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
 
   const updateJob = async (jobId, changes) => {
     const nextJobs = jobs.map((job) => job.id === jobId ? { ...job, ...changes } : job);
-    const response = await fetch("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobs: nextJobs }) });
+    const response = await fetchBackendApi("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobs: nextJobs }) });
     const updated = await response.json();
     if (!response.ok) throw new Error(updated.error || "Impossible de modifier l'annonce.");
     setJobs(nextJobs);
@@ -1409,7 +1656,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
   useEffect(() => {
     if (!company?.id || viewingAsPage) return undefined;
     let mounted = true;
-    fetch(`/api/company/follow?pageId=${encodeURIComponent(company.id)}`, { cache: "no-store" })
+    fetchBackendApi(`/api/company/follow?pageId=${encodeURIComponent(company.id)}`, { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (mounted && data) setFollowed(Boolean(data.followed));
@@ -1425,7 +1672,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
     setFollowError("");
     
     try {
-      const response = await fetch("/api/company/follow", {
+      const response = await fetchBackendApi("/api/company/follow", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageId: company?.id }),
@@ -1458,7 +1705,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 30000);
       try {
-        const response = await fetch(`/api/posts?companyPageId=${encodeURIComponent(company.id)}&limit=50`, { cache: "no-store", signal: controller.signal });
+        const response = await fetchBackendApi(`/api/posts?companyPageId=${encodeURIComponent(company.id)}&limit=50`, { cache: "no-store", signal: controller.signal });
         if (!response.ok) throw new Error("Impossible de charger les publications.");
         const data = response.ok ? await response.json() : { posts: [] };
         if (mounted) {
@@ -1484,6 +1731,20 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
       mounted = false;
       window.removeEventListener("lynoralink:company-posts-updated", refresh);
     };
+  }, [company?.id]);
+
+  useEffect(() => {
+    if (!company?.id) return undefined;
+    let mounted = true;
+    fetchBackendApi(`/api/reels?pageId=${encodeURIComponent(company.id)}&limit=20`, { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : { reels: [] })
+      .then((data) => {
+        if (mounted) setCompanyReels(Array.isArray(data.reels) ? data.reels : []);
+      })
+      .catch(() => {
+        if (mounted) setCompanyReels([]);
+      });
+    return () => { mounted = false; };
   }, [company?.id]);
 
   useEffect(() => {
@@ -1532,6 +1793,12 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
   const pageMedia = [
     ...(Array.isArray(company?.media) ? company.media : []),
     ...postMedia,
+    ...companyReels.map((reel) => ({
+      id: `reel-media-${reel.id}`,
+      url: reel.videoUrl || reel.poster,
+      type: "video",
+      label: reel.caption || "Reel",
+    })),
   ].filter((item, index, media) => (
     media.findIndex((candidate) => candidate.url === item.url) === index
   ));
@@ -1561,6 +1828,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
 
   const tabs = [
     { id: "publications", label: "Publications" },
+    { id: "media", label: "Médias" },
     { id: "jobs", label: "Offres d\'emploi" },
     { id: "about", label: "À propos" },
     ...(isOwner ? [{ id: "advertising", label: "Publicité" }] : []),
@@ -1571,7 +1839,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
     if (uploadKind === "avatar") setAvatarUrl(dataUrl);
     if (uploadKind === "cover") setCoverUrl(dataUrl);
     const patch = uploadKind === "avatar" ? { logoUrl: dataUrl, avatarUrl: dataUrl } : { bannerUrl: dataUrl, coverUrl: dataUrl };
-    fetch("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })
+    fetchBackendApi("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })
       .then((response) => response.ok ? response.json() : null)
       .then((updated) => updated && onUpdateCompany?.(updated))
       .catch(() => {});
@@ -1581,7 +1849,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
   const setMediaAsCompanyImage = async (mediaUrl, kind) => {
     if (!mediaUrl || !["avatar", "cover"].includes(kind)) return;
     const patch = kind === "avatar" ? { logoUrl: mediaUrl, avatarUrl: mediaUrl } : { bannerUrl: mediaUrl, coverUrl: mediaUrl };
-    const response = await fetch("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+    const response = await fetchBackendApi("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
     const updated = await response.json().catch(() => ({}));
     if (!response.ok) return;
     if (kind === "avatar") setAvatarUrl(mediaUrl);
@@ -1592,12 +1860,12 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
   const deleteMedia = async (media, index) => {
     if (!media?.url) return;
     if (media.post?.id) {
-      const response = await fetch(`/api/posts/${encodeURIComponent(media.post.id)}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaUrl: media.url }) });
+      const response = await fetchBackendApi(`/api/posts/${encodeURIComponent(media.post.id)}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaUrl: media.url }) });
       if (!response.ok) return;
       setPosts((current) => current.map((post) => post.id === media.post.id ? { ...post, media: (Array.isArray(post.media) ? post.media : []).filter((item) => item?.url !== media.url), mediaUrl: post.mediaUrl === media.url ? null : post.mediaUrl } : post));
     } else {
       const nextMedia = (Array.isArray(company?.media) ? company.media : []).filter((item) => item?.url !== media.url);
-      const response = await fetch("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media: nextMedia }) });
+      const response = await fetchBackendApi("/api/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media: nextMedia }) });
       const updated = await response.json().catch(() => ({}));
       if (!response.ok) return;
       onUpdateCompany?.(updated);
@@ -1607,7 +1875,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
   };
 
   return (
-    <div ref={pageScrollRef} className="company-page min-h-full w-full" style={{ height: "calc(100dvh - var(--lynora-header-offset, 0px))", overflowY: "auto", overflowX: "hidden", overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch", background: C.surface, fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+    <div ref={pageScrollRef} className="company-page lynora-page lynora-company-detail min-h-full w-full" style={{ height: "calc(100dvh - var(--lynora-header-offset, 0px))", overflowY: "auto", overflowX: "hidden", overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch", background: C.surface, fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
       <div
         style={{
           position: "fixed", top: "var(--lynora-header-offset, 0px)", left: 0, right: 0, zIndex: 50,
@@ -1628,7 +1896,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
           <div style={{ fontSize: 11.5, color: C.inkFaint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{companySlogan}</div>
         </div>
       </div>
-      <div className="company-detail-shell w-full max-w-[1400px] mx-auto px-4 sm:px-6 pb-16">
+      <div className="company-detail-shell lynora-detail-shell w-full max-w-[1400px] mx-auto px-4 sm:px-6 pb-16">
         {/* Back button */}
         <button
           type="button"
@@ -1639,7 +1907,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
             event.stopPropagation();
             onBack?.();
           }}
-          className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold transition-all hover:-translate-x-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          className="lynora-detail-back-button mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold transition-all hover:-translate-x-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           style={{
             color: C.blueDeep,
             background: C.card,
@@ -1650,32 +1918,42 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
           <ArrowLeft size={16} strokeWidth={2.25} /> Retour aux pages
         </button>
 
-        {/* Hero banner — taller, more impactful with glassmorphism overlay */}
+        {/* Hero banner — taller, more impactful, premium mesh + grain finish */}
         <div
           onMouseEnter={() => setCoverHover(true)}
           onMouseLeave={() => setCoverHover(false)}
-          className="company-page-hero relative mt-3 h-[145px] sm:h-[200px] rounded-2xl overflow-hidden"
+          className="company-page-hero lynora-cover relative mt-3 h-[150px] sm:h-[215px] rounded-[22px] overflow-hidden"
           style={{
             background: coverUrl
               ? `center / cover no-repeat url(${coverUrl})`
-              : `linear-gradient(135deg, ${C.blueDeep} 0%, ${C.blue} 50%, ${C.gold} 150%)`,
+              : `linear-gradient(120deg, ${C.navyDeep} 0%, ${C.navyMid} 46%, ${C.navyGlow} 78%, ${C.goldDeep} 130%)`,
+            boxShadow: C.shadowLg,
           }}
         >
-          {/* Decorative particles / circles */}
+          {/* Mesh accents */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
-            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }} />
-            <div className="absolute top-8 right-1/3 w-20 h-20 rounded-full" style={{ background: "rgba(245,166,35,0.15)" }} />
-            <div className="absolute bottom-4 left-1/4 w-12 h-12 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
+            <div className="absolute -top-16 -right-12 w-72 h-72 rounded-full blur-2xl" style={{ background: "rgba(255,255,255,0.10)" }} />
+            <div className="absolute -bottom-20 -left-16 w-56 h-56 rounded-full blur-2xl" style={{ background: "rgba(238,175,35,0.16)" }} />
+            <div className="absolute top-6 right-[28%] w-24 h-24 rounded-full blur-xl" style={{ background: "rgba(255,206,85,0.18)" }} />
           </div>
-          {/* Radial light effect */}
-          <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15), transparent 55%)" }} />
+          {/* Radial light + subtle grain for texture */}
+          <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 82% 15%, rgba(255,255,255,0.16), transparent 55%)" }} />
+          <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" preserveAspectRatio="none" style={{ opacity: 0.05, mixBlendMode: "overlay" }}>
+            <defs>
+              <pattern id="heroGrain" width="4" height="4" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="0.6" fill="#fff" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#heroGrain)" />
+          </svg>
+          {/* Bottom fade so the identity row reads cleanly over any photo */}
+          <div className="absolute inset-x-0 bottom-0 h-14" style={{ background: "linear-gradient(180deg, transparent, rgba(8,15,38,.28))" }} />
           {isOwner && (
             <div className="absolute inset-0 flex items-end justify-end p-4 transition-opacity" style={{ opacity: coverHover ? 1 : 0 }}>
               <button
                 onClick={() => setUploadKind("cover")}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold backdrop-blur-sm transition-transform hover:scale-105"
-                style={{ background: "rgba(255,255,255,0.92)", color: C.ink, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold backdrop-blur-md transition-transform hover:scale-105"
+                style={{ background: "rgba(255,255,255,0.94)", color: C.ink, boxShadow: C.shadowMd }}
               >
                 <Camera size={14} /> Changer la couverture
               </button>
@@ -1683,17 +1961,17 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
           )}
         </div>
         {/* Identity row — avatar overlaps banner + content */}
-        <div className="company-page-identity flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 px-1 -mt-9 sm:-mt-10">
+        <div className="company-page-identity lynora-header-identity flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 px-1 -mt-9 sm:-mt-10">
           <div className="flex items-end gap-3 sm:gap-4 min-w-0">
             <div
               onMouseEnter={() => setAvatarHover(true)}
               onMouseLeave={() => setAvatarHover(false)}
               className="relative w-[100px] h-[100px] sm:w-[152px] sm:h-[152px] rounded-full shrink-0"
-              style={{ border: `4px solid ${C.card}`, borderRadius: "50%", overflow: "visible", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+              style={{ padding: 4, background: `linear-gradient(135deg, ${C.card}, ${C.card})`, borderRadius: "50%", overflow: "visible", boxShadow: `${C.shadowLg}, 0 0 0 1px ${C.border}` }}
             >
               <div
                 className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
-                style={{ background: avatarUrl ? undefined : "#E5E7EB", borderRadius: "50%", color: "#6B7280" }}
+                style={{ background: avatarUrl ? undefined : `linear-gradient(135deg, ${C.navyMid}, ${C.navyDeep})`, borderRadius: "50%", color: "#fff" }}
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Logo de l'entreprise" className="w-full h-full object-cover" />
@@ -1725,7 +2003,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               <button
                 type="button"
                 onClick={() => setCompanyInviteOpen(true)}
-                className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all hover:-translate-y-0.5"
                 style={{ border: `1px solid ${C.border}`, background: C.card, color: C.inkSoft }}
               >
                 <UserRoundPlus size={15} /> Inviter
@@ -1734,7 +2012,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               <button
                 type="button"
                 onClick={switchToPageAccount}
-                className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all hover:-translate-y-0.5"
                 style={{ border: `1px solid ${C.border}`, background: C.card, color: C.inkSoft }}
               >
                 <ArrowRightLeft size={15} /> Basculer
@@ -1745,12 +2023,13 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
                   type="button"
                   onClick={handleToggleFollow}
                   disabled={followLoading}
-                  className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all"
+                  className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all hover:-translate-y-0.5"
                   style={{
-                    border: `1px solid ${followed ? C.border : C.inkSoft}`,
-                    background: followed ? C.card : "transparent",
-                    color: followLoading ? C.inkFaint : C.inkSoft,
-                    opacity: followLoading ? 0.6 : 1,
+                    border: followed ? `1px solid ${C.border}` : "none",
+                    background: followed ? C.card : C.goldGrad,
+                    color: followLoading ? C.inkFaint : followed ? C.inkSoft : C.navyDeep,
+                    boxShadow: followed ? "none" : C.shadowGold,
+                    opacity: followLoading ? 0.7 : 1,
                   }}
                 >
                   {followLoading ? (
@@ -1782,7 +2061,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
                   avatarUrl,
                   initials: companyName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join(""),
                 })}
-                className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all hover:-translate-y-0.5"
                 style={{ border: `1px solid ${C.border}`, background: C.card, color: C.inkSoft }}
               >
                 <MessageCircle size={15} /> Message
@@ -1794,7 +2073,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
                   type="button"
                   onClick={handleToggleFollow}
                   disabled={followLoading}
-                  className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all"
+                  className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all hover:-translate-y-0.5"
                   style={{
                     border: `1px solid ${followed ? C.border : C.inkSoft}`,
                     background: followed ? C.card : "transparent",
@@ -1823,8 +2102,10 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               <>
                 <button
                   type="button"
-                  onClick={() => setSponsorOpen(true)}
-                  className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity"
+                  onClick={() => company?.isPremium && setSponsorOpen(true)}
+                  disabled={!company?.isPremium}
+                  title={!company?.isPremium ? "Réservé aux Pages Entreprise Premium" : undefined}
+                  className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ border: `1px solid ${C.border}`, background: C.card, color: C.blueDeep }}
                 >
                   <Rocket size={15} /> Campagne
@@ -1887,11 +2168,16 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold relative hover:text-blue-700 transition-colors whitespace-nowrap shrink-0"
-                style={{ color: active ? C.blueMid : C.inkFaint }}
+                className="px-3.5 sm:px-4 py-2.5 mb-1 text-xs sm:text-sm font-semibold relative transition-all whitespace-nowrap shrink-0 rounded-full"
+                style={{
+                  color: active ? C.navy : C.inkFaint,
+                  background: active ? C.navyLight : "transparent",
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = C.surface; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
               >
                 {t.label}
-                {active && <span className="absolute left-0 right-0 -bottom-px h-[2.5px] rounded-full" style={{ background: C.blueMid }} />}
+                {active && <span className="absolute left-1/2 -translate-x-1/2 -bottom-[5px] w-5 h-[3px] rounded-full" style={{ background: C.goldGrad }} />}
               </button>
             );
           })}
@@ -1911,17 +2197,18 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
         {/* Two-column layout: main + sidebar (except for admin) */}
         {tab === "advertising" ? (
           <div className="mt-5 px-1">
-            <CampaignDashboard onOpenSponsor={() => setSponsorOpen(true)} company={company} />
+            <CampaignDashboard onOpenSponsor={onOpenSponsor || (() => setSponsorOpen(true))} company={company} />
           </div>
         ) : tab === "admin" ? (
           <div className="mt-5 px-1">
-            <AdministrationTab onOpenSponsor={() => setSponsorOpen(true)} onUpdateCompany={onUpdateCompany} onDeleted={onDeleted} onOpenProfile={onOpenProfile} company={{ ...company, posts, stats: { ...(company?.stats || {}), posts: posts.length } }} />
+            <AdministrationTab onOpenSponsor={onOpenSponsor || (() => setSponsorOpen(true))} onUpdateCompany={onUpdateCompany} onDeleted={onDeleted} onOpenProfile={onOpenProfile} company={{ ...company, posts, stats: { ...(company?.stats || {}), posts: posts.length } }} />
           </div>
         ) : (
-          <div className="company-page-content mt-5 px-1 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+          <div className="company-page-content lynora-detail-layout mt-5 px-1 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
             <div className="min-w-0">
               {tab === "publications" && <PublicationsTab company={company} posts={posts} loading={postsLoading} error={postsError} onRetry={() => { setPostsError(""); window.dispatchEvent(new Event("lynoralink:company-posts-updated")); }} canCreatePost={canCreatePost} onOpenComposer={onOpenComposer} currentUser={{ id: company?.id, name: companyName, initials: companyName.split(" ").map((word) => word[0]).slice(0, 2).join(""), avatarUrl }} onToggleLike={onToggleLike} onSelectReaction={onSelectReaction} onToggleBookmark={onToggleBookmark} onAddComment={onAddComment} onReplyComment={onReplyComment} onToggleCommentLike={onToggleCommentLike} onShare={onShare} onOpenPost={setOpenPost} onOpenArticle={setOpenPost} onFollowPage={onFollowPage} followedPageIds={followedPageIds} isCompanyAccount={isCompanyAccount} />}
-              {tab === "jobs" && <JobsTab jobs={jobs} canManage={isOwner} onCreateJob={createJob} onUpdateJob={updateJob} onJobAction={(job) => onMessage?.({ id: company?.ownerId || company?.id, pageId: company?.id, name: companyName, title: job.title, image: avatarUrl, avatarUrl, initials: companyName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") })} />}
+              {tab === "media" && <MediaGalleryCard media={pageMedia} onViewGallery={(index = 0) => { setGalleryIndex(index); setGalleryOpen(true); }} />}
+              {tab === "jobs" && <JobsTab jobs={jobs} company={company} canManage={isOwner} onCreateJob={createJob} onUpdateJob={updateJob} onJobAction={(job) => onMessage?.({ id: company?.ownerId || company?.id, pageId: company?.id, name: companyName, title: job.title, image: avatarUrl, avatarUrl, initials: companyName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") })} />}
               {tab === "about" && <AboutTab company={company} />}
             </div>
 
@@ -1932,8 +2219,8 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               aria-labelledby={mobileSidebarOpen ? "company-sidebar-title" : undefined}
               className={`${mobileSidebarOpen ? "fixed flex" : "hidden"} company-page-right-sidebar lg:flex lg:sticky lg:bottom-4 flex-col gap-4 self-end z-[1200] lg:z-auto w-screen max-w-none lg:w-auto h-dvh lg:h-auto overflow-visible bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 rounded-none lg:rounded-none`}
               style={mobileSidebarOpen
-                ? { top: 0, left: 0, right: 0, bottom: 0, maxHeight: "none" }
-                : undefined}
+                ? { top: 0, left: 0, right: 0, bottom: 0, maxHeight: "none", pointerEvents: "auto" }
+                : { pointerEvents: "none" }}
             >
               <div className="flex items-center justify-between lg:hidden">
                 <span id="company-sidebar-title" className="text-sm font-bold" style={{ color: C.ink }}>Informations de la page</span>
@@ -1945,7 +2232,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               }} />
 
               {/* Community card */}
-              <div className="rounded-2xl p-5" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+              <div className="rounded-[18px] p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: C.shadowXs }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold" style={{ color: C.ink }}>Communauté</h3>
                   <div className="relative">
@@ -1992,7 +2279,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
               </div>
 
               {/* About card */}
-              <div className="rounded-2xl p-5" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+              <div className="rounded-[18px] p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: C.shadowXs }}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold" style={{ color: C.ink }}>À propos</h3>
                   <button type="button" onClick={() => { setTab("about"); setMobileSidebarOpen(false); }} className="text-xs font-semibold hover:underline" style={{ color: C.blueMid }}>Voir plus</button>
@@ -2007,12 +2294,20 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
                 </div>
               </div>
             </aside>
-            {mobileSidebarOpen && <button type="button" aria-label="Fermer la sidebar" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 z-[1100] bg-[#131C33]/45 lg:hidden" />}
+            {mobileSidebarOpen && (
+              <button
+                type="button"
+                aria-label="Fermer la sidebar"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="fixed inset-0 z-[1100] bg-[#131C33]/45 lg:hidden"
+                style={{ pointerEvents: "auto" }}
+              />
+            )}
           </div>
         )}
       </div>
 
-      <style>{`@media (max-width: 640px) { .company-page-stats .company-stat-card { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 8px 0 !important; } .company-page-stats .company-stat-card + .company-stat-card { border-left: 1px solid ${C.border} !important; padding-left: 8px !important; } .company-admin-layout { display: flex !important; flex-direction: column !important; gap: 12px !important; width: calc(100% + 24px) !important; margin-left: -12px !important; } .company-admin-layout > nav { display: flex !important; flex-direction: row !important; gap: 4px !important; width: 100% !important; overflow-x: auto !important; padding: 6px 12px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; } .company-admin-layout > nav button { flex: 0 0 auto !important; white-space: nowrap !important; } .company-admin-layout > div { width: 100% !important; min-width: 0 !important; } .company-admin-layout .rounded-2xl { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; } .company-admin-layout .rounded-2xl + .rounded-2xl { border-top: 1px solid ${C.border} !important; } .company-admin-settings-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; } .company-admin-subscriber-row { align-items: flex-start !important; gap: 10px !important; } .company-admin-subscriber-row > div:last-child { flex-shrink: 1 !important; } }`}</style>
+      <style>{`@media (max-width: 640px) { .lynora-company-detail { height: auto !important; min-height: 100dvh !important; overflow: visible !important; } .lynora-company-detail .lynora-detail-shell { width: 100% !important; max-width: none !important; padding: 0 0 calc(40px + env(safe-area-inset-bottom)) !important; } .lynora-company-detail .lynora-detail-back-button { margin: 10px 14px 14px !important; } .lynora-company-detail .lynora-cover { height: 150px !important; border-radius: 0 !important; } .lynora-company-detail .company-page-identity { padding-inline: 16px !important; margin-top: -34px !important; } .lynora-company-detail .company-page-identity > div:first-child { min-width: 0 !important; } .lynora-company-detail .company-page-identity > div:first-child > div:last-child { min-width: 0 !important; padding-top: 48px !important; } .lynora-company-detail .company-page-actions { width: 100% !important; margin-top: 0 !important; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } .lynora-company-detail .company-page-actions button { min-height: 42px !important; } .lynora-company-detail .company-page-metadata { padding-inline: 16px !important; margin-top: 14px !important; } .lynora-company-detail .company-page-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0 !important; padding-inline: 16px !important; } .lynora-company-detail .company-page-tabs { margin-top: 16px !important; padding-inline: 14px !important; gap: 10px !important; } .lynora-company-detail .company-page-content { display: block !important; margin-top: 12px !important; padding-inline: 0 !important; } .lynora-company-detail .company-page-content > div:first-child { width: 100% !important; min-width: 0 !important; } .lynora-company-detail .company-page-right-sidebar { width: 100vw !important; max-width: none !important; min-height: 100dvh !important; padding: max(16px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)) !important; } .company-page-stats .company-stat-card { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 8px 0 !important; } .company-page-stats .company-stat-card + .company-stat-card { border-left: 1px solid ${C.border} !important; padding-left: 8px !important; } .company-admin-layout { display: flex !important; flex-direction: column !important; gap: 12px !important; width: calc(100% + 24px) !important; margin-left: -12px !important; } .company-admin-layout > nav { display: flex !important; flex-direction: row !important; gap: 4px !important; width: 100% !important; overflow-x: auto !important; padding: 6px 12px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; } .company-admin-layout > nav button { flex: 0 0 auto !important; white-space: nowrap !important; } .company-admin-layout > div { width: 100% !important; min-width: 0 !important; } .company-admin-layout .rounded-2xl { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; } .company-admin-layout .rounded-2xl + .rounded-2xl { border-top: 1px solid ${C.border} !important; } .company-admin-settings-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; } .company-admin-subscriber-row { align-items: flex-start !important; gap: 10px !important; } .company-admin-subscriber-row > div:last-child { flex-shrink: 1 !important; } }`}</style>
 
       {sponsorOpen && <SponsorModal company={company} onClose={() => setSponsorOpen(false)} />}
       <CompanyInviteModal open={companyInviteOpen} company={company} onClose={() => setCompanyInviteOpen(false)} />
@@ -2058,106 +2353,120 @@ const CATEGORIES = [
 export const PAGE_DIRECTORY = [];
 
 /* Page card matching the reference image style: avatar, name, actions, switch button. */
-function PageCard({ page, onOpen, followed, onFollow, isOwn = false }) {
-  const [g1, g2] = page.tone || [C.navy, C.gold];
+function PageCard({ page, onOpen, followed, onFollow, onMessage, isOwn = false }) {
+  const [g1, g2] = page.tone || [C.navyMid, C.navyDeep];
   const initials = page.name.split(" ").map((w) => w[0]).slice(0, 2).join("");
   const avatarUrl = page.avatarUrl || page.logoUrl || page.image || page.photoUrl || null;
   return (
     <article
-      className="group transition-shadow hover:shadow-md cursor-pointer"
+      className="company-page-card group cursor-pointer"
       style={{
         background: C.card,
-        borderRadius: 8,
+        borderRadius: C.r_lg,
         border: `1px solid ${C.border}`,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+        boxShadow: C.shadowSm,
         overflow: "hidden",
+        transition: "transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease",
       }}
       onClick={onOpen}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = C.shadowLg; e.currentTarget.style.borderColor = C.gold; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = C.shadowSm; e.currentTarget.style.borderColor = C.border; }}
     >
-      {/* Card header row: avatar + name + notification/message links */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 0" }}>
+      <div
+        className="company-page-card-cover"
+        style={{
+          height: 100,
+          position: "relative",
+          background: page.coverUrl || page.bannerUrl
+            ? `linear-gradient(180deg, rgba(10,21,48,.15), rgba(10,21,48,.55)), url(${page.coverUrl || page.bannerUrl}) center/cover no-repeat`
+            : `linear-gradient(135deg, ${g1} 0%, ${g2} 100%)`,
+        }}
+      >
+        {!(page.coverUrl || page.bannerUrl) && (
+          <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: .5 }} preserveAspectRatio="none">
+            <defs>
+              <pattern id={`pgpat-${page.id}`} width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(20)">
+                <circle cx="2" cy="2" r="1.4" fill="rgba(255,255,255,.35)" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#pgpat-${page.id})`} />
+          </svg>
+        )}
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: C.goldGrad }} />
+      </div>
+      {/* Identity row */}
+      <div className="company-page-card-header" style={{ position: "relative", display: "flex", alignItems: "flex-end", padding: "0 14px" }}>
         <div
+          className="company-page-card-avatar"
           style={{
-            width: 40, height: 40, borderRadius: 8,
+            position: "absolute", top: -29, left: 14,
+            width: 58, height: 58, borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0, overflow: "hidden",
             background: `linear-gradient(135deg, ${g1}, ${g2})`,
-            boxShadow: `0 4px 12px ${g1}25`,
+            boxShadow: `0 6px 16px rgba(15,30,66,.28)`,
+            border: `4px solid ${C.card}`,
           }}
         >
           {avatarUrl
-            ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{initials}</span>}
+            ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+            : <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{initials}</span>}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="company-page-card-title-wrap" style={{ flex: 1, minWidth: 0, paddingLeft: 68, paddingBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {page.name}
             </h3>
-            {page.verified && <Check size={14} style={{ color: C.navy, flexShrink: 0 }} />}
+            {page.verified && (
+              <span style={{ width: 15, height: 15, borderRadius: "50%", background: C.navy, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Check size={9} style={{ color: C.gold, strokeWidth: 3 }} />
+              </span>
+            )}
           </div>
         </div>
-        {/* Notification & Message links */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, marginLeft: "auto" }}>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); }}
-            style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", cursor: "pointer", color: C.inkSoft, fontSize: 14, fontFamily: "inherit", fontWeight: 500 }}
-          >
-            <Bell size={18} /> <span className="hidden sm:inline">Notifications</span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); }}
-            style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", cursor: "pointer", color: C.inkSoft, fontSize: 14, fontFamily: "inherit", fontWeight: 500 }}
-          >
-            <MessageCircle size={18} /> <span className="hidden sm:inline">Messages</span>
-          </button>
-        </div>
       </div>
 
-      {/* Switch button (Basculer maintenant) */}
-      <div style={{ padding: "12px 16px 16px" }}>
+      <div style={{ padding: "8px 14px 0", color: C.inkSoft, fontSize: 11.5, lineHeight: 1.4 }}>
+        <span>{page.tag || page.industry || "Page entreprise"}</span>
+        {page.location && <><span style={{ margin: "0 5px", color: C.inkFaint }}>·</span><span>{page.location}</span></>}
+        <span style={{ margin: "0 5px", color: C.inkFaint }}>·</span><span>{Number(page.followers) || 0} abonné{Number(page.followers) === 1 ? "" : "s"}</span>
+      </div>
+
+      {/* Primary page action — navy by default, gold when active/followed */}
+      <div className="company-page-card-actions" style={{ display: "flex", gap: 8, padding: "14px" }}>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          onClick={(e) => { e.stopPropagation(); if (!isOwn && onFollow) onFollow(page.id); else onOpen(); }}
           style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            width: "100%", padding: "12px",
-            borderRadius: 8, border: "none",
-            background: C.navyLight,
-            color: C.navy,
-            fontFamily: "inherit", fontSize: 15, fontWeight: 600,
-            cursor: "pointer",
-            transition: "background 0.15s ease",
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "10px 8px", borderRadius: 10, border: 0,
+            background: !isOwn && followed ? C.goldGrad : C.navyGradSolid,
+            color: !isOwn && followed ? C.navyDeep : "#fff",
+            fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, cursor: "pointer",
+            boxShadow: !isOwn && followed ? C.shadowGold : "0 4px 12px rgba(14,27,61,.28)",
+            transition: "filter .15s ease, transform .15s ease",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#D6E0F8"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = C.navyLight; }}
+          onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.08)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; }}
         >
-          <Globe size={18} /> Basculer maintenant
+          {!isOwn && followed ? <Check size={14} /> : !isOwn ? <UserPlus size={14} /> : <Globe size={14} />}
+          {!isOwn ? (followed ? "Suivi" : "Suivre") : "Gérer"}
         </button>
-      </div>
-
-      {/* Follow button for non-owned pages */}
-      {!isOwn && onFollow && (
-        <div style={{ padding: "0 16px 14px", display: "flex", justifyContent: "flex-end" }}>
+        {!isOwn && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onFollow(page.id); }}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 14px", borderRadius: 6, border: "none",
-              background: followed ? C.greenSoft : C.navyLight,
-              color: followed ? C.green : C.navy,
-              fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-              cursor: "pointer",
-            }}
+            onClick={(e) => { e.stopPropagation(); onMessage?.(page); }}
+            aria-label={`Envoyer un message à ${page.name}`}
+            title="Envoyer un message"
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 10, border: `1.5px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, cursor: "pointer", transition: "background .15s ease" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = C.navy; e.currentTarget.style.color = "#fff"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = C.navyLight; e.currentTarget.style.color = C.navy; }}
           >
-            {followed ? <Check size={14} /> : <UserPlus size={14} />}
-            {followed ? "Suivi" : "Suivre"}
+            <FontAwesomeIcon icon={faPaperPlane} style={{ width: 13, height: 13 }} /> Message
           </button>
-        </div>
-      )}
+        )}
+      </div>
+
     </article>
   );
 }
@@ -2198,7 +2507,7 @@ function CreateCompanyPageModal({ onClose, onCreated }) {
     setCreateError("");
     setCreating(true);
     try {
-      const response = await fetch("/api/company", {
+      const response = await fetchBackendApi("/api/company", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: name, slogan: tagline, industry: catLabel, location, logoUrl: avatarUrl, bannerUrl: coverUrl }),
@@ -2323,12 +2632,20 @@ export function CreateCompanyPage({ onBack, onCreate }) {
    Inspired by reference: clean header, nav tabs, search,
    horizontal category pills, polished card grid
 ----------------------------------------------------------------*/
-export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, currentCompanyId, currentUserId, companyTab = "discover", onCompanyTabChange, canCreatePage = true, onUpgrade, initialPages = [], onPageCreated, followedPageIds = [], onFollowPage }) {
+export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, currentCompanyId, currentUserId, companyTab = "discover", onCompanyTabChange, onNavigate, onMessage, canCreatePage = true, onUpgrade, initialPages = [], onPageCreated, followedPageIds = [], onFollowPage }) {
   const [activeCategory, setActiveCategory] = useState("toutes");
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarActive, setSidebarActive] = useState("suite");
+  const [pageInvitations, setPageInvitations] = useState([]);
+  const [pageInvitationsLoading, setPageInvitationsLoading] = useState(false);
+  const [pageInvitationsError, setPageInvitationsError] = useState("");
+  const [directorySettingsOpen, setDirectorySettingsOpen] = useState(false);
+  const [directorySettings, setDirectorySettings] = useState({ compactCards: false });
+  const [backendStats, setBackendStats] = useState(null);
+  const [backendStatsLoading, setBackendStatsLoading] = useState(false);
+  const [backendStatsError, setBackendStatsError] = useState("");
   const [pages, setPages] = useState(() => [
     ...PAGE_DIRECTORY,
     ...initialPages.map((page) => ({
@@ -2368,6 +2685,97 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
   const managedCount = pages.filter((p) => p.managed).length;
   const totalFollowers = pages.reduce((total, page) => total + (Number(page.followers) || 0), 0);
 
+  useEffect(() => {
+    setSidebarActive(companyTab === "mine" ? "suite" : companyTab === "followed" ? "followed" : "decouvrir");
+  }, [companyTab]);
+
+  useEffect(() => {
+    fetchBackendApi("/api/company/directory-settings", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (data?.settings) setDirectorySettings(data.settings); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPageInvitationsLoading(true);
+    setPageInvitationsError("");
+    fetchBackendApi("/api/company/invitations", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || "Impossible de charger les invitations.");
+        if (!cancelled) setPageInvitations(Array.isArray(data.invitations) ? data.invitations : []);
+      })
+      .catch((error) => { if (!cancelled) setPageInvitationsError(error.message); })
+      .finally(() => { if (!cancelled) setPageInvitationsLoading(false); });
+    return () => { cancelled = true; };
+  }, [sidebarActive]);
+
+  useEffect(() => {
+    if (sidebarActive !== "statistiques") return;
+    let cancelled = false;
+    setBackendStatsLoading(true);
+    setBackendStatsError("");
+    fetchBackendApi("/api/company/statistics", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || "Impossible de charger les statistiques.");
+        if (!cancelled) setBackendStats(data?.stats || null);
+      })
+      .catch((error) => { if (!cancelled) setBackendStatsError(error.message); })
+      .finally(() => { if (!cancelled) setBackendStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, [sidebarActive]);
+
+  const handlePageInvitation = async (invitationId, action) => {
+    try {
+      const response = await fetchBackendApi("/api/company/invitations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: invitationId, action }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Impossible de traiter l'invitation.");
+      const invitation = pageInvitations.find((item) => item.id === invitationId);
+      setPageInvitations((current) => current.filter((item) => item.id !== invitationId));
+      if (action === "accept") {
+        onCompanyTabChange?.("followed");
+        (onOpenPage || onOpenCompany)?.({ id: invitation?.pageId, name: invitation?.pageName, avatarUrl: invitation?.pageImage });
+      }
+    } catch (error) {
+      setPageInvitationsError(error.message);
+    }
+  };
+
+  const handleSidebarNavigation = (itemId) => {
+    setSidebarActive(itemId);
+    setMobileSidebarOpen(false);
+    if (itemId === "suite") return onCompanyTabChange?.("mine");
+    if (itemId === "decouvrir") return onCompanyTabChange?.("discover");
+    if (itemId === "followed") return onCompanyTabChange?.("followed");
+    if (itemId === "messagerie") return onNavigate?.("messages");
+    if (itemId === "statistiques") return;
+    if (itemId === "invitations") return;
+  };
+
+  const directoryTitle = sidebarActive === "suite"
+    ? "Ma page"
+    : sidebarActive === "followed"
+      ? "Pages suivies"
+      : "Découvrir les pages entreprise";
+
+  const pageStats = useMemo(() => {
+    const followers = pages.reduce((total, page) => total + (Number(page.followers) || Number(page.stats?.followers) || 0), 0);
+    const posts = pages.reduce((total, page) => total + (Number(page.stats?.posts) || Number(page.postsCount) || 0), 0);
+    const jobs = pages.reduce((total, page) => total + (Array.isArray(page.jobs) ? page.jobs.length : Number(page.stats?.jobs) || 0), 0);
+    const categories = CATEGORIES.filter((category) => category.id !== "toutes").map((category) => ({
+      ...category,
+      count: pages.filter((page) => page.category === category.id).length,
+    })).filter((category) => category.count > 0);
+    const leaders = [...pages].sort((first, second) => (Number(second.followers) || 0) - (Number(first.followers) || 0)).slice(0, 5);
+    return { followers, posts, jobs, categories, leaders };
+  }, [pages]);
+
   const handleCreated = (newPage) => {
     onPageCreated?.(newPage);
     setPages((prev) => [
@@ -2378,11 +2786,6 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
   };
 
   const openPage = (page) => {
-    const isOwnPage = page.isOwn || page.managed || (currentCompanyId && String(page.id) === String(currentCompanyId)) || (currentUserId && page.ownerId && String(page.ownerId) === String(currentUserId));
-    if (isOwnPage) {
-      onOpenMyPage?.();
-      return;
-    }
     (onOpenPage || onOpenCompany)?.(page);
   };
 
@@ -2390,41 +2793,84 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
     <div
       className="company-pages-directory min-h-full w-full"
       style={{
-        background: "#F0F2F5",
+        background: `radial-gradient(1200px 600px at 100% -10%, ${C.navyLight}55, transparent), ${C.surface}`,
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
       }}
     >
-      <div style={{ display: "flex", maxWidth: 1128, margin: "0 auto", minHeight: "100%" }}>
-        {/* ===== LEFT SIDEBAR (280px) ===== */}
+      <div className="company-pages-shell" style={{ display: "flex", width: "100%", maxWidth: "none", margin: 0, minHeight: "100%" }}>
+        {/* ===== LEFT SIDEBAR (360px) ===== */}
         <aside
           className={`company-sidebar ${mobileSidebarOpen ? "is-open" : ""}`}
           style={{
-            width: 280, flexShrink: 0,
+            width: 360, flexShrink: 0,
             background: C.card,
             borderRight: `1px solid ${C.border}`,
-            padding: "16px 12px",
+            padding: "0 12px 16px",
             height: "calc(100dvh - var(--lynora-header-offset, 0px))",
             position: "sticky",
             top: "var(--lynora-header-offset, 0px)",
             overflowY: "auto",
             alignSelf: "flex-start",
+            display: mobileSidebarOpen ? "block" : "none",
+            opacity: mobileSidebarOpen ? 1 : 0,
+            visibility: mobileSidebarOpen ? "visible" : "hidden",
+            pointerEvents: mobileSidebarOpen ? "auto" : "none",
           }}
         >
           {/* Sidebar header: "Pages" + settings */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 12 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: C.ink, margin: 0 }}>Pages</h2>
-            <button
-              type="button"
-              aria-label="Paramètres des pages"
-              style={{
-                width: 36, height: 36, borderRadius: "50%",
-                background: "#E4E6EB", border: "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer",
-              }}
-            >
-              <Settings size={18} style={{ color: "#65676B" }} />
-            </button>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "18px 10px", margin: "0 -12px 14px",
+            background: C.navyGradSolid,
+            position: "relative", overflow: "hidden",
+          }}>
+            <div style={{ position: "absolute", inset: 0, opacity: .12, backgroundImage: "radial-gradient(circle at 85% 20%, #fff 0, transparent 45%)" }} />
+            <h2 style={{ fontSize: 21, fontWeight: 800, color: "#fff", margin: 0, paddingLeft: 6, position: "relative", letterSpacing: .2 }}>Pages</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+              <button
+                type="button"
+                aria-label="Fermer la sidebar des pages"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="company-sidebar-close"
+                style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  background: "rgba(255,255,255,.14)", border: `1px solid rgba(255,255,255,.18)`,
+                  alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#fff",
+                }}
+              >
+                <X size={17} />
+              </button>
+              <button
+                type="button"
+                aria-label="Paramètres des pages"
+                onClick={() => setDirectorySettingsOpen(true)}
+                style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  background: "rgba(255,255,255,.14)", border: `1px solid rgba(255,255,255,.18)`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", position: "relative",
+                  transition: "background .15s ease",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.24)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.14)"; }}
+              >
+                <Settings size={17} style={{ color: C.gold }} />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ position: "relative", marginBottom: 12 }}>
+            <Search size={15} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: C.inkFaint }} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Rechercher une page"
+              aria-label="Rechercher une page entreprise"
+              style={{ width: "100%", height: 42, padding: "0 12px 0 36px", border: `1.5px solid ${C.border}`, borderRadius: 22, background: C.surface, color: C.ink, fontFamily: "inherit", fontSize: 13, outline: "none", transition: "border-color .15s ease, background .15s ease" }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = C.gold; e.currentTarget.style.background = C.card; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}
+            />
           </div>
 
           {/* Create page button */}
@@ -2437,14 +2883,17 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             }}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              width: "100%", padding: "10px 12px",
-              borderRadius: 8, border: "none",
-              background: C.navyLight,
+              width: "100%", padding: "11px 12px",
+              borderRadius: 10, border: `1.5px solid ${C.gold}`,
+              background: C.goldSoft,
               color: C.navy,
-              fontFamily: "inherit", fontSize: 15, fontWeight: 600,
+              fontFamily: "inherit", fontSize: 15, fontWeight: 700,
               cursor: "pointer",
               marginBottom: 8,
+              transition: "background .15s ease, transform .15s ease",
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = C.goldGrad; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = C.goldSoft; e.currentTarget.style.transform = "translateY(0)"; }}
           >
             <Plus size={16} /> Créer une Page
           </button>
@@ -2460,15 +2909,16 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => { setSidebarActive(item.id); setMobileSidebarOpen(false); }}
+                  onClick={() => handleSidebarNavigation(item.id)}
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "10px 12px",
-                    borderRadius: 8, border: "none",
-                    background: active ? C.navy : "transparent",
+                    borderRadius: 10, border: "none",
+                    background: active ? C.navyGradSolid : "transparent",
                     color: active ? "#fff" : C.ink,
-                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 600 : 500,
+                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 700 : 500,
                     cursor: "pointer", width: "100%", textAlign: "left",
+                    boxShadow: active ? "0 4px 12px rgba(15,30,66,.25)" : "none",
                     transition: "background 0.15s ease",
                   }}
                 >
@@ -2476,9 +2926,9 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                     width: 32, height: 32, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
-                    background: active ? "rgba(255,255,255,0.2)" : "#E4E6EB",
+                    background: active ? "rgba(255,255,255,0.18)" : "#EEF1F6",
                   }}>
-                    <item.icon size={16} style={{ color: active ? "#fff" : C.ink }} />
+                    <item.icon size={16} style={{ color: active ? C.gold : C.navy }} />
                   </span>
                   {item.label}
                   {item.chevron && (
@@ -2500,15 +2950,16 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => { setSidebarActive(item.id); setMobileSidebarOpen(false); }}
+                  onClick={() => handleSidebarNavigation(item.id)}
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "10px 12px",
-                    borderRadius: 8, border: "none",
-                    background: active ? C.navy : "transparent",
+                    borderRadius: 10, border: "none",
+                    background: active ? C.navyGradSolid : "transparent",
                     color: active ? "#fff" : C.ink,
-                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 600 : 500,
+                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 700 : 500,
                     cursor: "pointer", width: "100%", textAlign: "left",
+                    boxShadow: active ? "0 4px 12px rgba(15,30,66,.25)" : "none",
                     transition: "background 0.15s ease",
                   }}
                 >
@@ -2516,16 +2967,16 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                     width: 32, height: 32, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
-                    background: active ? "rgba(255,255,255,0.2)" : "#E4E6EB",
+                    background: active ? "rgba(255,255,255,0.18)" : "#EEF1F6",
                   }}>
-                    <item.icon size={16} style={{ color: active ? "#fff" : C.ink }} />
+                    <item.icon size={16} style={{ color: active ? C.gold : C.navy }} />
                   </span>
                   <div style={{ flex: 1, textAlign: "left" }}>
                     {item.label}
                     {item.id === "invitations" && (
                       <div style={{ fontSize: 13, fontWeight: 400, color: active ? "rgba(255,255,255,0.8)" : "#65676B", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.gold, display: "inline-block" }} />
-                        203 nouvelles
+                        {pageInvitations.length} en attente
                       </div>
                     )}
                   </div>
@@ -2542,8 +2993,8 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             type="button"
             aria-label="Fermer le menu"
             onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 z-[1100] bg-black/50 lg:hidden"
-            style={{ top: "var(--lynora-header-offset, 0px)" }}
+            className="fixed inset-0 bg-black/50 lg:hidden"
+            style={{ top: "var(--lynora-header-offset, 0px)", zIndex: 45 }}
           />
         )}
 
@@ -2555,10 +3006,10 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
           className="lg:hidden"
           style={{
             display: "none", position: "fixed",
-            bottom: 20, right: 20, zIndex: 1000,
+            top: "calc(var(--lynora-header-offset, 0px) + 8px)", right: 16, zIndex: 50,
             width: 48, height: 48, borderRadius: "50%",
-            background: C.navy, color: "#fff", border: "none",
-            boxShadow: "0 4px 16px rgba(29,47,92,0.35)",
+            background: C.navyGradSolid, color: C.gold, border: `2px solid ${C.gold}`,
+            boxShadow: "0 6px 18px rgba(10,21,48,0.4)",
             alignItems: "center", justifyContent: "center",
             cursor: "pointer",
           }}
@@ -2567,91 +3018,224 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
         </button>
 
         {/* ===== MAIN CONTENT ===== */}
-        <main style={{ flex: 1, minWidth: 0, padding: "20px 20px 40px" }}>
+        <main className="company-pages-main" style={{ flex: 1, minWidth: 0, padding: "20px 28px 64px" }}>
+          {sidebarActive === "statistiques" ? (
+            <section className="company-pages-statistics" aria-labelledby="company-pages-statistics-title">
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ color: C.goldDeep, fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Pilotage</div>
+                <h1 id="company-pages-statistics-title" style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: 0 }}>Statistiques des pages</h1>
+                <p style={{ color: C.inkFaint, fontSize: 13, margin: "6px 0 0" }}>{backendStats?.pageName ? `${backendStats.pageName} · Données synchronisées` : "Vue d’ensemble de votre portefeuille de pages entreprise."}</p>
+              </div>
+              {backendStatsLoading && <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 8, background: C.navySoft, color: C.blueDeep, fontSize: 12, fontWeight: 600 }}>Actualisation des données...</div>}
+              {backendStatsError && <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 8, background: C.redSoft, color: C.red, fontSize: 12, fontWeight: 600 }}>{backendStatsError}</div>}
+              <div className="company-pages-statistics-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
+                {[
+                  { label: "Pages", value: backendStats?.pages ?? pages.length, icon: Building2, tone: C.blueDeep },
+                  { label: "Pages gérées", value: backendStats?.managedPages ?? managedCount, icon: LayoutDashboard, tone: C.goldDeep },
+                  { label: "Abonnés", value: (backendStats?.followers ?? pageStats.followers).toLocaleString("fr-FR"), icon: Users, tone: C.green },
+                  { label: "Publications", value: backendStats?.posts ?? pageStats.posts, icon: Activity, tone: C.orange },
+                ].map(({ label, value, icon: Icon, tone }) => (
+                  <div key={label} style={{ padding: 16, borderRadius: 10, background: C.card, border: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}><span style={{ color: C.inkFaint, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>{label}</span><Icon size={16} style={{ color: tone }} /></div>
+                    <strong style={{ display: "block", marginTop: 10, color: C.ink, fontSize: 24 }}>{value}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="company-pages-statistics-columns" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16 }}>
+                <div style={{ padding: 18, borderRadius: 10, background: C.card, border: `1px solid ${C.border}` }}>
+                  <h2 style={{ margin: "0 0 16px", color: C.ink, fontSize: 16 }}>Répartition par secteur</h2>
+                  {pageStats.categories.length === 0 ? <p style={{ color: C.inkFaint, fontSize: 13 }}>Aucune donnée disponible.</p> : pageStats.categories.map((category) => {
+                    const ratio = Math.round((category.count / Math.max(1, pages.length)) * 100);
+                    return <div key={category.id} style={{ marginBottom: 14 }}><div style={{ display: "flex", justifyContent: "space-between", color: C.inkSoft, fontSize: 12, marginBottom: 5 }}><span>{category.label}</span><strong>{category.count}</strong></div><div style={{ height: 7, borderRadius: 99, background: C.navySoft }}><div style={{ width: `${ratio}%`, height: "100%", borderRadius: 99, background: `linear-gradient(90deg, ${C.blueMid}, ${C.gold})` }} /></div></div>;
+                  })}
+                </div>
+                <div style={{ padding: 18, borderRadius: 10, background: C.card, border: `1px solid ${C.border}` }}>
+                  <h2 style={{ margin: "0 0 16px", color: C.ink, fontSize: 16 }}>Pages les plus suivies</h2>
+                  {pageStats.leaders.length === 0 ? <p style={{ color: C.inkFaint, fontSize: 13 }}>Aucune page disponible.</p> : pageStats.leaders.map((page, index) => <button key={page.id} type="button" onClick={() => openPage(page)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 0", border: 0, borderTop: index ? `1px solid ${C.border}` : 0, background: "transparent", color: C.ink, textAlign: "left", cursor: "pointer" }}><span style={{ width: 22, color: C.goldDeep, fontWeight: 800, fontSize: 12 }}>{String(index + 1).padStart(2, "0")}</span><Avatar label={page.name} image={page.avatarUrl || page.logoUrl || page.image} size={34} tone={C.blueDeep} /><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13, fontWeight: 700 }}>{page.name}</span><span style={{ color: C.inkFaint, fontSize: 11 }}>{Number(page.followers) || 0}</span></button>)}
+                </div>
+              </div>
+            </section>
+          ) : sidebarActive === "invitations" ? (
+            <section aria-labelledby="page-invitations-title">
+              <h1 id="page-invitations-title" style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: "0 0 16px" }}>Invitations à suivre une page</h1>
+              {pageInvitationsLoading && <div style={{ padding: 32, textAlign: "center", color: C.inkFaint }}>Chargement des invitations...</div>}
+              {!pageInvitationsLoading && pageInvitationsError && <div style={{ padding: 20, borderRadius: 8, background: C.redSoft, color: C.red, fontSize: 13 }}>{pageInvitationsError}</div>}
+              {!pageInvitationsLoading && !pageInvitationsError && pageInvitations.length === 0 && <div style={{ padding: 40, borderRadius: 8, background: C.card, border: `1px solid ${C.border}`, textAlign: "center", color: C.inkFaint }}>Aucune invitation à suivre une page pour le moment.</div>}
+              {!pageInvitationsLoading && !pageInvitationsError && pageInvitations.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                  {pageInvitations.map((invitation) => (
+                    <article className="company-page-invitation-card" key={invitation.id} style={{ position: "relative", padding: 18, borderRadius: 14, background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(29,47,92,0.07)", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${C.gold}, ${C.goldDeep})` }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingTop: 2 }}>
+                        <div style={{ padding: 3, borderRadius: "50%", background: C.goldSoft }}><Avatar label={invitation.pageName} image={invitation.pageImage} size={52} tone={C.goldDeep} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ display: "block", marginBottom: 4, color: C.goldDeep, fontSize: 10, fontWeight: 800, letterSpacing: .8, textTransform: "uppercase" }}>Invitation de page</span>
+                          <strong style={{ display: "block", color: C.ink, fontSize: 16, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{invitation.pageName}</strong>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 10px", borderRadius: 10, background: C.surface, color: C.inkSoft, fontSize: 12, lineHeight: 1.4 }}>
+                        <Avatar label={invitation.inviterName} image={invitation.inviterImage} size={30} tone={C.blueDeep} />
+                        <span><strong style={{ color: C.ink }}>{invitation.inviterName}</strong> vous invite à suivre cette page.</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                        <button type="button" onClick={() => handlePageInvitation(invitation.id, "accept")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 10px", border: 0, borderRadius: 8, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDeep})`, color: C.blueDeep, fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 10px rgba(212,137,26,0.2)" }}><Check size={13} /> Accepter</button>
+                        <button type="button" onClick={() => handlePageInvitation(invitation.id, "decline")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 10px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.inkSoft, fontSize: 12, fontWeight: 700, cursor: "pointer" }}><X size={13} /> Refuser</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+          <div>
           {/* Heading */}
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: "0 0 16px" }}>
-            Pages que vous gérez
-          </h1>
-
-          {/* Search bar */}
-          <div style={{ position: "relative", maxWidth: 420, marginBottom: 16 }}>
-            <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.inkFaint }} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher des pages..."
-              aria-label="Rechercher une page"
-              style={{
-                width: "100%", paddingLeft: 36, paddingRight: 12, padding: "10px 12px 10px 36",
-                borderRadius: 20, border: "none",
-                background: "#EDF3F8",
-                fontFamily: "inherit", fontSize: 14, color: C.ink,
-                outline: "none",
-              }}
-            />
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ color: C.goldDeep, fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Annuaire</div>
+            <h1 style={{ fontSize: 26, fontWeight: 800, color: C.navy, margin: 0, letterSpacing: -.2 }}>{directoryTitle}</h1>
           </div>
 
           {/* Stats line */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 13, fontWeight: 500, color: C.inkSoft, marginBottom: 16 }}>
-            <span><strong style={{ color: C.ink }}>{pages.length}</strong> page{pages.length > 1 ? "s" : ""}</span>
-            <span><strong style={{ color: C.ink }}>{managedCount}</strong> gérée{managedCount > 1 ? "s" : ""}</span>
-            <span><strong style={{ color: C.ink }}>{totalFollowers}</strong> abonnés</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+            {[
+              [`${pages.length} page${pages.length > 1 ? "s" : ""}`, Building2],
+              [`${managedCount} gérée${managedCount > 1 ? "s" : ""}`, LayoutDashboard],
+              [`${totalFollowers} abonnés`, Users],
+            ].map(([text, Icon], i) => (
+              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: C.navySoft, border: `1px solid ${C.navyLight}`, fontSize: 12.5, fontWeight: 700, color: C.navy }}>
+                <Icon size={13} style={{ color: C.goldDeep }} /> {text}
+              </span>
+            ))}
           </div>
 
           {/* Page cards list */}
           {filtered.length === 0 ? (
             <div
               style={{
-                borderRadius: 8, padding: "40px 20px", textAlign: "center",
-                background: C.card, border: `1px solid ${C.border}`,
+                borderRadius: 16, padding: "48px 20px", textAlign: "center",
+                background: C.card, border: `1.5px dashed ${C.navyLight}`,
               }}
             >
-              <Building2 size={36} style={{ color: C.inkFaint, marginBottom: 12 }} />
-              <p style={{ fontSize: 16, fontWeight: 600, color: C.ink, margin: "0 0 4px" }}>Aucune page trouvée</p>
-              <p style={{ fontSize: 14, color: C.inkFaint, margin: 0 }}>Essayez une autre catégorie ou un autre mot-clé.</p>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: C.navySoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                <Building2 size={30} style={{ color: C.navy }} />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: C.navy, margin: "0 0 4px" }}>{sidebarActive === "suite" && !query ? "Vous n’avez pas encore de page" : "Aucune page trouvée"}</p>
+              <p style={{ fontSize: 14, color: C.inkFaint, margin: 0 }}>{sidebarActive === "suite" && !query ? "Créez votre page entreprise depuis le bouton du menu." : "Essayez une autre catégorie ou un autre mot-clé."}</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="company-page-card-grid" style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${directorySettings.compactCards ? 190 : 220}px, 1fr))`, gap: 16 }}>
               {filtered.map((p) => (
                 <PageCard
                   key={p.id}
                   page={p}
                   followed={followedPageIds.includes(p.id)}
                   onFollow={onFollowPage}
+                  onMessage={onMessage}
                   onOpen={() => openPage(p)}
                   isOwn={p.managed || (currentUserId && p.ownerId && String(p.ownerId) === String(currentUserId))}
                 />
               ))}
             </div>
           )}
+          </div>
+          )}
         </main>
       </div>
 
+      <CompanyDirectorySettingsModal open={directorySettingsOpen} onClose={() => setDirectorySettingsOpen(false)} onSaved={setDirectorySettings} />
+
       {/* Responsive styles */}
       <style>{`
+        .company-sidebar-close {
+          display: none !important;
+        }
         @media (max-width: 1023px) {
+          .company-pages-directory {
+            height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            min-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            overflow: hidden !important;
+          }
+          .company-pages-shell {
+            width: 100% !important;
+            max-width: none !important;
+            height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            min-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            align-items: stretch !important;
+          }
+          .company-pages-main {
+            height: 100% !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+          }
           .company-sidebar {
             position: fixed !important;
             top: var(--lynora-header-offset, 0px) !important;
             left: 0 !important;
             bottom: 0 !important;
-            width: 85vw !important;
-            max-width: 320px !important;
-            z-index: 1200 !important;
+            width: 100vw !important;
+            max-width: none !important;
+            z-index: 46 !important;
             border-radius: 0 !important;
             border-right: 0 !important;
             box-shadow: 8px 0 30px rgba(0,0,0,0.2) !important;
-            transform: translateX(-106%);
-            transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform: translateX(-106%) !important;
+            transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
           }
           .company-sidebar.is-open {
-            transform: translateX(0);
+            transform: translateX(0) !important;
+            pointer-events: auto !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+          .company-sidebar-close {
+            display: flex !important;
           }
           .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
             display: flex !important;
+            top: calc(var(--lynora-header-offset, 0px) + 8px) !important;
+            right: 16px !important;
+            bottom: auto !important;
+            left: auto !important;
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            z-index: 50 !important;
+            pointer-events: auto;
           }
         }
         @media (min-width: 1024px) {
+          .company-pages-directory {
+            height: calc(100dvh - var(--lynora-header-offset, 0px));
+            min-height: calc(100dvh - var(--lynora-header-offset, 0px));
+            overflow: hidden;
+          }
+          .company-pages-shell {
+            display: block !important;
+            height: 100% !important;
+            min-height: 100% !important;
+          }
+          .company-sidebar {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            position: fixed !important;
+            top: var(--lynora-header-offset, 0px) !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 360px !important;
+            height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            min-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            max-height: none !important;
+            z-index: 3 !important;
+            overflow-y: auto !important;
+            padding-bottom: 32px !important;
+          }
+          .company-pages-main { width: calc(100% - 360px) !important; height: 100%; margin-left: 360px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
           .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
             display: none !important;
           }
@@ -2661,7 +3245,40 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
           min-height: 100dvh;
           overflow-x: hidden;
         }
+        @media (max-width: 640px) {
+          .company-pages-directory { height: auto !important; min-height: 100dvh !important; overflow: visible !important; }
+          .company-pages-shell { display: block !important; width: 100% !important; max-width: none !important; min-height: 100dvh !important; }
+          .company-pages-main { width: 100% !important; height: auto !important; overflow: visible !important; padding: calc(var(--lynora-header-offset, 0px) + 60px) 0 56px !important; }
+          .company-page-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; padding: 0 8px; }
+          .company-page-card { border-radius: 14px !important; }
+          .company-page-card-cover { height: 68px !important; }
+          .company-page-card-header { padding-inline: 8px !important; gap: 6px !important; }
+          .company-page-card-avatar { width: 46px !important; height: 46px !important; top: -23px !important; left: 8px !important; border-width: 2px !important; }
+          .company-page-card-title-wrap { padding-left: 54px !important; }
+          .company-page-card-header h3 { font-size: 12px !important; }
+          .company-page-card-quick-actions { gap: 2px !important; }
+          .company-page-card-quick-actions button { padding: 4px !important; }
+          .company-page-card-actions { padding: 8px !important; }
+          .company-page-card-actions button { font-size: 11px !important; padding: 9px 5px !important; border-radius: 8px !important; }
+          .company-pages-statistics { padding: 0 14px; }
+          .company-pages-statistics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+          .company-pages-statistics-kpis > div { padding: 12px !important; }
+          .company-pages-statistics-kpis strong { font-size: 20px !important; }
+          .company-pages-statistics-columns { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+        }
         .company-page { overflow-x: hidden; }
+        .company-pages-directory, .company-page { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        .company-pages-directory *:focus-visible, .company-page *:focus-visible {
+          outline: 2px solid ${C.gold} !important;
+          outline-offset: 2px;
+        }
+        .company-pages-main::-webkit-scrollbar, .company-sidebar::-webkit-scrollbar { width: 8px; }
+        .company-pages-main::-webkit-scrollbar-thumb, .company-sidebar::-webkit-scrollbar-thumb {
+          background: ${C.border}; border-radius: 8px;
+        }
+        .company-pages-main::-webkit-scrollbar-thumb:hover, .company-sidebar::-webkit-scrollbar-thumb:hover {
+          background: ${C.navyGlow}55;
+        }
       `}</style>
 
       {createOpen && <CreateCompanyPageModal onClose={() => setCreateOpen(false)} onCreated={handleCreated} />}

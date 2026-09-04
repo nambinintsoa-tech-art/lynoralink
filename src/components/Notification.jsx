@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell, faThumbsUp, faComment, faUserPlus, faAt, faBookOpen, faEye } from "@fortawesome/free-solid-svg-icons";
 import { DEFAULT_REACTIONS } from "@/components/ReactionPicker";
 import { useRelativeTime } from "@/hooks/useRelativeTime";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ------------------------------------------------------------------ */
 /*  TOKENS — identiques à LynoraLinkFeed.jsx pour rester cohérent      */
@@ -37,6 +38,7 @@ const NOTIF_TYPES = {
   like: { icon: faThumbsUp, color: C.gold600, label: "Réactions" },
   comment: { icon: faComment, color: C.navy700, label: "Commentaires" },
   connection: { icon: faUserPlus, color: C.success, label: "Invitations" },
+  birthday: { icon: faBell, color: C.gold600, label: "Anniversaires" },
   page: { icon: faUserPlus, color: C.navy800, label: "Pages suivies" },
   suggestion: { icon: faUserPlus, color: C.navy700, label: "Suggestions" },
   mention: { icon: faAt, color: C.navy800, label: "Mentions" },
@@ -50,14 +52,8 @@ const m = 60000;
 const h = 3600000;
 const j = 86400000;
 
-export const DEMO_NOTIFICATIONS = [
-  { id: "n1", type: "like", actor: "Naina Andriamampianina", initials: "NA", text: "a aimé votre article « Ce que nous avons appris en levant notre série A ».", time: now - 12 * m, read: false },
-  { id: "n2", type: "comment", actor: "Lova Ravelojaona", initials: "LR", text: "a commenté votre publication : « Quel est le temps d'inférence moyen ? »", time: now - 1 * h, read: false },
-  { id: "n3", type: "connection", actor: "Rindra Rakotomalala", initials: "RR", text: "souhaite rejoindre votre réseau.", time: now - 2 * h, read: false },
-  { id: "n4", type: "mention", actor: "Fanja Rasolofoson", initials: "FR", text: "vous a mentionné dans un commentaire.", time: now - 5 * h, read: true },
-  { id: "n5", type: "article", actor: "Tiana Rasoanaivo", initials: "TR", text: "a publié un nouvel article : « Ce que 2 ans de télétravail ont changé chez nous ».", time: now - 1 * j, read: true },
-  { id: "n6", type: "like", actor: "Mamy Andrianasolo", initials: "MA", text: "et 8 autres personnes ont aimé votre publication.", time: now - 2 * j, read: true },
-];
+// Les notifications doivent être chargées depuis Prisma via l'API
+export const DEMO_NOTIFICATIONS = [];
 
 function normalizeNotification(notification) {
   if (!notification || typeof notification !== "object") return null;
@@ -67,19 +63,21 @@ function normalizeNotification(notification) {
     : (notification.type === "warning" || notification.type === "danger" ? "article" : "article");
 
   const actor = notification.actor || notification.meta?.actor || "LynoraLink";
-  const initials = notification.initials || (typeof actor === "string" ? actor.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "L" : "L");
+  const isPlatformNotification = actor === "LynoraLink" || actor === "Assistant IA" || actor === "IA" || ["admin_ai_tasks", "support_reply"].includes(notification.type);
+  const displayActor = isPlatformNotification ? "LynoraLink" : actor;
+  const initials = isPlatformNotification ? "LL" : (notification.initials || (typeof displayActor === "string" ? displayActor.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "L" : "L"));
 
   const meta = notification.meta && typeof notification.meta === "object" ? notification.meta : {};
-  const explicitAvatar = notification.avatarUrl || notification.imageUrl || meta.avatarUrl || meta.actorAvatar || meta.image || meta.imageUrl || (typeof notification.user?.image === "string" ? notification.user.image : null) || null;
+  const explicitAvatar = isPlatformNotification ? "/logo_lynora.svg" : (notification.avatarUrl || notification.imageUrl || meta.avatarUrl || meta.actorAvatar || meta.image || meta.imageUrl || (typeof notification.user?.image === "string" ? notification.user.image : null) || null);
   const explicitCover = notification.coverUrl || meta.coverUrl || meta.groupCover || meta.groupImage || (typeof notification.group?.coverUrl === "string" ? notification.group.coverUrl : null) || null;
-  const avatarUrl = explicitAvatar || (actor === "LynoraLink" ? "/logo_lynora.svg" : null);
+  const avatarUrl = explicitAvatar || (displayActor === "LynoraLink" ? "/logo_lynora.svg" : null);
   const coverUrl = explicitCover || null;
   const isGroupNotification = Boolean(meta.groupId || /^group_/.test(String(meta.kind || "")) || /group/i.test(String(notification.actor || "")));
 
   return {
     id: notification.id,
     type: kind,
-    actor,
+    actor: displayActor,
     initials,
     avatarUrl,
     coverUrl,
@@ -360,7 +358,7 @@ export function NotificationBell({ notifications: controlled, onChange, onOpenNo
     const loadNotifications = async () => {
       if (document.hidden) return; // Skip polling when tab is inactive
       try {
-        const response = await fetch("/api/notifications", { credentials: "include", cache: "no-store" });
+        const response = await fetchBackendApi("/api/notifications", { cache: "no-store" });
         const data = response.ok ? await response.json() : null;
         if (active && Array.isArray(data?.notifications)) setInternal(data.notifications);
       } catch {}
@@ -395,12 +393,12 @@ export function NotificationBell({ notifications: controlled, onChange, onOpenNo
 
   const updateBackend = (body) => {
     if (controlled !== undefined) return;
-    fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+    fetchBackendApi("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
   };
   const markRead = (id) => { setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n))); updateBackend({ id, read: true }); };
   const markUnread = (id) => { setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: false } : n))); updateBackend({ id, read: false }); };
   const markAllRead = () => { setNotifications((ns) => ns.map((n) => ({ ...n, read: true }))); updateBackend({ markAllRead: true, read: true }); };
-  const remove = (id) => { setNotifications((ns) => ns.filter((n) => n.id !== id)); if (controlled === undefined) fetch(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {}); };
+  const remove = (id) => { setNotifications((ns) => ns.filter((n) => n.id !== id)); if (controlled === undefined) fetchBackendApi(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {}); };
   const muteType = (type) => setMutedTypes((prev) => { const next = new Set(prev); next.has(type) ? next.delete(type) : next.add(type); return next; });
   const openOne = (n) => { markRead(n.id); onOpenNotification && onOpenNotification(n); };
 
@@ -454,7 +452,7 @@ export function NotificationsPage({ notifications: controlled, onChange, onOpenN
     const loadNotifications = async () => {
       if (document.hidden) return; // Skip polling when tab is inactive
       try {
-        const response = await fetch("/api/notifications", { credentials: "include", cache: "no-store" });
+        const response = await fetchBackendApi("/api/notifications", { cache: "no-store" });
         const data = response.ok ? await response.json() : null;
         if (active && Array.isArray(data?.notifications)) setInternal(data.notifications);
       } catch {}
@@ -476,12 +474,12 @@ export function NotificationsPage({ notifications: controlled, onChange, onOpenN
 
   const updateBackend = (body) => {
     if (controlled !== undefined) return;
-    fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+    fetchBackendApi("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
   };
   const markRead = (id) => { setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n))); updateBackend({ id, read: true }); };
   const markUnread = (id) => { setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: false } : n))); updateBackend({ id, read: false }); };
   const markAllRead = () => { setNotifications((ns) => ns.map((n) => ({ ...n, read: true }))); updateBackend({ markAllRead: true, read: true }); };
-  const remove = (id) => { setNotifications((ns) => ns.filter((n) => n.id !== id)); if (controlled === undefined) fetch(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {}); };
+  const remove = (id) => { setNotifications((ns) => ns.filter((n) => n.id !== id)); if (controlled === undefined) fetchBackendApi(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {}); };
   const muteType = (type) => setMutedTypes((prev) => { const next = new Set(prev); next.has(type) ? next.delete(type) : next.add(type); return next; });
   const openOne = (n) => { markRead(n.id); onOpenNotification && onOpenNotification(n); };
 

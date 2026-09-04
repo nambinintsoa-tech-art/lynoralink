@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ReactionPicker from "./ReactionPicker";
 import { SkeletonStoryRail } from "./StorySkeleton";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ================================================================== *
  *  STORY — Composant professionnel réutilisable                         *
@@ -1400,10 +1401,26 @@ function normalizeCurrentUser(user = EMPTY_USER) {
    fait la conversion une seule fois, ici, a la reception. */
 function normalizeItem(it) {
   const { image, ...rest } = it;
-  return { ...rest, mediaUrl: image ?? it.mediaUrl ?? null };
+  const parsedCreatedAt = typeof it.createdAt === "number" ? it.createdAt : Date.parse(it.createdAt || "");
+  return { ...rest, mediaUrl: image ?? it.mediaUrl ?? null, createdAt: Number.isFinite(parsedCreatedAt) ? parsedCreatedAt : Date.now() };
 }
 function normalizeGroups(groups = []) {
   return groups.map((g) => ({ ...g, items: (g.items || []).map(normalizeItem) }));
+}
+function groupsFromStories(stories = []) {
+  const grouped = new Map();
+  stories.forEach((story) => {
+    const author = story.author || {};
+    const userId = author.id || story.userId || "unknown";
+    const group = grouped.get(userId) || {
+      id: `user-${userId}`,
+      user: { id: author.id || userId, name: author.name || "Utilisateur", image: author.image || null, authorType: author.authorType || "person", pageId: author.pageId || null },
+      items: [],
+    };
+    group.items.push(normalizeItem(story));
+    grouped.set(userId, group);
+  });
+  return [...grouped.values()];
 }
 
 export default function Story({
@@ -1455,12 +1472,12 @@ export default function Story({
       setLoading(true);
       setLoadError(null);
       try {
-        const res = await fetch(`/api/stories?account=${accountMode}`);
+        const res = await fetchBackendApi(`/api/stories?account=${accountMode}`);
         if (!res.ok) throw new Error("Failed to load stories");
         const data = await res.json();
         if (cancelled) return;
         setCurrentUser(data.currentUser ?? EMPTY_USER);
-        setGroups(normalizeGroups(data.groups));
+        setGroups(Array.isArray(data.groups) ? normalizeGroups(data.groups) : groupsFromStories(data.stories));
       } catch (err) {
         console.error("Failed to load stories:", err);
         if (!cancelled) setLoadError("Impossible de charger les stories.");
@@ -1496,10 +1513,16 @@ export default function Story({
   const liveGroups = useMemo(() => {
     const cutoff = Date.now() - STORY_TTL_MS;
     return groups
-      .map((g) => ({ ...g, items: g.items.filter((it) => it.createdAt >= cutoff) }))
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((it) => (
+          it.createdAt >= cutoff
+          && (accountMode !== "company" || String(it.companyPageId || "") === String(currentUser.id || ""))
+        )),
+      }))
       .filter((g) => g.items.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups]);
+  }, [groups, accountMode, currentUser.id]);
 
   const ownGroup = liveGroups.find((g) => g.user.id === currentUser.id);
   const otherGroups = liveGroups.filter((g) => g.user.id !== currentUser.id);
@@ -1528,7 +1551,7 @@ export default function Story({
     setViewerOrder(markItemSeen);
     if (status !== "authenticated") return;
     try {
-      await fetch(`/api/stories/${itemId}/views`, { method: "POST" });
+      await fetchBackendApi(`/api/stories/${itemId}/views`, { method: "POST" });
     } catch (err) {
       console.error("Failed to mark story as seen:", err);
     }
@@ -1543,7 +1566,7 @@ export default function Story({
     setViewerGroupIndex(null);
     if (status !== "authenticated") return;
     try {
-      await fetch(`/api/stories/${itemId}`, { method: "DELETE" });
+      await fetchBackendApi(`/api/stories/${itemId}`, { method: "DELETE" });
     } catch (err) {
       console.error("Failed to delete story:", err);
     }
@@ -1581,6 +1604,8 @@ export default function Story({
       id: uid("s"),
       type: payload.type,
       text: payload.text || "",
+      companyPageId: accountMode === "company" ? currentUser.id : null,
+      authorType: accountMode === "company" ? "page" : "person",
       bg: payload.bg,
       mediaUrl: payload.mediaUrl,
       fontSize: payload.fontSize,
@@ -1598,7 +1623,7 @@ export default function Story({
 
     if (status !== "authenticated") return;
     try {
-      const res = await fetch("/api/stories", {
+      const res = await fetchBackendApi("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1668,24 +1693,46 @@ export default function Story({
             padding-bottom: env(safe-area-inset-bottom) !important;
           }
           .story-rail {
-            width: 100% !important;
+            width: 100vw !important;
             min-width: 0 !important;
+            max-width: none !important;
+            margin-left: calc(50% - 50vw) !important;
             gap: 10px !important;
-            padding: 10px !important;
-            border-radius: 14px !important;
+            padding: 10px 12px !important;
+            border: none !important;
+            border-radius: 18px !important;
+            background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(244,246,251,0.08) 100%) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2) !important;
             overscroll-behavior-x: contain;
             touch-action: pan-x;
           }
           .story-tile {
-            width: 92px !important;
-            height: 150px !important;
-            border-radius: 14px !important;
+            width: 110px !important;
+            height: 176px !important;
+            border: 1px solid rgba(255,255,255,0.16) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 10px 22px -18px rgba(15,51,82,0.5), inset 0 1px 0 rgba(255,255,255,0.14) !important;
           }
         }
 
-        /* Tile hover */
-        .story-tile { transition: transform 0.2s cubic-bezier(0.2,0.8,0.2,1); }
-        .story-tile:hover { transform: translateY(-4px); }
+        /* Rail & tiles */
+        .story-rail {
+          background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(244,246,251,0.96) 100%);
+          border: 1px solid rgba(15,51,82,0.08);
+          box-shadow: 0 14px 28px -22px rgba(15,51,82,0.35), inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+        .story-tile {
+          transition: transform 0.22s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.22s ease, filter 0.22s ease, border-color 0.22s ease;
+          border: 1px solid rgba(255,255,255,0.18);
+          box-shadow: 0 12px 24px -18px rgba(15,51,82,0.42), inset 0 1px 0 rgba(255,255,255,0.15);
+          filter: saturate(1.04);
+          background-clip: padding-box;
+        }
+        .story-tile:hover {
+          transform: translateY(-6px) scale(1.01);
+          box-shadow: 0 22px 40px -22px rgba(15,51,82,0.48), inset 0 1px 0 rgba(255,255,255,0.18);
+          filter: saturate(1.12) brightness(1.03);
+        }
 
         /* Option buttons */
         .story-option-btn { transition: all 0.2s ease; }
@@ -1819,8 +1866,8 @@ export default function Story({
       <div
         className="story-rail"
         style={{
-          display: "flex", flexDirection: "row", flexWrap: "nowrap", gap: 14,
-          padding: 16, background: C.surface, borderRadius: 20, border: `1px solid ${C.line}`,
+          display: "flex", flexDirection: "row", flexWrap: "nowrap", gap: 16,
+          padding: 18, background: C.surface, borderRadius: 20, border: `1px solid ${C.line}`,
           boxShadow: shadow.sm, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",
         }}
       >
@@ -1829,10 +1876,13 @@ export default function Story({
           className="story-tile"
           onClick={() => setShowCreate(true)}
           style={{
-            flex: "0 0 auto", width: 110, height: 180, borderRadius: 18, cursor: "pointer",
-            position: "relative", overflow: "hidden", boxShadow: shadow.xs,
-            transition: "transform .15s ease, box-shadow .15s ease",
-            background: currentUser.image ? "#0B1A28" : "linear-gradient(160deg, #3B6B92 0%, #132C43 58%, #091A29 100%)", border: `1px solid ${C.white}`,
+            flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
+            background: currentUser.image ? "#0B1A28" : "linear-gradient(160deg, #3B6B92 0%, #132C43 58%, #091A29 100%)",
+            border: `1px solid rgba(255,255,255,0.18)`,
+            filter: "saturate(1.06)",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
@@ -1857,11 +1907,13 @@ export default function Story({
           className="story-tile"
           onClick={() => openViewer(ownGroup.id)}
           style={{
-            flex: "0 0 auto", width: 110, height: 180, borderRadius: 18, cursor: "pointer",
-            position: "relative", overflow: "hidden", boxShadow: shadow.xs,
-            transition: "transform .15s ease, box-shadow .15s ease",
+            flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
             background: ownGroup ? storyPreviewBg(ownGroup.items[0]) : C.navy50,
-            border: ownGroup ? "none" : `2px dashed ${C.navy100}`,
+            border: ownGroup ? "1px solid rgba(255,255,255,0.14)" : `2px dashed ${C.navy100}`,
+            filter: "saturate(1.06)",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
@@ -1920,11 +1972,14 @@ export default function Story({
               className="story-tile"
               onClick={() => openViewer(g.id)}
               style={{
-                flex: "0 0 auto", width: 110, height: 180, borderRadius: 18, cursor: "pointer",
-                position: "relative", overflow: "hidden", boxShadow: shadow.xs,
-                transition: "transform .15s ease, box-shadow .15s ease",
+                flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
+                position: "relative", overflow: "hidden",
+                boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
+                transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
                 background: storyPreviewBg(preview),
                 opacity: hasUnseen ? 1 : 0.85,
+                border: "1px solid rgba(255,255,255,0.14)",
+                filter: hasUnseen ? "saturate(1.06)" : "saturate(0.95)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}

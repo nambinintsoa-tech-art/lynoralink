@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
 import { getBlockedUserIds } from "@/lib/blocking";
+import { getMutualConnections } from "@/lib/mutual-connections";
 
 function initials(name = "") {
   return (name || "")
@@ -62,16 +63,17 @@ export async function GET(req) {
     }
   }
 
-  const suggestions = users
+  const suggestedUsers = users
     .filter((user) => !blockedIds.has(user.id))
     .filter((user) => searchableIds.has(user.id) || !userSettings.some((setting) => setting.userId === user.id))
-    .filter((u) => !connectedIds.has(u.id) && (!pendingIds.has(u.id) || retainedPendingSuggestionIds.has(u.id)) && !removedIds.has(u.id))
-    .map((u) => ({
+    .filter((u) => !connectedIds.has(u.id) && (!pendingIds.has(u.id) || retainedPendingSuggestionIds.has(u.id)) && !removedIds.has(u.id));
+  const mutualByCandidate = await getMutualConnections(prisma, meId, suggestedUsers.map((user) => user.id));
+  const suggestions = suggestedUsers.map((u) => ({
       id: u.id,
       name: u.name || "Utilisateur",
       title: u.title || "Membre LynoraLink",
       initials: initials(u.name),
-      mutual: 0,
+      ...(mutualByCandidate.get(u.id) || { mutual: 0, mutualAvatars: [] }),
       type: "user",
       image: u.image || null,
       cover: u.cover || null,

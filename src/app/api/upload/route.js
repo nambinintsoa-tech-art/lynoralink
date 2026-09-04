@@ -46,12 +46,11 @@ export async function POST(req) {
     const bytes = Buffer.from(await file.arrayBuffer());
     const base64 = bytes.toString("base64");
     const dataUrl = `data:${file.type || "application/octet-stream"};base64,${base64}`;
+    const hasPreset = !!preset;
 
     // Vérifier si Cloudinary est correctement configuré
-    const hasCloudinaryConfig = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && 
-                                 process.env.CLOUDINARY_API_KEY && 
-                                 process.env.CLOUDINARY_API_SECRET;
-    const hasPreset = !!preset;
+    const hasCloudinaryConfig = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+      (hasPreset || (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET));
 
     // Si Cloudinary n'est pas configuré ou pas de preset, utiliser le fallback base64
     if (!hasCloudinaryConfig || !hasPreset) {
@@ -59,7 +58,7 @@ export async function POST(req) {
         hasCloud: !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
         hasApiKey: !!process.env.CLOUDINARY_API_KEY,
         hasSecret: !!process.env.CLOUDINARY_API_SECRET,
-        hasPreset
+        hasPreset,
       });
       return NextResponse.json({ url: dataUrl, type, fallback: true });
     }
@@ -72,60 +71,43 @@ export async function POST(req) {
       resource_type: resourceType,
     };
 
-    // Le preset doit être transmis pour respecter ses règles de dossier et de resource type.
-    if (preset) uploadOptions.upload_preset = preset;
-
-    console.log('Cloudinary upload options:', { 
-      cloud: !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, 
-      hasApiKey: !!process.env.CLOUDINARY_API_KEY, 
-      hasSecret: !!process.env.CLOUDINARY_API_SECRET,
-      presetProvided: !!preset,
-      resourceType
-    });
-
     try {
-      uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          uploadOptions,
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
+      if (preset) {
+        // Upload presets are unsigned, so use the unsigned endpoint directly.
+        uploadResult = await uploadUnsigned({
+          bytes,
+          file,
+          cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+          preset,
+          resourceType,
+        });
+      } else {
+        uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            uploadOptions,
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
 
-        uploadStream.end(bytes);
-      });
-    } catch (err) {
-      console.error("Cloudinary upload_stream failed, attempting uploader.upload fallback", err);
-      try {
-        uploadResult = await cloudinary.uploader.upload(dataUrl, uploadOptions);
-      } catch (err2) {
-        try {
-          uploadResult = await uploadUnsigned({
-            bytes,
-            file,
-            cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-            preset,
-            resourceType,
-          });
-        } catch (unsignedError) {
-          console.error("Cloudinary upload failed", {
-            signedMessage: err2?.message,
-            signedHttpCode: err2?.http_code,
-            unsignedMessage: unsignedError?.message,
-            unsignedHttpCode: unsignedError?.http_code,
-            type,
-            resourceType,
-            hasPreset: !!preset,
-          });
-          const httpCode = unsignedError?.http_code || err2?.http_code || 502;
-          return NextResponse.json({
-            error: "Cloudinary a refusé l'upload. Vérifiez le cloud name et le preset.",
-            cloudinaryError: unsignedError?.message || err2?.message,
-            httpCode,
-          }, { status: httpCode === 401 || httpCode === 403 ? httpCode : 502 });
-        }
+          uploadStream.end(bytes);
+        });
       }
+    } catch (error) {
+      console.error("Cloudinary upload failed", {
+        message: error?.message,
+        httpCode: error?.http_code,
+        type,
+        resourceType,
+        hasPreset: !!preset,
+      });
+      const httpCode = error?.http_code || 502;
+      return NextResponse.json({
+        error: "Cloudinary a refusé l'upload. Vérifiez le cloud name et le preset.",
+        cloudinaryError: error?.message,
+        httpCode,
+      }, { status: httpCode === 401 || httpCode === 403 ? httpCode : 502 });
     }
 
     return NextResponse.json({

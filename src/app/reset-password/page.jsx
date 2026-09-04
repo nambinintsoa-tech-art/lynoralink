@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import LogoBadge from "@/components/LogoBadge";
 import { getPasswordRequirements, isStrongPassword } from "@/lib/passwordPolicy";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function ResetPasswordPage() {
     if (!email.trim()) return setError("Saisissez votre adresse email.");
     setError("");
     setLoading(true);
-    const response = await fetch("/api/forgot-password", {
+    const response = await fetchBackendApi("/api/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -43,7 +44,7 @@ export default function ResetPasswordPage() {
     if (!isStrongPassword(password)) return setError("Le mot de passe ne respecte pas tous les critères de sécurité.");
     if (password !== confirmation) return setError("Les mots de passe ne correspondent pas.");
     setLoading(true);
-    const response = await fetch("/api/reset-password", {
+    const response = await fetchBackendApi("/api/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, password }),

@@ -26,6 +26,7 @@ import SettingsLynora from "./SettingsLynora";
 import CompanyPage, { CompanyPagesGrille as CompanyPagesGrid, PAGE_DIRECTORY, SponsorModal } from "./CompanyPage";
 import { CURRENT_USER_ID } from "./companyStore";
 import CreatePostModal from "./CreatePostModal";
+import { fetchBackendApi } from "@/lib/backend-api";
 import CompanyComposer from "./CompanyComposer";
 import AIVisualEditorModal from "./AIVisualEditorModal";
 import MessagingWidget from "./Message";
@@ -39,9 +40,10 @@ import Groupe from "./Groupe";
 import PostCard from "./PostCard";
 import Abonnement from "./Abonnement";
 import Story from "./Story";
+import Reel from "./Reel";
+import { getReelsSource } from "@/lib/reels";
 import { SkeletonStoryRail } from "./StorySkeleton";
 import FeedLoadingShell from "./FeedLoadingShell";
-import PageTransition from "./PageTransition";
 import AccountSwitchTransition from "./AccountSwitchTransition";
 import LogoutTransition from "./LogoutTransition";
 import RelativeTime from "./RelativeTime";
@@ -50,12 +52,10 @@ import {
   ComposerSkeleton,
   LeftSidebarSkeleton,
   RightSidebarSkeleton,
-  NetworkSkeleton,
   NotificationsSkeleton,
   ProfileSkeleton,
   CompanySkeleton,
   SubscriptionSkeleton,
-  MessagesSkeleton,
 } from "./Skeleton";
 
 /* ------------------------------------------------------------------ */
@@ -248,10 +248,58 @@ function sponsoredActionLabel(ad) {
   return "Découvrir";
 }
 
-function SponsoredAdCard({ ad, onNavigate, onMessage }) {
+function SponsoredInfo() {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <span
+      ref={containerRef}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+      style={{ position: "relative", display: "inline-flex" }}
+    >
+      <button
+        type="button"
+        aria-label="Pourquoi vois-je cette publicité ?"
+        aria-expanded={isOpen}
+        onFocus={() => setIsOpen(true)}
+        onBlur={(event) => {
+          if (!containerRef.current?.contains(event.relatedTarget)) setIsOpen(false);
+        }}
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 1, border: 0, background: "transparent", color: "inherit", cursor: "pointer", borderRadius: 4 }}
+      >
+        <Info size={11} />
+      </button>
+      {isOpen && (
+        <span role="status" style={{ position: "absolute", zIndex: 10, top: "calc(100% + 8px)", left: 0, width: "min(230px, calc(100vw - 32px))", padding: "10px 12px", borderRadius: 8, background: C.navy800, color: "#fff", fontSize: 12, lineHeight: 1.4, fontWeight: 500, textAlign: "left", whiteSpace: "normal", boxSizing: "border-box", boxShadow: "0 6px 18px rgba(15,51,82,0.22)" }}>
+          Cette publicité est sponsorisée par LynoraLink.
+        </span>
+      )}
+    </span>
+  );
+}
+
+function SponsoredAdCard({ ad, onNavigate, onMessage, onOpenPost, currentUserId }) {
   const track = (event) => {
     if (!ad?.campaignId) return;
-    fetch("/api/ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: ad.campaignId, event }) }).catch(() => {});
+    fetchBackendApi("/api/ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: ad.campaignId, event }) }).catch(() => {});
   };
   useEffect(() => { track("impression"); }, [ad?.id]);
   const website = externalUrl(ad.website);
@@ -266,8 +314,10 @@ function SponsoredAdCard({ ad, onNavigate, onMessage }) {
       <div className="sponsored-ad-copy"><h3>{ad.title}</h3><p>{ad.description}</p></div>
       {ad.mediaUrl && (ad.mediaType === "video" ? <video className="sponsored-ad-media" src={ad.mediaUrl} controls playsInline /> : <img className="sponsored-ad-media" src={ad.mediaUrl} alt={ad.title} />)}
       <div className="sponsored-ad-actions">
+        {onOpenPost && <button type="button" className="sponsored-ad-action sponsored-ad-action-secondary" onClick={() => onOpenPost(ad)}><ExternalLink size={14} /> Voir plus</button>}
         {website ? <a className="sponsored-ad-action sponsored-ad-action-primary" href={website} target="_blank" rel="noreferrer" onClick={() => track("click")}>{sponsoredActionLabel(ad)} <ExternalLink size={14} /></a> : <button type="button" className="sponsored-ad-action sponsored-ad-action-primary" onClick={() => { track("click"); onNavigate?.("feed"); }}>{sponsoredActionLabel(ad)} <ArrowRight size={14} /></button>}
-        {ad.authorId && onMessage && <button type="button" className="sponsored-ad-action sponsored-ad-action-message" onClick={() => onMessage(ad)}><MessageCircle size={14} /> Message</button>}
+        {onOpenPost && <button type="button" className="sponsored-ad-action sponsored-ad-action-comment" onClick={() => onOpenPost(ad)}><MessageCircle size={14} /> Commenter</button>}
+        {ad.authorId && String(ad.authorId) !== String(currentUserId || "") && onMessage && <button type="button" className="sponsored-ad-action sponsored-ad-action-message" onClick={() => { track("click"); onMessage(ad); }}><MessageCircle size={14} /> Message</button>}
         {ad.whatsapp && <a className="sponsored-ad-action sponsored-ad-action-whatsapp" href={`https://wa.me/${String(ad.whatsapp).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" onClick={() => track("conversion")}><FontAwesomeIcon icon={faWhatsapp} /> WhatsApp</a>}
       </div>
     </article>
@@ -1243,9 +1293,199 @@ function PageSuggestionsGrid({ pages, followedPageIds, onFollowPage, onNavigate,
 }
 
 /* ------------------------------------------------------------------ */
+/*  PUB SIDEBAR — composants performants et modernes                   */
+/* ------------------------------------------------------------------ */
+
+/* Seuil de repli du texte de pub sidebar ( caracteres ). */
+const SIDEBAR_AD_TEXT_LIMIT = 130;
+
+/**
+ * Texte de publicite sidebar avec repli "Voir plus / Voir moins".
+ * Memoise : ne re-render que si la description change.
+ * Hover du bouton gere par CSS (.sidebar-ad-toggle) -> pas de manip DOM.
+ */
+const SidebarAdText = React.memo(function SidebarAdText({ description, isLong, preview }) {
+  const [expanded, setExpanded] = useState(false);
+  const handleToggle = useCallback(() => setExpanded((v) => !v), []);
+  if (!description) return null;
+  const ellipsis = "\u2026";
+  const displayed = isLong && !expanded ? `${preview}${ellipsis}` : description;
+  return (
+    <div className="sidebar-ad-text" style={{ padding: "0 14px 8px", color: C.ink, fontSize: 13, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+      {displayed}
+      {isLong && (
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="sidebar-ad-toggle"
+          aria-expanded={expanded}
+          style={{
+            display: expanded ? "block" : "inline",
+            marginTop: expanded ? 4 : 0,
+            marginLeft: expanded ? 0 : 5,
+            background: "none", border: "none", padding: 0, cursor: "pointer",
+            color: C.navy800, fontWeight: 700, fontSize: 13, textDecoration: "none",
+          }}
+        >
+          {expanded ? "Voir moins" : "Voir plus"}
+        </button>
+      )}
+    </div>
+  );
+});
+
+/**
+ * Image de publicite pleine largeur avec lazy-loading, decode async,
+ * placeholder navy et fallback onError. Memoisee.
+ */
+const SidebarAdMedia = React.memo(function SidebarAdMedia({ mediaUrl, initials, onClick }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  const showImage = mediaUrl && !errored;
+  const handleClick = useCallback(() => onClick?.(), [onClick]);
+  return (
+    <div
+      className="sidebar-ad-media"
+      style={{
+        position: "relative", width: "100%", aspectRatio: "1.91 / 1",
+        background: navyGrad, cursor: onClick ? "pointer" : "default",
+        overflow: "hidden",
+      }}
+      onClick={handleClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
+      {/* Placeholder navy visible jusqu'au chargement */}
+      {!loaded && !errored && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.5)", fontWeight: 800, fontSize: 28, fontFamily: "'Sora', sans-serif" }}>
+          <Loader2 size={22} className="sidebar-ad-spin" />
+        </div>
+      )}
+      {showImage ? (
+        <img
+          src={mediaUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+          style={{
+            position: "absolute", inset: 0, width: "100%", height: "100%",
+            objectFit: "cover", opacity: loaded ? 1 : 0,
+            transition: "opacity 320ms cubic-bezier(0.4,0,0.2,1)",
+          }}
+        />
+      ) : (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: C.white, fontWeight: 800, fontSize: 30, fontFamily: "'Sora', sans-serif" }}>
+          {initials || "L"}
+        </div>
+      )}
+    </div>
+  );
+});
+
+/**
+ * Carte de publicite sidebar - structure Facebook, couleurs navy/dore.
+ * Memoisee : ne re-render que si l'ad ou les callbacks changent.
+ * Tous les calculs (domain, whatsapp, preview) sont memoises.
+ */
+const SidebarAdCard = React.memo(function SidebarAdCard({ ad, index, onAdClick, onAdNavigate, onAdWhatsapp, onMessage, currentUserId }) {
+  const adWebsite = useMemo(() => externalUrl(ad.website), [ad.website]);
+  const adWhatsappUrl = useMemo(
+    () => (ad.whatsapp ? `https://wa.me/${String(ad.whatsapp).replace(/\D/g, "")}` : null),
+    [ad.whatsapp]
+  );
+  const adDomain = useMemo(() => {
+    if (!adWebsite) return "lynoralink.com";
+    try { return new URL(adWebsite).hostname.replace(/^www\./, ""); } catch { return "lynoralink.com"; }
+  }, [adWebsite]);
+
+  const adDescription = ad.description || "";
+  const adDescriptionIsLong = adDescription.length > SIDEBAR_AD_TEXT_LIMIT;
+  const adDescriptionPreview = useMemo(
+    () => (adDescriptionIsLong ? adDescription.slice(0, SIDEBAR_AD_TEXT_LIMIT - 3).replace(/\s+\S*$/, "").trimEnd() : adDescription),
+    [adDescription, adDescriptionIsLong]
+  );
+  const adCtaLabel = ad.isDemo ? "Aperçu démo" : "Découvrir";
+
+  const handleCardClick = useCallback(() => onAdClick(ad, "click"), [ad, onAdClick]);
+  const handleMediaClick = useCallback(() => { onAdClick(ad, "click"); onAdNavigate?.(); }, [ad, onAdClick, onAdNavigate]);
+  const handleCtaClick = useCallback((event) => { event.stopPropagation(); onAdClick(ad, "click"); }, [ad, onAdClick]);
+  const handleCtaNavigate = useCallback((event) => { event.stopPropagation(); onAdClick(ad, "click"); onAdNavigate?.(); }, [ad, onAdClick, onAdNavigate]);
+  const handleWhatsappClick = useCallback((event) => { event.stopPropagation(); onAdClick(ad, "conversion"); }, [ad, onAdClick]);
+  const handleMessageClick = useCallback((event) => { event.stopPropagation(); onAdClick(ad, "click"); onMessage?.(ad); }, [ad, onAdClick, onMessage]);
+
+  const ctaStyle = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
+    padding: "6px 12px", borderRadius: 7, border: `1px solid ${C.gold600}`,
+    fontSize: 12.5, lineHeight: 1, fontWeight: 700, whiteSpace: "nowrap",
+    color: C.navy800, background: C.gold400,
+    boxShadow: "0 1px 2px rgba(15,51,82,0.10)",
+    transition: "background 180ms cubic-bezier(0.4,0,0.2,1), color 180ms cubic-bezier(0.4,0,0.2,1), transform 120ms cubic-bezier(0.4,0,0.2,1)",
+    textDecoration: adWebsite ? "none" : undefined, cursor: "pointer",
+  };
+
+  return (
+    <article
+      className="sidebar-sponsored-item sidebar-ad-card"
+      style={{ display: "flex", flexDirection: "column", borderTop: index === 0 ? "none" : `1px solid ${C.line}` }}
+    >
+      <div className="sidebar-ad-header" style={{ display: "flex", alignItems: "center", padding: "11px 14px 8px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.gold600, fontSize: 11.5, fontWeight: 700 }}>
+          <span>Sponsorisé</span>
+          <SponsoredInfo />
+        </div>
+      </div>
+
+      {/* Texte principal au-dessus de l'image ( Voir plus / Voir moins ) */}
+      <SidebarAdText description={adDescription} isLong={adDescriptionIsLong} preview={adDescriptionPreview} />
+
+      {/* Image pleine largeur - lazy, async, placeholder, fallback */}
+      <SidebarAdMedia mediaUrl={ad.mediaUrl} initials={ad.initials} onClick={handleMediaClick} />
+
+      {/* Ligne headline + domaine + CTA facon Facebook */}
+      <div className="sidebar-ad-linkrow" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 14px", background: C.navy50, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, transition: "background 180ms cubic-bezier(0.4,0,0.2,1)" }}>
+        {adWebsite ? (
+          <a href={adWebsite} target="_blank" rel="noreferrer" onClick={handleCtaClick} style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 2, color: "inherit", textDecoration: "none" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.navy800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ad.title || "Publicité"}</span>
+            <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "underline" }}>{adDomain}</span>
+          </a>
+        ) : (
+          <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.navy800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ad.title || "Publicité"}</span>
+            <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{adDomain}</span>
+          </div>
+        )}
+        {adWebsite ? (
+          <a className="sidebar-sponsored-cta" href={adWebsite} target="_blank" rel="noreferrer" onClick={handleCtaClick} style={ctaStyle}>
+            {adCtaLabel} <ExternalLink size={12} style={{ flexShrink: 0 }} />
+          </a>
+        ) : (
+          <button className="sidebar-sponsored-cta" type="button" onClick={handleCtaNavigate} style={ctaStyle}>
+            {adCtaLabel} <ArrowRight size={12} style={{ flexShrink: 0 }} />
+          </button>
+        )}
+      </div>
+
+      {/* Action secondaire discrete ( WhatsApp ) */}
+      {(adWhatsappUrl || (onMessage && ad.authorId && String(ad.authorId) !== String(currentUserId || ""))) && (
+        <div className="sidebar-sponsored-secondary" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px 10px" }}>
+          {onMessage && ad.authorId && String(ad.authorId) !== String(currentUserId || "") && <button type="button" aria-label="Envoyer un message" title="Envoyer un message" onClick={handleMessageClick} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 7, border: `1px solid ${C.line}`, background: C.white, color: C.navy800, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <MessageCircle size={14} /> Message
+          </button>}
+          {adWhatsappUrl && <a href={adWhatsappUrl} target="_blank" rel="noreferrer" aria-label="Contacter sur WhatsApp" title="Contacter sur WhatsApp" onClick={handleWhatsappClick} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 7, border: `1px solid ${C.line}`, background: C.white, color: "#159447", fontSize: 12, fontWeight: 700, textDecoration: "none", cursor: "pointer", transition: "opacity 160ms ease" }}>
+            <FontAwesomeIcon icon={faWhatsapp} /> WhatsApp
+          </a>}
+        </div>
+      )}
+    </article>
+  );
+});
+
 /*  SIDEBAR DROITE — SUGGESTIONS + ACTUALITÉS + GROUPES RECOMMANDÉS    */
 /* ------------------------------------------------------------------ */
-function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, onConnect, onCancel, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, accountMode = "personal", birthdays = [] }) {
+function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, onConnect, onCancel, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, onMessage, accountMode = "personal", birthdays = [] }) {
   const isPageMode = accountMode === "company";
   const [joiningGroupId, setJoiningGroupId] = useState(null);
   const openSuggestions = () => onNavigate?.(isPageMode ? "company-grid" : "network", { tab: "suggestions" });
@@ -1259,26 +1499,20 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
       return Number.isNaN(date.getTime()) ? null : date;
     };
 
-    const getNextBirthday = (date) => {
-      const now = new Date();
-      const thisYear = new Date(now.getFullYear(), date.getMonth(), date.getDate());
-      if (thisYear < now) {
-        return new Date(now.getFullYear() + 1, date.getMonth(), date.getDate());
-      }
-      return thisYear;
-    };
+    const today = new Date();
 
     return birthdays
       .map((person) => {
         const birthDate = parseDate(person?.birthDate || person?.dateOfBirth);
         if (!birthDate) return null;
-        const nextBirthday = getNextBirthday(birthDate);
+        const isToday = birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate();
+        if (!isToday) return null;
         return {
           id: person?.id || person?.userId,
           name: person?.name || person?.fullName || "Une personne",
           image: person?.image || person?.avatarUrl || person?.photoUrl || null,
           initials: person?.initials || (person?.name || person?.fullName || "?").slice(0, 2).toUpperCase(),
-          nextBirthday,
+          nextBirthday: birthDate,
         };
       })
       .filter(Boolean)
@@ -1295,24 +1529,24 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
     return `C'est l'anniversaire de ${firstPerson.name} et ${extraCount} autre${extraCount > 1 ? 's' : ''} personne${extraCount > 1 ? 's' : ''}`;
   })() : null;
   const [adRotation, setAdRotation] = useState(0);
-  const sidebarAds = displayedAds.length <= 2
-    ? displayedAds
-    : [0, 1].map((offset) => displayedAds[(adRotation + offset) % displayedAds.length]);
+  const sidebarAds = displayedAds.length > 0
+    ? [displayedAds[adRotation % displayedAds.length]]
+    : [];
   const trackAd = (ad, event) => {
     if (!ad?.campaignId) return;
-    fetch("/api/ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: ad.campaignId, event }) }).catch(() => {});
+    fetchBackendApi("/api/ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: ad.campaignId, event }) }).catch(() => {});
   };
   useEffect(() => {
-    displayedAds.forEach((ad) => trackAd(ad, "impression"));
-  }, [displayedAds.map((ad) => ad.id).join(",")]);
+    sidebarAds.forEach((ad) => trackAd(ad, "impression"));
+  }, [sidebarAds.map((ad) => ad.id).join(",")]);
   useEffect(() => {
     setAdRotation(0);
   }, [displayedAds.map((ad) => ad.id).join(",")]);
   useEffect(() => {
-    if (displayedAds.length <= 2) return undefined;
+    if (displayedAds.length <= 1) return undefined;
     const rotationTimer = window.setInterval(() => {
       setAdRotation((current) => (current + 1) % displayedAds.length);
-    }, 10000);
+    }, 30000);
     return () => window.clearInterval(rotationTimer);
   }, [displayedAds.length, displayedAds.map((ad) => ad.id).join(",")]);
   const suggestedGroups = groups
@@ -1407,26 +1641,38 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
 
       {!isPageMode && birthdaySummary && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-          <Card style={{ padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Anniversaire</span>
-              <button onClick={() => onNavigate?.("network", { tab: "anniversaires" })} style={{ background: "none", border: "none", color: "#0a66c2", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
-                Voir tout
-              </button>
-            </div>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 999, background: "rgba(217, 165, 54, 0.14)", color: C.gold600, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Calendar size={15} />
+          <Card style={{ padding: 0, overflow: "hidden", background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,247,227,0.95) 100%)", border: "1px solid rgba(217, 165, 54, 0.28)", boxShadow: "0 12px 32px rgba(217,165,54,0.12)" }}>
+            <div style={{ padding: "16px 16px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 12, background: "linear-gradient(135deg, #F9D98A 0%, #E2A937 100%)", color: "#3F2D06", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 18px rgba(217,165,54,0.25)" }}>
+                    <Gift size={15} />
+                  </div>
+                  <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 15, color: C.ink }}>Anniversaire</span>
+                </div>
+                <button onClick={() => onNavigate?.("network", { tab: "anniversaires" })} style={{ background: "none", border: "none", color: "#0a66c2", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                  Voir tout
+                </button>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, lineHeight: 1.5, color: C.ink, fontWeight: 600 }}>{birthdaySummary}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                  {birthdayPeople.slice(0, 3).map((person) => (
-                    <div key={person.id} title={person.name} style={{ width: 26, height: 26, borderRadius: "50%", overflow: "hidden", border: "2px solid #fff", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 8px", borderRadius: 999, background: "rgba(217, 165, 54, 0.14)", color: C.gold600, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  <Sparkles size={11} /> Aujourd'hui
+                </span>
+                <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>{birthdayPeople.length} personne{birthdayPeople.length > 1 ? "s" : ""}</span>
+              </div>
+
+              <div style={{ fontSize: 14, lineHeight: 1.55, color: C.ink, fontWeight: 700, marginBottom: 12 }}>{birthdaySummary}</div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {birthdayPeople.slice(0, 3).map((person) => (
+                  <div key={person.id} title={person.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px 6px 6px", borderRadius: 999, background: "rgba(255,255,255,0.66)", border: "1px solid rgba(26,37,58,0.06)", boxShadow: "0 4px 10px rgba(15,51,82,0.04)" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", overflow: "hidden", border: "2px solid rgba(255,255,255,0.9)", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
                       <Avatar initials={person.initials} size={26} imgUrl={person.image} radius="50%" />
                     </div>
-                  ))}
-                </div>
+                    <span style={{ fontSize: 11.5, color: C.ink, fontWeight: 700, maxWidth: 90, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </Card>
@@ -1478,57 +1724,32 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
       )}
 
       {/* ---- 2. Publicités sponsorisées (MIDDLE) ---- */}
-      <Card style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Publicités sponsorisées</span>
-          <button onClick={() => onNavigate && onNavigate("feed")} style={{ background: "none", border: "none", color: "#0a66c2", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+          <button onClick={() => onNavigate && onNavigate("feed")} style={{ background: "none", border: "none", color: C.navy800, fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
             Voir tout
           </button>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           {sidebarAds.length === 0 ? (
-            <div style={{ padding: "8px 0 4px", color: C.mutedLight, fontSize: 12, lineHeight: 1.45 }}>Aucune publicité disponible pour le moment.</div>
-          ) : sidebarAds.map((ad) => (
-              <div
-              key={ad.id}
-                className="sidebar-sponsored-item"
-                style={{ display: "flex", flexDirection: "column", gap: 10, cursor: "pointer" }}
-              onClick={() => { trackAd(ad, "click"); onNavigate && onNavigate("feed"); }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 5, color: C.gold600, fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em" }}><Megaphone size={12} /> {ad.isDemo ? "Aperçu démo" : "Sponsorisé"}</div>
-              <div style={{ display: "flex", gap: 10 }}>
-              <div
-                style={{
-                  width: 72, height: 72, borderRadius: 8, flexShrink: 0,
-                  background: ad.mediaUrl ? `url(${ad.mediaUrl}) center/cover` : navyGrad,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: C.white, fontWeight: 800, fontSize: 16,
-                  fontFamily: "'Sora', sans-serif",
-                }}
-              >
-                {!ad.mediaUrl && (ad.initials || "L")}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.ink, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                  {ad.title}
-                </div>
-                <div style={{ fontSize: 11, color: C.mutedLight, marginTop: 4 }}>
-                  {ad.author}
-                </div>
-              </div>
-              </div>
-              <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ad.description || ad.title}</div>
-              <div className="sidebar-sponsored-actions" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 8, borderTop: `1px solid ${C.line}` }}>
-                {externalUrl(ad.website) && <a href={externalUrl(ad.website)} target="_blank" rel="noreferrer" onClick={(event) => { event.stopPropagation(); trackAd(ad, "click"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "5px 2px", border: 0, borderRadius: 5, color: "#0a66c2", background: "transparent", fontSize: 11, fontWeight: 800, textDecoration: "none" }}><Globe size={13} /> Site <ExternalLink size={11} /></a>}
-                {ad.whatsapp && <a href={`https://wa.me/${String(ad.whatsapp).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="Contacter sur WhatsApp" title="Contacter sur WhatsApp" onClick={(event) => { event.stopPropagation(); trackAd(ad, "conversion"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "5px 2px", border: 0, borderRadius: 5, background: "transparent", color: "#159447", fontSize: 11, fontWeight: 800, textDecoration: "none" }}><FontAwesomeIcon icon={faWhatsapp} /> WhatsApp</a>}
-                <button type="button" onClick={(event) => { event.stopPropagation(); trackAd(ad, "click"); onNavigate?.("feed"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "5px 2px", border: 0, borderRadius: 5, background: "transparent", color: C.navy900, fontSize: 11, fontWeight: 800, cursor: "pointer" }}>Découvrir <ArrowRight size={12} /></button>
-              </div>
-            </div>
-          ))}
+            <div style={{ padding: "8px 14px 14px", color: C.mutedLight, fontSize: 12, lineHeight: 1.45 }}>Aucune publicité disponible pour le moment.</div>
+          ) : (
+            sidebarAds.map((ad, adIndex) => (
+              <SidebarAdCard
+                key={ad.id}
+                ad={ad}
+                index={adIndex}
+                onAdClick={trackAd}
+                onAdNavigate={() => onNavigate?.("feed")}
+                onAdWhatsapp={trackAd}
+                onMessage={onMessage}
+                currentUserId={currentUserId}
+              />
+            ))
+          )}
         </div>
-        <div style={{ marginTop: 10, fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 4 }}>
+        <div style={{ marginTop: 0, padding: "9px 14px", fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 4, borderTop: `1px solid ${C.line}` }}>
           <Info size={11} />
           Contenu mis en avant par LynoraLink
         </div>
@@ -2008,31 +2229,78 @@ function SavedSidebar({ activeFilter, onFilterChange, counts }) {
   );
 }
 
-function SavedPage({ posts, onBack, onToggleLike, onSelectReaction, onToggleBookmark, onAddComment, onShare, onOpenArticle, onOpenPost, currentUser }) {
+function SavedPage({ posts, onBack, onToggleLike, onSelectReaction, onToggleBookmark, onAddComment, onShare, onOpenArticle, onOpenPost, onOpenReels, currentUser }) {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [savedReels, setSavedReels] = useState([]);
+  const [savedReelsLoading, setSavedReelsLoading] = useState(true);
+  const [savedReelsHasMore, setSavedReelsHasMore] = useState(false);
+  const [savedReelsNextCursor, setSavedReelsNextCursor] = useState(null);
+
+  const loadSavedReels = useCallback(async (cursor = null) => {
+    setSavedReelsLoading(true);
+    try {
+      const query = new URLSearchParams({ savedOnly: "true", limit: "20" });
+      if (cursor) query.set("cursor", cursor);
+      const response = await fetchBackendApi(`/api/reels?${query.toString()}`);
+      const data = response.ok ? await response.json() : { reels: [] };
+      const nextReels = Array.isArray(data.reels) ? data.reels : [];
+      setSavedReels((current) => cursor ? [...current, ...nextReels] : nextReels);
+      setSavedReelsHasMore(Boolean(data.hasMore));
+      setSavedReelsNextCursor(data.nextCursor || null);
+    } catch {
+      if (!cursor) setSavedReels([]);
+    } finally {
+      setSavedReelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSavedReels();
+  }, [loadSavedReels]);
+
   const saved = posts.filter((p) => p.bookmarked);
   const counts = {
-    all: saved.length,
+    all: saved.length + savedReels.length,
     articles: saved.filter((post) => post.isArticle).length,
-    media: saved.filter((post) => !post.isArticle && (post.media?.length || post.media?.url)).length,
+    media: saved.filter((post) => !post.isArticle && (post.media?.length || post.media?.url)).length + savedReels.length,
   };
   const visiblePosts = saved.filter((post) => activeFilter === "all" || (activeFilter === "articles" ? post.isArticle : !post.isArticle && (post.media?.length || post.media?.url)));
+  const visibleReels = activeFilter === "articles" ? [] : savedReels;
+  const hasSavedContent = visiblePosts.length > 0 || visibleReels.length > 0;
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto", padding: "20px 20px 60px", display: "grid", gridTemplateColumns: "250px minmax(0, 680px)", gap: 24, alignItems: "start" }} className="lynora-saved-content">
       <SavedSidebar activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
       <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
         <div style={{ padding: "18px 20px", background: C.white, border: `1px solid ${C.line}`, borderRadius: 16 }}>
           <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 23, color: C.ink }}>{activeFilter === "all" ? "Toutes les publications" : activeFilter === "articles" ? "Articles enregistrés" : "Photos et vidéos"}</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 5 }}>{visiblePosts.length} publication{visiblePosts.length > 1 ? "s" : ""} dans cette sélection.</div>
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 5 }}>{visiblePosts.length + visibleReels.length} publication{visiblePosts.length + visibleReels.length > 1 ? "s" : ""} dans cette sélection.</div>
         </div>
-        {visiblePosts.length === 0 ? (
-          <EmptyState icon={activeFilter === "articles" ? BookOpen : activeFilter === "media" ? ImageIcon : Bookmark} text={saved.length === 0 ? "Vous n'avez encore rien enregistré. Cliquez sur « Enregistrer » sous une publication pour la retrouver ici." : "Aucune publication ne correspond à ce filtre."} />
+        {!hasSavedContent && !savedReelsLoading ? (
+          <EmptyState icon={activeFilter === "articles" ? BookOpen : activeFilter === "media" ? ImageIcon : Bookmark} text={saved.length === 0 && savedReels.length === 0 ? "Vous n'avez encore rien enregistré. Cliquez sur « Enregistrer » sous une publication pour la retrouver ici." : "Aucune publication ne correspond à ce filtre."} />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {visiblePosts.map((post) => (
-            <PostCard key={post.id} post={post} group={post.group || null} currentUser={currentUser} onToggleLike={onToggleLike} onSelectReaction={onSelectReaction} onToggleBookmark={onToggleBookmark} onAddComment={onAddComment} onShare={onShare} onOpenArticle={onOpenArticle} onOpenPost={onOpenPost} />
-          ))}
-        </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {visiblePosts.map((post) => (
+              <PostCard key={post.id} post={post} group={post.group || null} currentUser={currentUser} onToggleLike={onToggleLike} onSelectReaction={onSelectReaction} onToggleBookmark={onToggleBookmark} onAddComment={onAddComment} onShare={onShare} onOpenArticle={onOpenArticle} onOpenPost={onOpenPost} />
+            ))}
+            {visibleReels.length > 0 && (
+              <section style={{ padding: 18, background: C.white, border: `1px solid ${C.line}`, borderRadius: 16 }}>
+                <h2 style={{ margin: "0 0 14px", fontFamily: "'Sora', sans-serif", fontSize: 17, fontWeight: 800, color: C.ink }}>Reels enregistrés</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+                  {visibleReels.map((reel) => (
+                    <button key={reel.id} type="button" onClick={() => onOpenReels?.(visibleReels)} style={{ position: "relative", height: 230, border: "none", borderRadius: 12, overflow: "hidden", padding: 0, cursor: "pointer", background: reel.poster ? `url(${reel.poster}) center/cover` : "linear-gradient(150deg, #1D2F5C, #0A1530)" }}>
+                      {reel.videoUrl && !reel.poster && <video src={reel.videoUrl} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                      <span style={{ position: "absolute", inset: "auto 0 0", padding: "28px 10px 10px", color: "#fff", textAlign: "left", fontSize: 12, fontWeight: 700, background: "linear-gradient(transparent, rgba(0,0,0,.78))" }}>{reel.caption || "Reel"}</span>
+                    </button>
+                  ))}
+                </div>
+                {savedReelsHasMore && (
+                  <button type="button" onClick={() => loadSavedReels(savedReelsNextCursor)} disabled={savedReelsLoading} style={{ display: "block", width: "100%", marginTop: 14, padding: "10px 14px", border: `1px solid ${C.line}`, borderRadius: 10, background: C.navy50, color: C.navy800, fontSize: 12.5, fontWeight: 700, cursor: savedReelsLoading ? "default" : "pointer", opacity: savedReelsLoading ? 0.6 : 1 }}>
+                    {savedReelsLoading ? "Chargement..." : "Charger plus de Reels"}
+                  </button>
+                )}
+              </section>
+            )}
+          </div>
       )}
       </main>
     </div>
@@ -2233,52 +2501,8 @@ function ChangePasswordModal({ onClose }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  ÉCRAN DE DÉCONNEXION                                               */
-/* ------------------------------------------------------------------ */
-function LoggedOutScreen({ reason, onReconnect }) {
-  return (
-    <div style={{ minHeight: "100vh", background: navyGrad, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", padding: 20 }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600&display=swap');`}</style>
-      <div style={{ background: C.white, borderRadius: 18, padding: "40px 32px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
-          <LogoBadge size={48} />
-        </div>
-        <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 19, color: C.ink, marginBottom: 8 }}>
-          {reason === "delete" ? "Compte supprimé" : "Vous avez été déconnecté"}
-        </div>
-        <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 24 }}>
-          {reason === "delete" ? "Votre compte LynoraLink et toutes vos données ont été supprimés (démo)." : "À bientôt sur LynoraLink."}
-        </div>
-        <button onClick={onReconnect} style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "none", background: goldGrad, color: C.navy900, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-          Se reconnecter
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  COMPOSANT RACINE — FEED LynoraLink                                */
 /* ------------------------------------------------------------------ */
-function getNavigationSkeletonDuration() {
-  if (typeof navigator === "undefined") return 220;
-  const connection = navigator.connection;
-  if (connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType)) return 700;
-  if (connection?.effectiveType === "3g" || (connection?.downlink && connection.downlink < 1.5)) return 420;
-  return 180;
-}
-
-function NavigationSkeleton({ view }) {
-  if (view === "groups") return null;
-  if (view === "profile") return <ProfileSkeleton />;
-  if (view === "company") return <CompanySkeleton />;
-  if (view === "network") return <NetworkSkeleton />;
-  if (view === "notifications") return <NotificationsSkeleton />;
-  if (view === "abonnement") return <SubscriptionSkeleton />;
-  if (view === "messages") return <MessagesSkeleton />;
-  return <><ComposerSkeleton /><SkeletonStoryRail /><FeedSkeleton count={3} /></>;
-}
-
 export default function LynoraFeed({ session, initialPosts, initialSearch = "" } = {}) {
   const isAdmin = Boolean(session?.user?.email && session.user.email.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase());
 
@@ -2307,7 +2531,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         ? await Notification.requestPermission()
         : Notification.permission;
       if (permission !== "granted") return;
-      const keyResponse = await fetch("/api/push/vapid-public-key", { cache: "no-store" });
+      const keyResponse = await fetchBackendApi("/api/push/vapid-public-key", { cache: "no-store" });
       if (!keyResponse.ok) return;
       const { publicKey } = await keyResponse.json();
       if (!publicKey) return;
@@ -2317,7 +2541,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
-      await fetch("/api/push/subscribe", {
+      await fetchBackendApi("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -2336,7 +2560,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   useEffect(() => {
     if (!session?.user?.id) return undefined;
     const heartbeat = () => {
-      fetch("/api/presence", { method: "POST", credentials: "include" }).catch(() => {});
+      fetchBackendApi("/api/presence", { method: "POST" }).catch(() => {});
     };
     heartbeat();
     const intervalId = window.setInterval(heartbeat, 30000);
@@ -2382,7 +2606,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const loadAppearance = async () => {
       if (cachedAppearance?.theme) return;
       try {
-        const response = await fetch("/api/settings", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/settings", { cache: "no-store" });
         if (response.ok) {
           const appearance = (await response.json()).appearance;
           try { localStorage.setItem("lynoralink:appearance", JSON.stringify(appearance)); } catch {}
@@ -2429,10 +2653,20 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       });
 
       const mergedReactions = mergeReactionCounts(currentPost.reactions, serverPost.reactions);
+      const pageId = serverPost.companyPageId ?? currentPost.companyPageId ?? null;
 
       return {
         ...serverPost,
         ...currentPost,
+        companyPageId: pageId,
+        authorType: pageId ? "page" : (serverPost.authorType ?? currentPost.authorType),
+        ...(pageId ? {
+          author: serverPost.author ?? currentPost.author,
+          avatarUrl: serverPost.avatarUrl ?? currentPost.avatarUrl,
+          initials: serverPost.initials ?? currentPost.initials,
+          title: serverPost.title ?? currentPost.title,
+          coverUrl: serverPost.coverUrl ?? currentPost.coverUrl,
+        } : {}),
         comments: hasPendingComment ? currentComments : (Array.isArray(serverPost.comments) ? serverPost.comments : currentComments),
         likes: Math.max(Number(currentPost.likes ?? serverPost.likes ?? 0), Number(serverPost.likes ?? currentPost.likes ?? 0)),
         liked: currentPost.liked ?? serverPost.liked ?? false,
@@ -2471,7 +2705,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     const syncProfile = async () => {
       try {
-        const res = await fetch('/api/profile');
+        const res = await fetchBackendApi('/api/profile');
         if (!res.ok) return;
         const json = await res.json();
         const user = json?.user;
@@ -2510,7 +2744,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   useEffect(() => {
     if (!session?.user?.id) return undefined;
     let active = true;
-    fetch("/api/settings", { cache: "no-store" })
+    fetchBackendApi("/api/settings", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (active && data?.notifications?.showOnlineStatus !== undefined) {
@@ -2523,7 +2757,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         setProfile((current) => ({ ...current, showOnlineStatus: event.detail.showOnlineStatus }));
         return;
       }
-      fetch("/api/settings", { cache: "no-store" })
+      fetchBackendApi("/api/settings", { cache: "no-store" })
         .then((response) => response.ok ? response.json() : null)
         .then((data) => {
           if (active && data?.notifications?.showOnlineStatus !== undefined) {
@@ -2541,19 +2775,29 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [composerCompanyId, setComposerCompanyId] = useState(null);
   const [openArticleId, setOpenArticleId] = useState(null);
   const [openPostId, setOpenPostId] = useState(null);
+  const [openPostOverride, setOpenPostOverride] = useState(null);
+  const [reelsOpen, setReelsOpen] = useState(false);
+  const [reelModalItems, setReelModalItems] = useState(null);
+  const [reelPreview, setReelPreview] = useState([]);
+  const [reelPreviewLoading, setReelPreviewLoading] = useState(false);
+  const [reelPreviewHasMore, setReelPreviewHasMore] = useState(false);
+  const [reelPreviewNextCursor, setReelPreviewNextCursor] = useState(null);
+  const [reelPreviewIndex, setReelPreviewIndex] = useState(0);
+  const [isMobileReelPreview, setIsMobileReelPreview] = useState(false);
+  const reelPreviewSwipeRef = useRef(null);
+  const reelPreviewSuppressClickRef = useRef(false);
+  const [reelViewportWidth, setReelViewportWidth] = useState(390);
+  const mobileReelCardWidth = isMobileReelPreview ? Math.min(Math.max(reelViewportWidth - 48, 260), 340) : 220;
+  const mobileReelViewportWidth = isMobileReelPreview ? mobileReelCardWidth : "100%";
   const [jobEngagementVersion, setJobEngagementVersion] = useState(0);
   const [openEventId, setOpenEventId] = useState(null);
   const [view, setView] = useState(requestedView); // feed | profile | settings | network | messages | notifications | company | saved | groups | pages | trend
-  const [navigationSkeletonVisible, setNavigationSkeletonVisible] = useState(false);
   const [selectedTrend, setSelectedTrend] = useState(null);
-  const [loggedOut, setLoggedOut] = useState(false);
-  const [logoutReason, setLogoutReason] = useState("logout");
   const [showLogoutTransition, setShowLogoutTransition] = useState(false);
   const [feedContentReady, setFeedContentReady] = useState(Array.isArray(initialPosts));
   const [unreadPublications, setUnreadPublications] = useState(0);
   const feedSeenAtRef = useRef(0);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [networkLoading, setNetworkLoading] = useState(false);
   const [networkInitialTab, setNetworkInitialTab] = useState("connections");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -2562,19 +2806,99 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [companyLoading, setCompanyLoading] = useState(true);
   const [companyData, setCompanyData] = useState(null);
   const [publicCompanyPages, setPublicCompanyPages] = useState([]);
+  const [sponsoredAds, setSponsoredAds] = useState([]);
   const [followedPageIds, setFollowedPageIds] = useState([]);
   const [connectedSuggestionIds, setConnectedSuggestionIds] = useState([]);
   useEffect(() => {
-    setNavigationSkeletonVisible(true);
-    const connection = typeof navigator !== "undefined" ? navigator.connection : null;
-    const duration = connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType)
-      ? 700
-      : connection?.effectiveType === "3g" || (connection?.downlink && connection.downlink < 1.5)
-        ? 420
-        : 180;
-    const timeout = window.setTimeout(() => setNavigationSkeletonVisible(false), duration);
-    return () => window.clearTimeout(timeout);
+    window.dispatchEvent(new Event("lynora:navigation-complete"));
   }, [view]);
+  useEffect(() => {
+    const updateReelPreviewLayout = () => {
+      const width = typeof window !== "undefined" ? window.innerWidth : 390;
+      setIsMobileReelPreview(width <= 767);
+      setReelViewportWidth(Math.max(300, width));
+    };
+    updateReelPreviewLayout();
+    window.addEventListener("resize", updateReelPreviewLayout);
+    return () => window.removeEventListener("resize", updateReelPreviewLayout);
+  }, []);
+
+  // Charger les reels depuis l'API
+  const loadReels = useCallback(async ({ append = false, cursor = null } = {}) => {
+    setReelPreviewLoading(true);
+    try {
+      const query = new URLSearchParams({ limit: "10" });
+      if (cursor) query.set("cursor", cursor);
+      const response = await fetchBackendApi(`/api/reels?${query.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const nextReels = Array.isArray(data.reels) ? data.reels.filter((reel) => reel && (reel.videoUrl || reel.poster)) : [];
+        setReelPreview((current) => append ? [...current, ...nextReels] : nextReels);
+        setReelPreviewHasMore(Boolean(data.hasMore));
+        setReelPreviewNextCursor(data.nextCursor || null);
+        if (!append) setReelPreviewIndex(0);
+        if (append && nextReels.length) setReelPreviewIndex((current) => current + 1);
+      } else {
+        if (!append) setReelPreview([]);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des reels:", error);
+      if (!append) setReelPreview([]);
+    } finally {
+      setReelPreviewLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReels();
+  }, [loadReels]);
+
+  // Recharger les reels quand on crée un événement "reels-updated"
+  useEffect(() => {
+    const handleReelsUpdated = () => {
+      loadReels();
+    };
+    window.addEventListener("lynoralink:reels-updated", handleReelsUpdated);
+    return () => window.removeEventListener("lynoralink:reels-updated", handleReelsUpdated);
+  }, [loadReels]);
+
+  const moveReelPreview = (direction) => {
+    if (direction > 0 && reelPreviewIndex === reelPreview.length - 1 && reelPreviewHasMore && reelPreviewNextCursor && !reelPreviewLoading) {
+      loadReels({ append: true, cursor: reelPreviewNextCursor });
+      return;
+    }
+    setReelPreviewIndex((current) => Math.min(Math.max(current + direction, 0), reelPreview.length - 1));
+  };
+
+  const handleReelPreviewPointerDown = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    reelPreviewSuppressClickRef.current = false;
+    reelPreviewSwipeRef.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const handleReelPreviewPointerUp = (event) => {
+    const swipe = reelPreviewSwipeRef.current;
+    reelPreviewSwipeRef.current = null;
+    if (!swipe) return;
+    const deltaX = event.clientX - swipe.x;
+    const deltaY = event.clientY - swipe.y;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
+    reelPreviewSuppressClickRef.current = true;
+    moveReelPreview(deltaX < 0 ? 1 : -1);
+  };
+
+  const handleReelPreviewPointerCancel = () => {
+    reelPreviewSwipeRef.current = null;
+  };
+
+  const consumeReelPreviewClick = () => {
+    if (reelPreviewSuppressClickRef.current) {
+      reelPreviewSuppressClickRef.current = false;
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (!session?.user?.id) {
       setCompanyLoading(false);
@@ -2586,7 +2910,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       const cachedCompany = JSON.parse(localStorage.getItem("companyData") || "null");
       if (cachedCompany && typeof cachedCompany === "object") setCompanyData(cachedCompany);
     } catch {}
-    fetch("/api/company", { cache: "no-store" })
+    fetchBackendApi("/api/company", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : null)
       .then((company) => {
         if (!mounted) return;
@@ -2629,7 +2953,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
     };
 
-    fetch("/api/account/switch", { cache: "no-store" })
+    fetchBackendApi("/api/account/switch", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => applyAccount(data?.account))
       .catch(() => applyAccount(null));
@@ -2711,15 +3035,32 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       shares: 0,
       reactions: {},
     }));
+  const sponsoredFeedPosts = sponsoredAds.map((ad) => ({
+    ...ad,
+    id: ad.id,
+    sourceAdId: ad.id,
+    companyPageId: ad.pageId || null,
+    authorType: ad.pageId ? "page" : "person",
+    title: ad.author || "Partenaire LynoraLink",
+    headline: ad.title || "Publicité sponsorisée",
+    campaignTitle: ad.title || "Publicité sponsorisée",
+    avatarUrl: ad.image || ad.avatarUrl || null,
+    initials: ad.initials || "L",
+    text: ad.description || "",
+    excerpt: ad.description || "",
+    media: ad.mediaUrl ? { url: ad.mediaUrl, type: ad.mediaType === "video" ? "video" : "image" } : null,
+    time: ad.createdAt || ad.time || null,
+    isSponsored: true,
+  }));
   const visibleFeedPosts = [...(activeAccount === "company"
     ? posts.filter((post) => Boolean(post.companyPageId || post.group))
-    : posts), ...(activeAccount === "company" ? [...publicCompanyJobPosts, ...ownCompanyJobPosts] : publicCompanyJobPosts)].sort((firstPost, secondPost) => {
+    : posts), ...(activeAccount === "company" ? [...publicCompanyJobPosts, ...ownCompanyJobPosts] : publicCompanyJobPosts), ...sponsoredFeedPosts].sort((firstPost, secondPost) => {
       return new Date(secondPost.time || secondPost.createdAt || 0).getTime()
         - new Date(firstPost.time || firstPost.createdAt || 0).getTime();
     });
-  const pageCatalog = [...PAGE_DIRECTORY, ...publicCompanyPages].filter((page, index, pages) => (
+  const pageCatalog = useMemo(() => [...PAGE_DIRECTORY, ...publicCompanyPages].filter((page, index, pages) => (
     pages.findIndex((candidate) => String(candidate.id) === String(page.id)) === index
-  ));
+  )), [publicCompanyPages]);
   const followedPageIdSet = new Set(followedPageIds.map((id) => String(id)));
   const pageSuggestions = pageCatalog
     .filter((page) => (
@@ -2780,6 +3121,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [messagesModalOpen, setMessagesModalOpen] = useState(false);
   const [directChatOpen, setDirectChatOpen] = useState(false);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
+  const messagesPanelRef = useRef(null);
+  const notificationsPanelRef = useRef(null);
   const [overlayOriginView, setOverlayOriginView] = useState("feed");
   const ignoreRouteSyncRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -2859,20 +3202,16 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (nextView === "messages") {
       setView("feed");
       setMessagesModalOpen(true);
-      setMessagesLoading(true);
       setNotificationsModalOpen(false);
       setOverlayOriginView((current) => (current === "messages" || current === "notifications" ? "feed" : current));
-      const timeout = setTimeout(() => setMessagesLoading(false), 350);
-      return () => clearTimeout(timeout);
+      return undefined;
     }
 
     if (nextView === "notifications") {
       setNotificationsModalOpen(true);
       setMessagesModalOpen(false);
-      setNotificationsLoading(true);
       setOverlayOriginView((current) => (current === "messages" || current === "notifications" ? "feed" : current));
-      const timeout = setTimeout(() => setNotificationsLoading(false), 350);
-      return () => clearTimeout(timeout);
+      return undefined;
     }
 
     if (nextView === "abonnement") {
@@ -2886,17 +3225,31 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setNotificationsModalOpen(false);
 
     if (nextView === "company") {
-      if (view !== "company") {
-        const requestedCompanyTab = searchParams?.get("companyTab");
-        setCompanyTab(["mine", "followed", "discover"].includes(requestedCompanyTab) ? requestedCompanyTab : "discover");
+      const requestedPageId = searchParams?.get("pageId");
+      if (requestedPageId) {
+        const requestedPage = pageCatalog.find((page) => String(page.id) === String(requestedPageId))
+          || (companyData && String(companyData.id) === String(requestedPageId) ? companyData : null);
+        if (requestedPage) {
+          setSelectedCompanyPage((current) => (
+            current && String(current.id) === String(requestedPage.id)
+              ? { ...current, ...Object.fromEntries(Object.entries(requestedPage).filter(([, value]) => value !== undefined && value !== null)) }
+              : requestedPage
+          ));
+          setCompanyTab("mine");
+        }
+      } else {
+        if (view !== "company") {
+          const requestedCompanyTab = searchParams?.get("companyTab");
+          setCompanyTab(["mine", "followed", "discover"].includes(requestedCompanyTab) ? requestedCompanyTab : "discover");
+        }
+        setSelectedCompanyPage(null);
       }
-      setSelectedCompanyPage(null);
     }
 
     if (["feed", "profile", "settings", "network", "company", "saved", "my-posts", "my-articles", "groups", "pages", "trend", "abonnement"].includes(nextView)) {
       setView(nextView);
     }
-  }, [searchParams]);
+  }, [searchParams, pageCatalog, companyData, view]);
 
   useEffect(() => {
     const postId = searchParams?.get("post");
@@ -2915,65 +3268,26 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
   }, [searchParams, posts]);
 
-  // Simulate page-specific loading when navigating
   useEffect(() => {
-    if (view === "profile" || view === "settings") {
-      setProfileLoading(true);
-      const t = setTimeout(() => setProfileLoading(false), 400);
-      return () => clearTimeout(t);
-    }
-    if (view === "network") {
-      setNetworkLoading(true);
-      const t = setTimeout(() => setNetworkLoading(false), 450);
-      return () => clearTimeout(t);
-    }
-    if (view === "messages") {
-      setMessagesLoading(true);
-      const t = setTimeout(() => setMessagesLoading(false), 350);
-      return () => clearTimeout(t);
-    }
-    if (view === "notifications") {
-      setNotificationsLoading(true);
-      const t = setTimeout(() => setNotificationsLoading(false), 350);
-      return () => clearTimeout(t);
-    }
-    if (view === "abonnement") {
-      let mounted = true;
-      setSubscriptionLoading(true);
-      fetch("/api/subscription", { cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("Impossible de charger l'abonnement.");
-          return response.json();
-        })
-        .then((data) => {
-          if (mounted) setSubscriptionData(data);
-        })
-        .catch(() => {
-          if (mounted) setSubscriptionData({ plan: "free", status: "UNKNOWN", canManage: false });
-        })
-        .finally(() => {
-          if (mounted) setSubscriptionLoading(false);
-        });
-      return () => { mounted = false; };
-    }
+    if (view !== "abonnement") return undefined;
+    let active = true;
+    setSubscriptionLoading(true);
+    fetchBackendApi("/api/subscription", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Impossible de charger l'abonnement.");
+        return response.json();
+      })
+      .then((data) => {
+        if (active) setSubscriptionData(data);
+      })
+      .catch(() => {
+        if (active) setSubscriptionData({ plan: "free", status: "UNKNOWN", canManage: false });
+      })
+      .finally(() => {
+        if (active) setSubscriptionLoading(false);
+      });
+    return () => { active = false; };
   }, [view]);
-
-  // Trigger skeletons on initial load for URL-based navigation
-  useEffect(() => {
-    const initialView = searchParams?.get("view") || "feed";
-    
-    if (initialView === "network") {
-      setNetworkLoading(true);
-      const t = setTimeout(() => setNetworkLoading(false), 450);
-      return () => clearTimeout(t);
-    }
-    
-    if (initialView === "notifications") {
-      setNotificationsLoading(true);
-      const t = setTimeout(() => setNotificationsLoading(false), 350);
-      return () => clearTimeout(t);
-    }
-  }, []);
 
   useEffect(() => {
     setFeedContentReady(Array.isArray(initialPosts));
@@ -3010,7 +3324,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const refreshUnread = async () => {
       if (document.hidden) return; // Skip polling when tab is inactive
       try {
-        const response = await fetch("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         if (Array.isArray(data.posts)) countUnread(data.posts);
@@ -3025,7 +3339,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   useEffect(() => {
     if (view !== "feed") return;
     let active = true;
-    fetch("/api/company/pages", { credentials: "include", cache: "no-store" })
+    fetchBackendApi("/api/company/pages", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (active && Array.isArray(data?.pages)) setPublicCompanyPages(data.pages);
@@ -3033,7 +3347,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       .catch(() => {});
     const refreshFeedOnEntry = async () => {
       try {
-        const response = await fetch("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         if (active && Array.isArray(data.posts)) {
@@ -3056,7 +3370,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
 
       try {
-        const response = await fetch("/api/posts?feedOnly=true", {
+        const response = await fetchBackendApi("/api/posts?feedOnly=true", {
           signal: controller.signal,
           cache: "no-store",
         });
@@ -3103,13 +3417,36 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [networkSuggestions, setNetworkSuggestions] = useState([]);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState([]);
   const [sidebarGroups, setSidebarGroups] = useState([]);
-  const [sponsoredAds, setSponsoredAds] = useState([]);
   const [pendingSuggestionIds, setPendingSuggestionIds] = useState([]);
   const pendingSuggestionIdsRef = useRef([]);
   const optimisticPendingSuggestionIdsRef = useRef(new Map());
   const [sidebarToast, setSidebarToast] = useState(null);
   const subscriptionExpiryNotified = useRef(false);
   const syncedCheckoutSessionRef = useRef(null);
+  const openCampaign = () => {
+    if (subscriptionData?.isPremium || subscriptionData?.plan === "premium") {
+      setCampaignModalOpen(true);
+      return;
+    }
+    setSidebarToast({ message: "La création de publicités sponsorisées est réservée aux Pages Entreprise Premium.", icon: AlertTriangle });
+  };
+
+  useEffect(() => {
+    if (!session?.user?.id || view !== "feed") return undefined;
+    let active = true;
+    const loadSponsoredAds = async () => {
+      try {
+        const response = await fetchBackendApi("/api/ads", { credentials: "include", cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (active) setSponsoredAds(Array.isArray(data.ads) ? data.ads : []);
+      } catch {
+        if (active) setSponsoredAds([]);
+      }
+    };
+    loadSponsoredAds();
+    return () => { active = false; };
+  }, [session?.user?.id, view]);
 
   useEffect(() => {
     if (!sidebarToast) return undefined;
@@ -3119,7 +3456,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   useEffect(() => {
     if (!session?.user?.id || typeof window === "undefined") return undefined;
-    const stream = new EventSource("/api/realtime");
+    const stream = new EventSource("/api/realtime", { withCredentials: true });
     const handleRealtime = (event) => {
       try {
         const payload = JSON.parse(event.data);
@@ -3146,7 +3483,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (view === "ai-assistant") return undefined;
     let active = true;
 
-    const refreshSubscription = () => fetch("/api/subscription", { cache: "no-store" })
+    const refreshSubscription = () => fetchBackendApi("/api/subscription", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (!active || !data) return;
@@ -3177,7 +3514,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (syncedCheckoutSessionRef.current === sessionId) return undefined;
     let active = true;
 
-    fetch("/api/stripe/sync", {
+    fetchBackendApi("/api/stripe/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId }),
@@ -3187,9 +3524,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (!response.ok) throw new Error(data?.error || "Synchronisation Stripe impossible");
         syncedCheckoutSessionRef.current = sessionId;
         return Promise.all([
-          fetch("/api/subscription", { cache: "no-store" }).then((result) => result.ok ? result.json() : null),
-          fetch("/api/profile", { cache: "no-store" }).then((result) => result.ok ? result.json() : null),
-          fetch("/api/company", { cache: "no-store" }).then((result) => result.ok ? result.json() : null),
+          fetchBackendApi("/api/subscription", { cache: "no-store" }).then((result) => result.ok ? result.json() : null),
+          fetchBackendApi("/api/profile", { cache: "no-store" }).then((result) => result.ok ? result.json() : null),
+          fetchBackendApi("/api/company", { cache: "no-store" }).then((result) => result.ok ? result.json() : null),
         ]);
       })
       .then(([subscription, profileResponse, company]) => {
@@ -3205,7 +3542,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   // Messages
   const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
-  const [messagesBadgeDismissed, setMessagesBadgeDismissed] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState(INITIAL_CONVERSATIONS[0]?.id ?? null);
 
   useEffect(() => {
@@ -3216,7 +3552,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       if (document.hidden) return; // Skip polling when tab is inactive
       const results = await Promise.all(conversations.map(async (conversation) => {
         try {
-          const response = await fetch(`/api/calls?conversationId=${encodeURIComponent(conversation.id)}`, {
+          const response = await fetchBackendApi(`/api/calls?conversationId=${encodeURIComponent(conversation.id)}`, {
             credentials: "include",
             cache: "no-store",
           });
@@ -3302,7 +3638,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const fetchRelations = useCallback(async () => {
     if (!session?.user?.id) return;
 
-    const res = await fetch(`/api/connections?userId=${encodeURIComponent(session.user.id)}`, {
+    const res = await fetchBackendApi(`/api/connections?userId=${encodeURIComponent(session.user.id)}`, {
       credentials: "include",
       cache: "no-store",
     });
@@ -3372,7 +3708,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const fetchMessages = async () => {
       if (document.hidden) return; // Skip polling when tab is inactive
       try {
-        const res = await fetch(`/api/messages?userId=${encodeURIComponent(session.user.id)}`, {
+        const res = await fetchBackendApi(`/api/messages?userId=${encodeURIComponent(session.user.id)}`, {
           credentials: "include",
           cache: "no-store",
         });
@@ -3436,7 +3772,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     const fetchSuggestions = async () => {
       try {
-        const res = await fetch(`/api/users`, {
+        const res = await fetchBackendApi(`/api/users`, {
           credentials: "include",
           cache: "no-store",
         });
@@ -3452,7 +3788,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     const fetchGroups = async () => {
       try {
-        const res = await fetch("/api/groups", {
+        const res = await fetchBackendApi("/api/groups", {
           credentials: "include",
           cache: "no-store",
         });
@@ -3466,7 +3802,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     const fetchCompanyPages = async () => {
       try {
-        const res = await fetch("/api/company/pages", { credentials: "include", cache: "no-store" });
+        const res = await fetchBackendApi("/api/company/pages", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         if (active) setPublicCompanyPages(Array.isArray(data.pages) ? data.pages : []);
@@ -3477,7 +3813,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     const fetchFollowedPages = async () => {
       try {
-        const res = await fetch("/api/company/follow", { credentials: "include", cache: "no-store" });
+        const res = await fetchBackendApi("/api/company/follow", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         if (active) setFollowedPageIds(Array.isArray(data.followedPages) ? data.followedPages : []);
@@ -3488,7 +3824,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     const fetchSponsoredAds = async () => {
       try {
-        const res = await fetch("/api/ads", {
+        const res = await fetchBackendApi("/api/ads", {
           credentials: "include",
           cache: "no-store",
         });
@@ -3509,13 +3845,17 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     loadRelations();
-    fetchMessages();
+    setMessagesLoading(true);
+    fetchMessages().finally(() => setMessagesLoading(false));
     const messagesInterval = setInterval(fetchMessages, 8000); // Increased from 3s to 8s
     fetchSuggestions();
     fetchCompanyPages();
     fetchFollowedPages();
     fetchGroups();
     fetchSponsoredAds();
+    const adsInterval = setInterval(() => {
+      if (!document.hidden) fetchSponsoredAds();
+    }, 8000);
     const relationsInterval = setInterval(() => {
       if (document.hidden) return; // Skip polling when tab is inactive
       loadRelations();
@@ -3525,6 +3865,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     return () => {
       active = false;
       clearInterval(messagesInterval);
+      clearInterval(adsInterval);
       clearInterval(relationsInterval);
       window.removeEventListener("lynoralink:messages-updated", handleMessagesUpdated);
       window.removeEventListener("lynoralink:sync", handleRealtimeSync);
@@ -3532,6 +3873,29 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [session?.user?.id, fetchRelations, view]);
+
+  useEffect(() => {
+    if (!openPostOverride?.isSponsored) return;
+    const sourceId = openPostOverride.sourceAdId || openPostOverride.id;
+    const latest = sponsoredAds.find((ad) => String(ad.id) === String(sourceId));
+    if (!latest) return;
+    setOpenPostOverride((current) => current ? {
+      ...current,
+      sourceAdId: latest.id,
+      author: latest.author || current.author,
+      authorId: latest.authorId || current.authorId,
+      pageId: latest.pageId || current.pageId || null,
+      companyPageId: latest.pageId || current.companyPageId || null,
+      authorType: latest.pageId ? "page" : current.authorType,
+      avatarUrl: latest.image || current.avatarUrl,
+      initials: latest.initials || current.initials,
+      title: latest.title || current.title,
+      time: latest.createdAt || latest.time || current.time,
+      text: latest.description || current.text,
+      excerpt: latest.description || current.excerpt,
+      media: latest.mediaUrl ? { url: latest.mediaUrl, type: latest.mediaType === "video" ? "video" : "image" } : current.media,
+    } : current);
+  }, [openPostOverride?.isSponsored, openPostOverride?.sourceAdId, openPostOverride?.id, sponsoredAds]);
 
   useEffect(() => {
     notificationsRef.current = notifications;
@@ -3545,9 +3909,40 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (view === "ai-assistant") return undefined;
 
     let active = true;
+    const buildBirthdayNotifications = (connectedPeople = []) => {
+      if (!Array.isArray(connectedPeople) || connectedPeople.length === 0) return [];
+
+      const today = new Date();
+      const birthdayItems = connectedPeople
+        .map((person) => {
+          const value = person?.birthDate || person?.dateOfBirth;
+          if (!value) return null;
+          const birthDate = new Date(`${value}T12:00:00`);
+          if (Number.isNaN(birthDate.getTime())) return null;
+          const isBirthdayToday = birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate();
+          if (!isBirthdayToday) return null;
+
+          const personId = String(person?.userId || person?.id || "");
+          return {
+            id: `birthday-${personId}-${today.toISOString().slice(0, 10)}`,
+            type: "birthday",
+            actor: person?.name || person?.fullName || "Une personne",
+            initials: person?.initials || (person?.name || person?.fullName || "?").slice(0, 2).toUpperCase(),
+            avatarUrl: person?.image || person?.avatarUrl || person?.photoUrl || null,
+            text: "fête son anniversaire aujourd'hui.",
+            time: new Date().toISOString(),
+            read: false,
+            meta: { kind: "birthday", personId },
+          };
+        })
+        .filter(Boolean);
+
+      return birthdayItems;
+    };
+
     const fetchNotifications = async () => {
       try {
-        const res = await fetch(`/api/notifications?userId=${encodeURIComponent(session.user.id)}`);
+        const res = await fetchBackendApi(`/api/notifications?userId=${encodeURIComponent(session.user.id)}`);
         if (!res.ok) throw new Error("fetch failed");
         const data = await res.json();
         if (!active) return;
@@ -3563,11 +3958,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           read: Boolean(n.read),
           meta: n.meta || {},
         })) : [];
+        const birthdayNotifications = buildBirthdayNotifications(connections);
+        const merged = [...normalized.filter((notification) => notification.type !== "birthday"), ...birthdayNotifications];
         const previousIds = knownNotificationIdsRef.current;
         const newUnread = previousIds
-          ? normalized.filter((notification) => !notification.read && !previousIds.has(String(notification.id)))
+          ? merged.filter((notification) => !notification.read && !previousIds.has(String(notification.id)))
           : [];
-        knownNotificationIdsRef.current = new Set(normalized.map((notification) => String(notification.id)));
+        knownNotificationIdsRef.current = new Set(merged.map((notification) => String(notification.id)));
         if (newUnread.length > 0 && document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") {
           newUnread.forEach((notification) => {
             try {
@@ -3582,7 +3979,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           });
         }
         if (newUnread.length > 0 && !document.hidden) playNotificationSound("notification");
-        setNotifications((current) => JSON.stringify(current) === JSON.stringify(normalized) ? current : normalized);
+        setNotifications((current) => JSON.stringify(current) === JSON.stringify(merged) ? current : merged);
       } catch (error) {
       }
     };
@@ -3595,7 +3992,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
     };
 
-    fetchNotifications();
+    setNotificationsLoading(true);
+    fetchNotifications().finally(() => setNotificationsLoading(false));
     const interval = setInterval(fetchNotifications, 8000); // Increased from 3s to 8s
     window.addEventListener("focus", fetchNotifications);
     window.addEventListener("lynoralink:sync", handleRealtimeSync);
@@ -3605,7 +4003,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       window.removeEventListener("focus", fetchNotifications);
       window.removeEventListener("lynoralink:sync", handleRealtimeSync);
     };
-  }, [session?.user?.id, view]);
+  }, [session?.user?.id, view, connections]);
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
@@ -3619,7 +4017,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     };
   }, [session?.user?.id, notifications]);
 
-  const unreadMessages = messagesBadgeDismissed ? 0 : conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
+  const unreadMessages = conversations.reduce((sum, conversation) => sum + Math.max(0, Number(conversation.unread) || 0), 0);
   const unreadNotifications = notifications.filter((n) => n.type !== "message" && !n.read).length;
   const unreadAcceptedConnections = notifications.filter((notification) => (
     notification.type === "connection" && notification.meta?.kind === "accepted" && !notification.read
@@ -3641,7 +4039,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         ? { ...notification, read: true }
         : notification
     )));
-    await Promise.all(acceptedNotifications.map((notification) => fetch("/api/notifications", {
+    await Promise.all(acceptedNotifications.map((notification) => fetchBackendApi("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: notification.id, read: true }),
@@ -3665,6 +4063,17 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setNotificationsModalOpen(false);
     }
   };
+
+  useEffect(() => {
+    if (!messagesModalOpen && !notificationsModalOpen) return undefined;
+    const handleOutsidePointerDown = (event) => {
+      const insideMessages = messagesPanelRef.current?.contains(event.target);
+      const insideNotifications = notificationsPanelRef.current?.contains(event.target);
+      if (!insideMessages && !insideNotifications) closeOverlay(messagesModalOpen ? "messages" : "notifications");
+    };
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown);
+  }, [messagesModalOpen, notificationsModalOpen, overlayOriginView]);
 
   useEffect(() => {
     const handleCallEnded = () => closeOverlay("messages");
@@ -3700,7 +4109,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     try { localStorage.setItem("lynoralink:activeAccount", nextAccount); } catch {}
     if (targetIsCompany && targetPage) setCompanyData(targetPage);
 
-    fetch("/api/account/switch", {
+    fetchBackendApi("/api/account/switch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ account: nextAccount }),
@@ -3719,7 +4128,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   const refreshFeedContent = useCallback(async () => {
     try {
-      const response = await fetch("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
+      const response = await fetchBackendApi("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
       if (Array.isArray(data.posts)) {
@@ -3738,6 +4147,16 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     router.push(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
   }, [router]);
 
+  const openCompanyPageDetail = useCallback((pageId) => {
+    if (!pageId) return;
+    const page = pageCatalog.find((candidate) => String(candidate.id) === String(pageId)) || companyData || publicCompanyPages.find((candidate) => String(candidate.id) === String(pageId));
+    if (page) setSelectedCompanyPage(page);
+    setCompanyTab("mine");
+    setView("company");
+    ignoreRouteSyncRef.current = true;
+    router.push(`/feed?view=company&pageId=${encodeURIComponent(pageId)}`);
+  }, [companyData, pageCatalog, publicCompanyPages, router]);
+
   useEffect(() => {
     if (view !== "network") return;
     const nextTab = searchParams?.get("tab");
@@ -3748,6 +4167,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [view, searchParams, networkInitialTab]);
 
   const navigate = (id, options = {}) => {
+    window.dispatchEvent(new Event("lynora:navigation-start"));
     setModalMode(null);
     setComposerCompanyId(null);
     if (id === "profile" || id === "feed") setTargetProfileId(null);
@@ -3772,7 +4192,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     if (id === "groups" && options.groupId) {
       setTargetGroupId(options.groupId);
-      router.push(`/feed?view=groups&groupId=${encodeURIComponent(options.groupId)}`);
+      const groupsRoute = `/feed?${new URLSearchParams({ view: "groups", groupId: String(options.groupId) }).toString()}`;
+      router.push(groupsRoute);
       return;
     }
 
@@ -3796,12 +4217,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
       setOverlayOriginView(view);
       setMessagesModalOpen(true);
-      setMessagesLoading(true);
-      setMessagesBadgeDismissed(true);
       setNotificationsModalOpen(false);
       setConversations((cs) => cs.map((c) => (c.id === activeConversationId ? { ...c, unread: 0 } : c)));
       if (activeConversationId && session?.user?.id) {
-        fetch('/api/messages', {
+        fetchBackendApi('/api/messages', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ conversationId: activeConversationId }),
@@ -3820,7 +4239,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
       setOverlayOriginView(view);
       setNotificationsModalOpen(true);
-      setNotificationsLoading(true);
       setMessagesModalOpen(false);
       markAllNotificationsRead();
       router.push("/feed?view=notifications");
@@ -3905,7 +4323,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     if (!id || !session?.user?.id) return;
     try {
-      await fetch('/api/messages', {
+      await fetchBackendApi('/api/messages', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId: id }),
@@ -3916,7 +4334,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     // Refresh conversations from server to keep unread counts in sync
     try {
-      const res = await fetch(`/api/messages?userId=${encodeURIComponent(session.user.id)}`);
+      const res = await fetchBackendApi(`/api/messages?userId=${encodeURIComponent(session.user.id)}`);
       if (res && res.ok) {
         const data = await res.json();
         const nextConversations = Array.isArray(data.conversations) ? data.conversations : [];
@@ -3948,8 +4366,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     try {
       const [usersResponse, groupsResponse] = await Promise.all([
-        fetch("/api/users", { credentials: "include", cache: "no-store" }),
-        fetch("/api/groups", { credentials: "include", cache: "no-store" }),
+        fetchBackendApi("/api/users", { cache: "no-store" }),
+        fetchBackendApi("/api/groups", { cache: "no-store" }),
       ]);
       const usersData = usersResponse.ok ? await usersResponse.json() : {};
       const groupsData = groupsResponse.ok ? await groupsResponse.json() : {};
@@ -4075,7 +4493,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     )));
 
     try {
-      const res = await fetch("/api/messages", {
+      const res = await fetchBackendApi("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, attachments }),
@@ -4107,13 +4525,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   const openConversationWithUser = async (user) => {
     const targetUserId = user?.ownerId ?? user?.userId ?? user?.id;
-    if (!targetUserId) return;
+    if (!targetUserId || String(targetUserId) === String(session?.user?.id || "")) return;
 
     const requestedPageId = user?.pageId || null;
     const existing = conversations.find((c) => c.otherUserId === targetUserId && String(c.pageId || "") === String(requestedPageId || ""));
     if (existing) {
       if (requestedPageId && (existing.messages || []).length === 0) {
-        const greetingResponse = await fetch("/api/messages", {
+        const greetingResponse = await fetchBackendApi("/api/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ otherUserId: targetUserId, pageId: requestedPageId, createOnly: true }),
@@ -4128,12 +4546,18 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
       setActiveConversationId(existing.id);
       setMessagesModalOpen(true);
-      setConversations((cs) => cs.map((c) => (c.id === existing.id ? { ...c, unread: 0 } : c)));
+      setConversations((cs) => cs.map((c) => (c.id === existing.id ? {
+        ...c,
+        name: requestedPageId ? (user.name || c.name) : c.name,
+        title: requestedPageId ? "Page entreprise" : c.title,
+        image: requestedPageId ? (user.image || user.avatarUrl || c.image || null) : c.image,
+        unread: 0,
+      } : c)));
       return;
     }
 
     try {
-      const res = await fetch("/api/messages", {
+      const res = await fetchBackendApi("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otherUserId: targetUserId, pageId: user?.pageId, createOnly: true }),
@@ -4175,7 +4599,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (!inv) return;
 
     try {
-      await fetch("/api/connections", {
+      await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: inv.userId, action: "accept" }),
@@ -4193,7 +4617,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (!inv) return;
 
     try {
-      await fetch("/api/connections", {
+      await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: inv.userId, action: "decline" }),
@@ -4215,7 +4639,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     if (activeAccount === "company") {
       try {
-        const response = await fetch("/api/company/follow", {
+        const response = await fetchBackendApi("/api/company/follow", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pageId: id }),
@@ -4241,7 +4665,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setSidebarToast({ message: "Demande envoyé", icon: Clock });
 
     try {
-      const response = await fetch("/api/connections", {
+      const response = await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: id }),
@@ -4262,6 +4686,41 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
   };
 
+  const connectUser = async (id) => {
+    if (!id || id === session?.user?.id) return;
+    const response = await fetchBackendApi("/api/connections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetUserId: id }),
+    });
+    if (response.ok) {
+      setSidebarToast({ message: "Demande de connexion envoyée", icon: Check });
+      await fetchRelations();
+    } else setSidebarToast({ message: "Action impossible", icon: X });
+  };
+
+  const removeConnection = async (id) => {
+    if (!id) return;
+    const response = await fetchBackendApi("/api/connections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetUserId: id, action: "remove" }),
+    });
+    if (response.ok) {
+      setSidebarToast({ message: "Connexion retirée", icon: Check });
+      await fetchRelations();
+    } else setSidebarToast({ message: "Action impossible", icon: X });
+  };
+
+  const leaveGroupFromFeed = async (id) => {
+    if (!id) return;
+    const response = await fetchBackendApi(`/api/groups/${encodeURIComponent(id)}/leave`, { method: "POST" });
+    if (response.ok) {
+      setSidebarToast({ message: "Vous avez quitté le groupe", icon: Check });
+      setPosts((currentPosts) => currentPosts.map((post) => post.group?.id === id ? { ...post, group: { ...post.group, memberIds: (post.group.memberIds || []).filter((memberId) => String(memberId) !== String(session?.user?.id)) } } : post));
+    } else setSidebarToast({ message: "Action impossible", icon: X });
+  };
+
   const cancelConnectionRequest = async (id) => {
     if (!pendingSuggestionIdsRef.current.includes(id)) return;
 
@@ -4271,7 +4730,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setPendingSuggestionIds(pendingSuggestionIdsRef.current);
 
     try {
-      const response = await fetch("/api/connections", {
+      const response = await fetchBackendApi("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: id, action: "decline" }),
@@ -4288,10 +4747,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   };
 
   const followPage = async (id) => {
-    if (followedPageIds.includes(id)) return;
+    if (!id) return;
 
     try {
-      const response = await fetch("/api/company/follow", {
+      const response = await fetchBackendApi("/api/company/follow", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -4301,8 +4760,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       const data = await response.json();
       setFollowedPageIds((current) => data.followed
         ? [...new Set([...current, id])]
-        : current.filter((pageId) => pageId !== id));
-      setSidebarToast({ message: data.followed ? "Page suivie" : "Page retirée", icon: Check });
+        : current.filter((pageId) => String(pageId) !== String(id)));
+      setSidebarToast({ message: data.followed ? "Page suivie" : "Désabonnement effectué", icon: Check });
     } catch (error) {
       setSidebarToast({ message: "Action impossible", icon: X });
     }
@@ -4318,7 +4777,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     for (const n of changed) {
       try {
-        await fetch("/api/notifications", {
+        await fetchBackendApi("/api/notifications", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: n.id, read: Boolean(n.read), userId: session.user.id }),
@@ -4331,7 +4790,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const removed = previous.filter((p) => !next.some((n) => n.id === p.id));
     for (const n of removed) {
       try {
-        await fetch(`/api/notifications?id=${encodeURIComponent(n.id)}`, { method: "DELETE" });
+        await fetchBackendApi(`/api/notifications?id=${encodeURIComponent(n.id)}`, { method: "DELETE" });
       } catch (error) {
         // ignore
       }
@@ -4411,7 +4870,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
 
     try {
-      await fetch("/api/notifications", {
+      await fetchBackendApi("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: session.user.id, markAllRead: true, read: true }),
@@ -4428,14 +4887,14 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const groupId = post?.group?.id;
     const postId = String(post?.id || "");
     if (!groupId || (!postId.startsWith("new_") && !postId.startsWith("shared_"))) return null;
-    const groupResponse = await fetch(`/api/groups/${encodeURIComponent(groupId)}`, { cache: "no-store" });
+    const groupResponse = await fetchBackendApi(`/api/groups/${encodeURIComponent(groupId)}`, { cache: "no-store" });
     if (!groupResponse.ok) throw new Error("Impossible de charger le groupe");
     const groupData = await groupResponse.json();
     const groupPosts = Array.isArray(groupData?.group?.posts) ? groupData.group.posts : [];
     const currentGroupPost = groupPosts.find((item) => String(item.id) === String(post.id));
     if (!currentGroupPost) throw new Error("Publication de groupe introuvable");
     const nextGroupPost = updater(currentGroupPost);
-    const updateResponse = await fetch(`/api/groups/${encodeURIComponent(groupId)}`, {
+    const updateResponse = await fetchBackendApi(`/api/groups/${encodeURIComponent(groupId)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ posts: groupPosts.map((item) => String(item.id) === String(post.id) ? nextGroupPost : item) }),
@@ -4466,7 +4925,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (nextPost) setPosts((ps) => ps.map((p) => p.id === id ? { ...p, ...nextPost } : p));
         return;
       }
-      const response = await fetch(`/api/posts/${id}/like`, { method: "POST" });
+      const response = await fetchBackendApi(`/api/posts/${id}/like`, { method: "POST" });
       if (!response.ok) return;
       const result = await response.json();
       setPosts((ps) => ps.map((p) => (p.id === id ? {
@@ -4502,7 +4961,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (nextPost) setPosts((ps) => ps.map((p) => p.id === id ? { ...p, ...nextPost } : p));
         return;
       }
-      const response = await fetch(`/api/posts/${id}/like`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reaction }) });
+      const response = await fetchBackendApi(`/api/posts/${id}/like`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reaction }) });
       if (!response.ok) return;
       const result = await response.json();
       setPosts((ps) => ps.map((p) => (p.id === id ? {
@@ -4527,7 +4986,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (nextPost) setPosts((ps) => ps.map((p) => p.id === id ? { ...p, ...nextPost } : p));
         return;
       }
-      const response = await fetch(`/api/posts/${id}/save`, { method: "POST" });
+      const response = await fetchBackendApi(`/api/posts/${id}/save`, { method: "POST" });
       if (!response.ok) throw new Error("Impossible d'enregistrer la publication");
       const result = await response.json();
       setPosts((ps) => ps.map((p) => (p.id === id ? { ...p, bookmarked: result.bookmarked, bookmarks: result.bookmarks ?? p.bookmarks } : p)));
@@ -4550,7 +5009,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     };
     setPosts((currentPosts) => currentPosts.map((item) => item.id === post.id ? { ...item, event: nextEvent } : item));
     try {
-      const response = await fetch(`/api/groups/${groupId}/events`, {
+      const response = await fetchBackendApi(`/api/groups/${groupId}/events`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId: event.id, attending: !attending }),
@@ -4569,7 +5028,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const targetPost = visibleFeedPosts.find((post) => post.id === id);
     if (targetPost?.variant === "job" && typeof window !== "undefined") {
       try {
-        const response = await fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: targetPost.companyPageId, jobId: targetPost.jobId || id, action: "comment", text }) });
+        const response = await fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: targetPost.companyPageId, jobId: targetPost.jobId || id, action: "comment", text }) });
         if (!response.ok) throw new Error("Impossible d'enregistrer le commentaire");
         setJobEngagementVersion((version) => version + 1);
         return await response.json();
@@ -4598,10 +5057,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
       return;
     }
-    setPosts((ps) => ps.map((p) => (p.id === id ? { ...p, comments: [...p.comments, { id: tempId, author: activeProfile.name || CURRENT_USER.name, initials: activeProfile.initials || CURRENT_USER.avatar, avatarUrl: activeProfileAvatar || null, text, media: media || [] }] } : p)));
+    setPosts((ps) => ps.map((p) => (p.id === id ? { ...p, comments: [...p.comments, { id: tempId, authorId: activeProfile.id || session?.user?.id, authorType: p.authorType === "page" ? "page" : "person", companyPageId: p.authorType === "page" ? p.companyPageId : null, author: activeProfile.name || CURRENT_USER.name, initials: activeProfile.initials || CURRENT_USER.avatar, avatarUrl: activeProfileAvatar || null, text, media: media || [] }] } : p)));
 
     try {
-      const res = await fetch(`/api/posts/${id}/comments`, {
+      const res = await fetchBackendApi(`/api/posts/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, media: media || [] }),
@@ -4627,6 +5086,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const tempId = `r${Date.now()}`;
     const reply = {
       id: tempId,
+      authorId: activeProfile.id || session?.user?.id,
+      authorType: posts.find((post) => post.id === postId)?.authorType === "page" ? "page" : "person",
+      companyPageId: posts.find((post) => post.id === postId)?.authorType === "page" ? posts.find((post) => post.id === postId)?.companyPageId : null,
       author: activeProfile.name || CURRENT_USER.name,
       initials: activeProfile.initials || CURRENT_USER.avatar,
       avatarUrl: activeProfileAvatar || null,
@@ -4651,7 +5113,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (nextPost) setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, ...nextPost } : p));
         return;
       }
-      const res = await fetch(`/api/posts/${postId}/comments`, {
+      const res = await fetchBackendApi(`/api/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, parentId: commentId, media: media || [] }),
@@ -4699,7 +5161,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       if (nextPost) setPosts((currentPosts) => currentPosts.map((post) => post.id === postId ? { ...post, ...nextPost } : post));
       return nextPost;
     }
-    const response = await fetch(`/api/posts/${postId}/comments/${commentId}/reactions`, {
+    const response = await fetchBackendApi(`/api/posts/${postId}/comments/${commentId}/reactions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reaction }),
@@ -4723,7 +5185,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (nextPost) setPosts((ps) => ps.map((p) => p.id === id ? { ...p, ...nextPost } : p));
         return;
       }
-      const response = await fetch(`/api/posts/${id}/share`, { method: "POST" });
+      const response = await fetchBackendApi(`/api/posts/${id}/share`, { method: "POST" });
       if (!response.ok) throw new Error("Impossible d'enregistrer le partage");
       const result = await response.json();
       setPosts((ps) => ps.map((p) => (p.id === id ? { ...p, shares: result.shares ?? p.shares } : p)));
@@ -4733,7 +5195,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   };
 
   const editPost = async (id, text, visibility) => {
-    const response = await fetch(`/api/posts/${encodeURIComponent(id)}`, {
+    const response = await fetchBackendApi(`/api/posts/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, visibility }),
@@ -4744,14 +5206,67 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setSidebarToast({ message: "Publication modifiée", icon: Check });
   };
 
-  const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, visibility }) => {
+  const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, visibility, reelSound }) => {
     const isArticle = mode === "article";
+    const isReel = mode === "reel";
     const postMedia = Array.isArray(media) ? media : [];
+    const reelVideo = postMedia.find((item) => item?.type === "video" && typeof item?.url === "string" && item.url.trim()) || postMedia.find((item) => typeof item?.url === "string" && item.url.trim()) || null;
+    const resolvedVideoUrl = reelVideo?.url || null;
+
+    // ✅ NE PAS créer de post local pour les reels
+    if (isReel) {
+      setModalMode(null);
+      setSidebarToast({ message: "Reel publié", icon: Check });
+      playPostPublishedSound();
+
+      // Envoyer directement à l'API reels (sans passer par setPosts)
+      const currentAuthorId = session?.user?.id || activeProfile?.id || null;
+      const isPageAuthor = activeAccount === "company" && (companyData?.id || activeProfile?.id);
+      const currentPageId = isPageAuthor ? (companyData?.id || activeProfile?.id) : null;
+
+      fetchBackendApi("/api/reels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: `reel-${Date.now()}`,
+          videoUrl: resolvedVideoUrl,
+          caption: text,
+          sound: reelSound || "Son original",
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          following: false,
+          author: {
+            id: currentAuthorId,
+            userId: currentAuthorId,
+            pageId: currentPageId,
+            companyPageId: currentPageId,
+            type: isPageAuthor ? "page" : "user",
+            accountType: isPageAuthor ? "page" : "user",
+            name: activeProfile.name || CURRENT_USER.name,
+            handle: activeProfile.username || "@lynoralink",
+            avatar: activeProfileAvatar || null,
+            verified: Boolean(activeProfile.isPremium || activeProfile.isPlatformAdmin),
+          },
+          tone: ["#1D2F5C", "#0A1530"],
+          media: postMedia.length ? postMedia : [],
+        }),
+      })
+        .then(() => {
+          // Recharger les reels après création
+          window.dispatchEvent(new CustomEvent("lynoralink:reels-updated"));
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // Pour les articles et posts normaux
     const newPost = {
       id: `p${Date.now()}`,
       authorId: session?.user?.id || activeProfile.id || null,
       companyPageId: activeAccount === "company" ? companyData?.id || null : null,
       isArticle,
+      isReel: false,
       author: activeProfile.name || CURRENT_USER.name,
       title: activeProfile.title || CURRENT_USER.title,
       initials: activeProfile.initials || CURRENT_USER.avatar,
@@ -4765,17 +5280,21 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       mood,
       identifiedUsers,
       visibility,
+      reelSound: null,
+      videoUrl: null,
       isSponsored: mode === "ad",
       ...(isArticle
         ? {
             headline: articleTitle,
             excerpt: articleExcerpt?.trim() || text.replace(/[#>*_\-\[\]()]/g, "").trim().slice(0, 140) + "…",
             body: text,
-            presentation: presentation || { theme: "navy-gold", font: "editorial", density: "airy" },
+            coverUrl: postMedia.find((item) => item?.type === "image" && item?.url)?.url || null,
+            presentation: { ...(presentation || { theme: "navy-gold", font: "editorial", density: "airy" }), coverUrl: postMedia.find((item) => item?.type === "image" && item?.url)?.url || null },
             media: postMedia.map(({ id, ...item }) => item),
           }
         : { text, media: postMedia.map(({ id, ...item }) => ({ ...item, label: item.name })) }),
     };
+    
     setPosts((ps) => [newPost, ...ps]);
     setModalMode(null);
     setSidebarToast({ message: isArticle ? "Article publié" : "Publication publiée", icon: Check });
@@ -4783,7 +5302,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (isArticle) setOpenArticleId(newPost.id);
 
     // Persistance en base — remplace l'id local par le vrai id serveur une fois créé.
-    fetch("/api/posts", {
+    fetchBackendApi("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -4822,7 +5341,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       return;
     }
     try {
-      const groupResponse = await fetch(`/api/groups/${group.id}`, { cache: "no-store" });
+      const groupResponse = await fetchBackendApi(`/api/groups/${group.id}`, { cache: "no-store" });
       const groupData = await groupResponse.json();
       if (!groupResponse.ok) throw new Error(groupData?.error || "Impossible de charger le groupe");
       const currentGroup = groupData.group;
@@ -4831,7 +5350,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       const userName = session.user.name || activeProfile.name || "Utilisateur";
       const userInitials = userName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "U";
       const member = { id: userId, name: userName, initials: userInitials, image: session.user.image || activeProfileAvatar || null, avatarUrl: session.user.image || activeProfileAvatar || null, online: true, role: "member", title: session.user.title || activeProfile.title || "Membre", joinedAt: new Date().toISOString(), postsCount: 0 };
-      const updateResponse = await fetch(`/api/groups/${group.id}/join`, { method: "POST" });
+      const updateResponse = await fetchBackendApi(`/api/groups/${group.id}/join`, { method: "POST" });
       const updateData = await updateResponse.json();
       if (!updateResponse.ok) throw new Error(updateData?.error || "Impossible de rejoindre le groupe");
       setPosts((currentPosts) => currentPosts.map((post) => post.group?.id === group.id ? { ...post, group: { ...post.group, memberIds: [...(post.group.memberIds || []), userId] } } : post));
@@ -4847,7 +5366,39 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   const articleCount = posts.filter((p) => p.isArticle && p.author === CURRENT_USER.name).length;
   const openArticle = posts.find((p) => p.id === openArticleId);
+  const openSponsoredAdPreview = (ad) => {
+    const media = ad.mediaUrl ? [{ url: ad.mediaUrl, type: ad.mediaType === "video" ? "video" : "image", label: ad.title }] : [];
+    setOpenArticleId(null);
+    setOpenPostId(null);
+    setOpenPostOverride({
+      id: ad.sourceAdId || ad.id,
+      sourceAdId: ad.sourceAdId || ad.id,
+      companyPageId: ad.pageId || null,
+      pageId: ad.pageId || null,
+      authorType: ad.pageId ? "page" : "person",
+      author: ad.author || "Annonceur",
+      authorId: ad.authorId || null,
+      initials: ad.initials || "L",
+      avatarUrl: ad.image || null,
+      title: ad.title || "Annonce sponsorisée",
+      campaignTitle: ad.title || "Annonce sponsorisée",
+      time: ad.createdAt || ad.time || null,
+      text: ad.description || "",
+      excerpt: ad.description || "",
+      media,
+      comments: Array.isArray(ad.comments) ? ad.comments : [],
+      likes: Number(ad.likes || 0),
+      shares: Number(ad.shares || 0),
+      isSponsored: true,
+      objective: ad.objective || null,
+      cta: ad.cta || "En savoir plus",
+      website: ad.website,
+      whatsapp: ad.whatsapp,
+      campaignId: ad.campaignId,
+    });
+  };
   const openPostPreview = (post) => {
+    setOpenPostOverride(null);
     if (post?.isArticle || post?.headline) {
       setOpenPostId(null);
       setOpenArticleId(post.id);
@@ -4857,8 +5408,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setOpenPostId(post.id);
   };
   const openPost = (() => {
+    if (openPostOverride) return openPostOverride;
     void jobEngagementVersion;
-    const post = posts.find((item) => String(item.id) === String(openPostId));
+    const post = visibleFeedPosts.find((item) => String(item.id) === String(openPostId));
     if (!post || post.variant !== "job" || typeof window === "undefined") return post;
     try {
       const key = `lynoralink:job-engagement:${session?.user?.id || "guest"}:${post.id}`;
@@ -4873,17 +5425,18 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const requestLogout = () => {
     setShowLogoutTransition(true);
   };
-  const confirmLogout = () => { setLoggedOut(true); signOut({ callbackUrl: "/" }); };
-  const deleteAccount = () => {
-    setLogoutReason("delete");
-    setLoggedOut(true);
-    fetch("/api/account", { method: "DELETE" })
-      .catch(() => {})
-      .finally(() => signOut({ callbackUrl: "/" }));
+  const confirmLogout = async () => {
+    await signOut({ redirect: false });
+    window.location.replace("/");
   };
-  const reconnect = () => { setLoggedOut(false); setView("feed"); };
-
-  if (loggedOut) return <LoggedOutScreen reason={logoutReason} onReconnect={reconnect} />;
+  const deleteAccount = () => {
+    fetchBackendApi("/api/account", { method: "DELETE" })
+      .catch(() => {})
+      .finally(async () => {
+        await signOut({ redirect: false });
+        window.location.replace("/");
+      });
+  };
   if (!accountReady && view === "feed") {
     return <FeedLoadingShell profileView={view === "profile"} />;
   }
@@ -4943,7 +5496,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
               <Mail size={15} /> Contacter le support
             </button>
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={async () => {
+                await signOut({ redirect: false });
+                window.location.replace("/");
+              }}
               style={{ border: "none", borderRadius: 12, background: "linear-gradient(135deg, #17345C 0%, #2B5F8B 100%)", color: "#FFFFFF", fontWeight: 700, fontSize: 13.5, padding: "12px 22px", cursor: "pointer", boxShadow: "0 12px 28px rgba(23,52,92,0.2)" }}
             >
               Se déconnecter
@@ -4982,6 +5538,18 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         .lynora-feed-container {
           padding: 0 20px 60px;
         }
+        .lynora-reel-rail {
+          margin: 8px 0 16px;
+          padding: 16px;
+          overflow: hidden;
+          border: 1px solid ${C.line};
+          border-radius: 16px;
+          background: ${C.white};
+          box-shadow: 0 8px 24px rgba(15, 51, 82, 0.06);
+        }
+        .lynora-reel-rail .lynora-reel-preview-viewport {
+          border-radius: 12px;
+        }
         .lynora-profile-page {
           height: calc(100dvh - var(--lynora-header-offset, 0px));
           min-height: 0;
@@ -4996,6 +5564,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         @media (max-width: 900px) {
           .lynora-feed-container {
             padding: 0 16px 24px;
+          }
+          .lynora-reel-rail {
+            padding: 12px;
           }
           .lynora-profile-page {
             padding-bottom: 0;
@@ -5064,6 +5635,14 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             background: ${C.gold100};
             color: ${C.navy800};
           }
+          .feed-suggestions-rail,
+          .feed-suggestions-grid,
+          .feed-page-suggestions-grid {
+            width: 100vw !important;
+            max-width: none !important;
+            margin-left: calc(50% - 50vw) !important;
+            border-radius: 0 !important;
+          }
           .feed-suggestions-rail { gap: 10px !important; padding: 0 0 8px !important; }
           .feed-suggestions-grid {
             display: grid !important;
@@ -5077,11 +5656,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             max-width: none !important;
             min-width: 0 !important;
             flex: none !important;
+            border-radius: 0 !important;
           }
           .feed-suggestion-card {
             width: 100% !important;
             max-width: none !important;
             flex-basis: auto !important;
+            border-radius: 0 !important;
           }
           .feed-suggestion-card > div:first-child {
             height: 56px !important;
@@ -5111,9 +5692,11 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             max-width: none !important;
             min-width: 0 !important;
             flex: none !important;
+            border-radius: 0 !important;
           }
-          .feed-page-suggestion-card { padding: 10px !important; }
           .feed-page-suggestion-card {
+            padding: 10px !important;
+            border-radius: 0 !important;
             flex-direction: column !important;
             align-items: center !important;
             text-align: center;
@@ -5127,6 +5710,20 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             white-space: nowrap;
           }
           .feed-page-suggestion-card button { width: 100%; justify-content: center; }
+          .lynora-reel-rail {
+            margin-inline: -12px;
+            padding: 12px 0 0;
+            border-right: 0;
+            border-left: 0;
+            border-radius: 0;
+            box-shadow: none;
+          }
+          .lynora-reel-rail > div:first-child {
+            padding-inline: 12px !important;
+          }
+          .lynora-reel-rail .lynora-reel-preview-viewport {
+            border-radius: 0;
+          }
           .lynora-feed-page input, .lynora-feed-page textarea { font-size: 16px; }
         }
         .lynora-sticky-sidebar {
@@ -5134,6 +5731,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           top: var(--lynora-header-offset);
           isolation: isolate;
           overscroll-behavior: contain;
+        }
+        .lynora-fixed-sidebar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .lynora-fixed-sidebar::-webkit-scrollbar {
+          display: none;
         }
         .sponsored-ad-card {
           overflow: hidden;
@@ -5167,11 +5771,39 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         .sponsored-ad-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; min-width: 86px; min-height: 36px; padding: 7px 12px; border: 0; border-radius: 6px; background: transparent; color: #315B7D; font-size: 11.5px; line-height: 1; font-weight: 800; text-decoration: none; cursor: pointer; white-space: nowrap; }
         .sponsored-ad-action:hover { opacity: 0.72; }
         .sponsored-ad-action-primary { color: #17345C; }
+        .sponsored-ad-action-secondary { color: #315B7D; border: 1px solid var(--app-border); }
+        .sponsored-ad-action-comment { color: #0A66C2; border: 1px solid #B9D9F5; }
         .sponsored-ad-action-message { color: #0A66C2; }
         .sponsored-ad-action-whatsapp { color: #159447; }
-        .sidebar-sponsored-item { padding: 4px 0 13px; }
-        .sidebar-sponsored-item + .sidebar-sponsored-item { padding-top: 13px; border-top: 1px solid var(--app-border); }
-        .sidebar-sponsored-actions a:hover, .sidebar-sponsored-actions button:hover { opacity: 0.68; }
+        .sidebar-sponsored-item { display: flex; flex-direction: column; }
+        .sidebar-sponsored-item + .sidebar-sponsored-item { border-top: 1px solid var(--app-border); }
+        .sidebar-ad-card { transition: background 200ms cubic-bezier(0.4,0,0.2,1); animation: sidebar-ad-enter 280ms ease-out both; }
+        .sidebar-ad-card:hover { background: rgba(15,51,82,0.015); }
+        .sidebar-ad-linkrow { transition: background 180ms cubic-bezier(0.4,0,0.2,1); }
+        .sidebar-ad-linkrow:hover { background: rgba(15,51,82,0.05) !important; }
+        .sidebar-ad-toggle:hover { text-decoration: underline; }
+        .sidebar-ad-spin { animation: sidebar-ad-spin 0.8s linear infinite; }
+        @keyframes sidebar-ad-spin { to { transform: rotate(360deg); } }
+        @keyframes sidebar-ad-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .sidebar-sponsored-cta {
+          transition: background 180ms cubic-bezier(0.4,0,0.2,1), color 180ms cubic-bezier(0.4,0,0.2,1), transform 120ms cubic-bezier(0.4,0,0.2,1);
+          will-change: transform;
+        }
+        .sidebar-sponsored-cta:hover {
+          background: var(--navy800) !important;
+          color: var(--app-surface) !important;
+          border-color: var(--navy800) !important;
+        }
+        .sidebar-sponsored-cta:active { transform: scale(0.97); }
+        .sidebar-sponsored-cta:focus-visible { outline: 3px solid rgba(15, 51, 82, 0.22); outline-offset: 2px; }
+        .sidebar-sponsored-secondary a { transition: opacity 160ms ease; }
+        .sidebar-sponsored-secondary a:hover { opacity: 0.82; }
+        @media (max-width: 480px) {
+          .sidebar-sponsored-cta { padding: 5px 9px !important; font-size: 11.5px !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .sidebar-ad-card, .sidebar-ad-linkrow, .sidebar-sponsored-cta, .sidebar-ad-spin { transition: none !important; animation: none !important; }
+        }
         @media (max-width: 480px) {
           .sponsored-ad-actions { gap: 4px; padding-inline: 10px; }
           .sponsored-ad-action { min-width: 0; padding-inline: 6px; font-size: 10.5px; }
@@ -5207,7 +5839,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         groupBadge={groupBadge}
         companyBadge={companyBadge}
         isAdmin={isAdmin}
-        onOpenCampaign={() => setCampaignModalOpen(true)}
+        onOpenCampaign={openCampaign}
         isPremium={subscriptionData?.plan === "premium"}
         onSearch={handleSearch}
         onSelectSearchResult={handleSearchResult}
@@ -5260,12 +5892,12 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   connectionCount={connections.length}
                   activeView={view}
                   onOpenComposer={setModalMode}
-                  onOpenCampaign={() => setCampaignModalOpen(true)}
+                  onOpenCampaign={openCampaign}
                   onNavigate={navigate}
                   onNavigateShortcut={async (shortcut) => {
                     if (activeAccount === "company" && (shortcut === "my-posts" || shortcut === "my-articles") && companyData?.id) {
                       try {
-                        const response = await fetch(`/api/posts?companyPageId=${encodeURIComponent(companyData.id)}&limit=50`, { cache: "no-store" });
+                        const response = await fetchBackendApi(`/api/posts?companyPageId=${encodeURIComponent(companyData.id)}&limit=50`, { cache: "no-store" });
                         if (response.ok) {
                           const data = await response.json();
                           if (Array.isArray(data.posts)) setPosts((current) => mergeOptimisticPosts(current, data.posts));
@@ -5316,7 +5948,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       : `Réponse à la story de ${context.author?.name || "cet utilisateur"}`;
                     const text = `${storyReference}\n\n${message}`;
                     try {
-                      const response = await fetch("/api/messages", {
+                      const response = await fetchBackendApi("/api/messages", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ otherUserId: storyAuthorId, text, attachments }),
@@ -5329,7 +5961,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   }}
                   onReact={async (groupId, storyId, reaction) => {
                     try {
-                      const response = await fetch(`/api/stories/${storyId}/reactions`, {
+                      const response = await fetchBackendApi(`/api/stories/${storyId}/reactions`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ reaction }),
@@ -5348,7 +5980,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       return "Lien copié";
                     }
                     if (action === "share") {
-                      const response = await fetch(`/api/stories/${storyId}/actions`, {
+                      const response = await fetchBackendApi(`/api/stories/${storyId}/actions`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ action: "share" }),
@@ -5362,7 +5994,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       return navigator.share ? "Story partagée" : "Lien copié";
                     }
                     if (action === "report") {
-                      const response = await fetch("/api/admin/reports", {
+                      const response = await fetchBackendApi("/api/admin/reports", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ type: "story", targetId: storyId, targetLabel: `Story de ${author?.name || "cet utilisateur"}`, reason: "Contenu de story signalé" }),
@@ -5370,7 +6002,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       if (!response.ok) throw new Error("Signalement impossible");
                       return "Story signalée";
                     }
-                    const response = await fetch(`/api/stories/${storyId}/actions`, {
+                    const response = await fetchBackendApi(`/api/stories/${storyId}/actions`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action }),
@@ -5426,18 +6058,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                         <>
                           {visibleFeedPosts.map((post, index) => (
                             <React.Fragment key={post.id}>
-                              {((index === 1) || (visibleFeedPosts.length === 1 && index === 0)) && personSuggestions.length > 0 && (
-                                <SuggestionsSection
-                                  suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
-                                  connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
-                                  pendingRequestIds={pendingSuggestionIds}
-                                  onConnect={connectSuggestion}
-                                  onCancel={cancelConnectionRequest}
-                                  onDismiss={dismissSuggestion}
-                                  onNavigate={navigate}
-                                  onOpenProfile={openUserProfile}
-                                />
-                              )}
                               <PostCard
                                 post={post}
                                 group={post.group || null}
@@ -5449,6 +6069,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                   avatarUrl: activeProfileAvatar || null,
                                 }}
                                 onJoinGroup={joinGroupFromFeed}
+                                onConnect={connectUser}
+                                onRemove={removeConnection}
+                                onLeaveGroup={leaveGroupFromFeed}
                                 onToggleLike={toggleLike}
                                 onSelectReaction={selectReaction}
                                 onToggleBookmark={toggleBookmark}
@@ -5457,13 +6080,15 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                 onToggleCommentLike={(commentId) => toggleCommentLike(post.id, commentId)}
                                 onShare={share}
                                 onMessage={(post) => {
+                                  const targetId = typeof post === "string" ? post : (post?.authorId || post?.id);
+                                  if (!targetId) return;
                                   setDirectChatOpen(true);
-                                  openConversationWithUser({ id: post.authorId, pageId: post.companyPageId || null, name: post.author, image: post.avatarUrl || null });
+                                  openConversationWithUser({ id: targetId, pageId: typeof post === "object" ? (post.companyPageId || post.pageId || null) : null, name: typeof post === "object" ? (post.author || post.name) : undefined, image: typeof post === "object" ? (post.avatarUrl || post.image || null) : null, avatarUrl: typeof post === "object" ? (post.avatarUrl || post.image || null) : null });
                                 }}
                                 onJoinEvent={joinEventFromFeed}
                                 onOpenEvent={(post) => setOpenEventId(post.id)}
                                 onOpenArticle={(p) => setOpenArticleId(p.id)}
-                                onOpenPost={openPostPreview}
+                                onOpenPost={post.isSponsored ? openSponsoredAdPreview : openPostPreview}
                                 onJobAction={(job) => {
                                   if (String(job.companyPageId) === String(session?.user?.id)) {
                                     setView("company");
@@ -5478,6 +6103,145 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                 followedPageIds={followedPageIds}
                                 isCompanyAccount={activeAccount === "company"}
                               />
+                              {index === 0 && reelPreview.length > 0 && (
+                                <section className="lynora-reel-rail" aria-labelledby="lynora-reel-rail-title">
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, padding: "0 4px" }}>
+                                    <h2 id="lynora-reel-rail-title" style={{ fontSize: 15, fontWeight: 800, color: C.ink, margin: 0 }}>Reels</h2>
+                                    <button
+                                      type="button"
+                                      onClick={() => setReelsOpen(true)}
+                                      style={{ border: "none", background: "transparent", color: C.muted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                                    >
+                                      Voir tout
+                                    </button>
+                                  </div>
+                                  <div className="lynora-reel-preview-viewport" onPointerDown={handleReelPreviewPointerDown} onPointerUp={handleReelPreviewPointerUp} onPointerCancel={handleReelPreviewPointerCancel} style={{ position: "relative", overflow: "hidden", display: "flex", justifyContent: "flex-start", width: isMobileReelPreview ? "100vw" : "100%", height: isMobileReelPreview ? 560 : 360, maxWidth: isMobileReelPreview ? "100vw" : "100%", padding: 0, boxSizing: "border-box", marginLeft: isMobileReelPreview ? "calc((100vw - 100%) / -2)" : 0, marginRight: isMobileReelPreview ? "calc((100vw - 100%) / -2)" : 0, touchAction: "pan-x", cursor: "grab" }}>
+                                    {reelPreview.length > 1 && !reelPreviewLoading && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          aria-label="Reel précédent"
+                                          onClick={() => moveReelPreview(-1)}
+                                          disabled={reelPreviewIndex === 0}
+                                          style={{ position: "absolute", zIndex: 2, left: 12, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, border: "1px solid rgba(255,255,255,.35)", borderRadius: "50%", background: "rgba(10,21,48,.72)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, cursor: reelPreviewIndex === 0 ? "default" : "pointer", opacity: reelPreviewIndex === 0 ? 0.4 : 1 }}
+                                        >
+                                          <ArrowLeft size={18} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          aria-label="Reel suivant"
+                                          onClick={() => moveReelPreview(1)}
+                                          disabled={reelPreviewIndex === reelPreview.length - 1 && !reelPreviewHasMore}
+                                          style={{ position: "absolute", zIndex: 2, right: 12, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, border: "1px solid rgba(255,255,255,.35)", borderRadius: "50%", background: "rgba(10,21,48,.72)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, cursor: reelPreviewIndex === reelPreview.length - 1 && !reelPreviewHasMore ? "default" : "pointer", opacity: reelPreviewIndex === reelPreview.length - 1 && !reelPreviewHasMore ? 0.4 : 1 }}
+                                        >
+                                          <ArrowRight size={18} />
+                                        </button>
+                                      </>
+                                    )}
+                                    {reelPreviewLoading ? (
+                                      <div style={{ display: "flex", gap: isMobileReelPreview ? 0 : 16 }}>
+                                        {[1, 2, 3, 4].map((item) => (
+                                          <div key={item} style={{ width: isMobileReelPreview ? "100vw" : 220, height: isMobileReelPreview ? 560 : 360, borderRadius: isMobileReelPreview ? 0 : 24, background: "linear-gradient(135deg, rgba(19,35,70,0.22), rgba(246,211,116,0.16))", flexShrink: 0 }} />
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className="lynora-reel-preview-track"
+                                        style={{
+                                          display: "flex",
+                                          gap: isMobileReelPreview ? 0 : 16,
+                                          transform: isMobileReelPreview ? `translateX(-${reelPreviewIndex * reelViewportWidth}px)` : `translateX(-${reelPreviewIndex * 236}px)`,
+                                          transition: "transform 380ms ease",
+                                          width: isMobileReelPreview ? `${Math.max(reelPreview.length * reelViewportWidth, 0)}px` : `${Math.max(reelPreview.length * 236, 0)}px`,
+                                          paddingBottom: 4,
+                                          justifyContent: "flex-start",
+                                        }}
+                                      >
+                                        {reelPreview.map((reel, reelIndex) => {
+                                          const gradient = Array.isArray(reel.tone) && reel.tone.length >= 2 ? `linear-gradient(160deg, ${reel.tone[0]}, ${reel.tone[1]})` : "linear-gradient(135deg, #162d57, #0b1836)";
+                                          const posterUrl = typeof reel.poster === "string" && reel.poster.trim() ? reel.poster : null;
+                                          const videoUrl = typeof reel.videoUrl === "string" && reel.videoUrl.trim() ? reel.videoUrl : null;
+                                          const isVideoPreview = Boolean(videoUrl && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(videoUrl));
+
+                                          return (
+                                            <button
+                                              key={reel.id || reelIndex}
+                                              type="button"
+                                              onClick={() => { if (!consumeReelPreviewClick()) setReelsOpen(true); }}
+                                              onMouseEnter={(event) => {
+                                                const video = event.currentTarget.querySelector("video");
+                                                if (video) {
+                                                  video.currentTime = 0;
+                                                  video.play().catch(() => {});
+                                                }
+                                              }}
+                                              onMouseLeave={(event) => {
+                                                const video = event.currentTarget.querySelector("video");
+                                                if (video) {
+                                                  video.pause();
+                                                  video.currentTime = 0;
+                                                }
+                                              }}
+                                              style={{
+                                                width: isMobileReelPreview ? "100vw" : 220,
+                                                border: "none",
+                                                background: "transparent",
+                                                padding: 0,
+                                                textAlign: "left",
+                                                cursor: "pointer",
+                                                borderRadius: isMobileReelPreview ? 0 : 24,
+                                                overflow: "hidden",
+                                                boxShadow: "none",
+                                                flexShrink: 0,
+                                              }}
+                                            >
+                                              <div
+                                                style={{
+                                                  position: "relative",
+                                                  height: isMobileReelPreview ? 560 : 360,
+                                                  borderRadius: 24,
+                                                  background: posterUrl || videoUrl ? "transparent" : gradient,
+                                                  overflow: "hidden",
+                                                }}
+                                              >
+                                                {isVideoPreview ? (
+                                                  <video
+                                                    src={videoUrl}
+                                                    poster={posterUrl || undefined}
+                                                    muted
+                                                    loop
+                                                    playsInline
+                                                    preload="metadata"
+                                                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                                  />
+                                                ) : posterUrl ? (
+                                                  <img
+                                                    src={posterUrl}
+                                                    alt={reel.caption || "Reel"}
+                                                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                                  />
+                                                ) : null}
+                                                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,12,24,0.08) 0%, rgba(6,12,24,0.82) 100%)" }} />
+                                                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 14 }}>
+                                                  <div style={{ width: "100%" }}>
+                                                    <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12.5, lineHeight: 1.4, minHeight: 36, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                                                      {reel.caption || "Nouvelle publication"}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div style={{ position: "absolute", left: 12, top: 12, display: "flex", alignItems: "center", gap: 8, borderRadius: 999, background: "rgba(9,17,30,0.52)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "7px 11px", fontSize: 11, fontWeight: 700 }}>
+                                                  <Video size={14} />
+                                                  Reels
+                                                </div>
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </section>
+                              )}
                               {index === 3 && showPageSuggestions && (
                                 <PageSuggestionsGrid
                                   key={`content-suggestion-page-${suggestionRotation}`}
@@ -5501,10 +6265,18 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                   dismissedIds={dismissedSuggestionIds}
                                 />
                               )}
-                              {index === 0 && sponsoredAds.slice(0, 1).map((ad) => <SponsoredAdCard key={ad.id} ad={ad} onNavigate={navigate} onMessage={(messageAd) => {
-                                setDirectChatOpen(true);
-                                openConversationWithUser({ id: messageAd.ownerId || messageAd.authorId, pageId: messageAd.pageId || null, name: messageAd.author, image: messageAd.image || null });
-                              }} />)}
+                              {((index === 2) || (visibleFeedPosts.length < 3 && index === visibleFeedPosts.length - 1)) && personSuggestions.length > 0 && (
+                                <SuggestionsSection
+                                  suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
+                                  connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
+                                  pendingRequestIds={pendingSuggestionIds}
+                                  onConnect={connectSuggestion}
+                                  onCancel={cancelConnectionRequest}
+                                  onDismiss={dismissSuggestion}
+                                  onNavigate={navigate}
+                                  onOpenProfile={openUserProfile}
+                                />
+                              )}
                             </React.Fragment>
                           ))}
                         </>
@@ -5535,6 +6307,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   onFollowPage={followPage}
                   onJoinGroup={joinGroupFromFeed}
                   onNavigate={navigate}
+                  onMessage={(messageAd) => {
+                    setDirectChatOpen(true);
+                    openConversationWithUser({ id: messageAd.ownerId || messageAd.authorId, pageId: messageAd.pageId || null, name: messageAd.author, image: messageAd.image || null });
+                  }}
                   birthdays={connections}
                 />
               </div>
@@ -5543,11 +6319,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         </div>
       ) : (
         <>
-          {navigationSkeletonVisible && (
-            <div aria-hidden="true" style={{ position: "fixed", top: "var(--lynora-header-offset, 0px)", left: 0, right: 0, bottom: 0, zIndex: 20, overflowY: "auto", padding: "24px 16px 40px", background: "var(--app-bg)", pointerEvents: "none" }}>
-              <div style={{ maxWidth: 1400, margin: "0 auto" }}><NavigationSkeleton view={view} /></div>
-            </div>
-          )}
           {view === "groups" && (
             <Groupe
               initialGroupId={targetGroupId}
@@ -5555,7 +6326,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
               onPostCreated={(post) => setPosts((currentPosts) => [post, ...currentPosts.filter((item) => item.id !== post.id)])}
             />
           )}
-          <PageTransition activeKey={view} variant="fade-slide" duration={360} disableTransform={view === "profile" || view === "company"}>
           {view === "profile" && (
             <div style={{ maxWidth: 1400, margin: "0 auto", paddingTop: 0 }} className="lynora-feed-container lynora-profile-page">
               <ProfileLynoraLink targetUserId={profileTargetId} headerOffset={topnavHeight} />
@@ -5570,8 +6340,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
           {view === "network" && (
             <div style={{ width: "100%", maxWidth: "none", margin: 0, paddingTop: 0, height: "calc(100dvh - var(--lynora-header-offset, 0px))", minHeight: "calc(100dvh - var(--lynora-header-offset, 0px))", overflow: "hidden" }} className="lynora-feed-container lynora-network-page">
-              {networkLoading ? <NetworkSkeleton /> : (
-                <Reseau
+              <Reseau
                   connections={connections}
                   invitations={invitations}
                   suggestions={activeAccount === "company" ? pageSuggestions : networkSuggestions}
@@ -5585,7 +6354,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   onCancelConnectionRequest={activeAccount === "personal" ? cancelConnectionRequest : undefined}
                   onTabChange={(nextTab) => {
                     setNetworkInitialTab(nextTab);
-                    router.replace(`/feed?view=network&tab=${encodeURIComponent(nextTab)}`, { scroll: false });
                   }}
                   onMessageUser={(user) => {
                     openConversationWithUser(user);
@@ -5593,11 +6361,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       navigate("messages");
                     }
                   }}
-                />
-              )}
+              />
             </div>
           )}
-          </PageTransition>
         </>
       )}
 
@@ -5607,6 +6373,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           style={{ position: "fixed", inset: 0, zIndex: isMobile ? 1200 : 20, pointerEvents: "none", background: "transparent", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", paddingTop: isMobile ? 0 : "calc(var(--lynora-header-offset) + 10px)" }}
         >
           <div
+            ref={messagesPanelRef}
             className="lynora-mobile-notifications"
             style={{
               position: "relative",
@@ -5671,6 +6438,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       {notificationsModalOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: isMobile ? 1200 : 220, pointerEvents: "none", background: "transparent" }}>
           <div
+            ref={notificationsPanelRef}
             style={{
               position: "absolute",
               display: "flex",
@@ -5719,7 +6487,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
               showTopNav={false}
               onBack={() => navigate("feed")}
               onSubscribe={async (planId, billingCycle) => {
-                const response = await fetch("/api/stripe/checkout", {
+                const response = await fetchBackendApi("/api/stripe/checkout", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ planId, billingCycle }),
@@ -5735,7 +6503,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 window.location.assign(data.url);
               }}
               onManage={async () => {
-                const response = await fetch("/api/stripe/portal", { method: "POST" });
+                const response = await fetchBackendApi("/api/stripe/portal", { method: "POST" });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data?.url) {
                   throw new Error(data?.error || "Impossible d'ouvrir la gestion de l'abonnement.");
@@ -5778,6 +6546,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
               onDownloadInvoice={() => {}}
               onUpdateCompany={updateSelectedCompanyPage}
               onOpenComposer={(mode) => openCompanyComposer(mode, selectedCompanyPage?.id)}
+              onOpenSponsor={openCampaign}
               onToggleLike={toggleLike}
               onSelectReaction={selectReaction}
               onToggleBookmark={toggleBookmark}
@@ -5791,11 +6560,24 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             />
           ) : (
             <>
-              {companyTab !== "mine" ? (
+              {companyTab !== "mine" || !companyLoading ? (
                 <div style={{ padding: 0 }}>
                   <CompanyPagesGrid
                     companyTab={companyTab}
+                    onNavigate={navigate}
+                    onMessage={(page) => {
+                      setDirectChatOpen(true);
+                      openConversationWithUser({
+                        id: page.ownerId || page.id,
+                        pageId: page.id,
+                        name: page.name || page.displayName || "Page entreprise",
+                        title: page.tag || page.industry || "Page entreprise",
+                        image: page.avatarUrl || page.logoUrl || page.image || null,
+                        avatarUrl: page.avatarUrl || page.logoUrl || page.image || null,
+                      });
+                    }}
                     onCompanyTabChange={(nextTab) => {
+                      setSelectedCompanyPage(null);
                       setCompanyTab(nextTab);
                       ignoreRouteSyncRef.current = true;
                       router.push(`/feed?view=company&companyTab=${nextTab}`);
@@ -5810,14 +6592,21 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     }}
                     followedPageIds={followedPageIds}
                     onFollowPage={followPage}
-                    initialPages={publicCompanyPages.filter((page) => companyTab === "followed"
-                      ? followedPageIds.some((pageId) => String(pageId) === String(page.id))
-                      : !followedPageIds.some((pageId) => String(pageId) === String(page.id)))}
+                    initialPages={[
+                      ...(companyTab === "mine" && companyData ? [{ ...companyData, ownerId: CURRENT_USER_ID, managed: true, isOwn: true }] : []),
+                      ...publicCompanyPages.filter((page) => {
+                        const isMyPage = String(page.id) === String(companyData?.id)
+                          || String(page.ownerId || "") === String(CURRENT_USER_ID);
+                        if (companyTab === "mine") return false;
+                        if (companyTab === "followed") return followedPageIds.some((pageId) => String(pageId) === String(page.id));
+                        return !isMyPage && !followedPageIds.some((pageId) => String(pageId) === String(page.id));
+                      }),
+                    ]}
                     onPageCreated={(page) => {
                       saveCompanyData({ ...page, ownerId: CURRENT_USER_ID, isPremium: true, creatorSubscribed: true });
                       setActiveAccount("company");
                       try { localStorage.setItem("lynoralink:activeAccount", "company"); } catch {}
-                      fetch("/api/account/switch", {
+                      fetchBackendApi("/api/account/switch", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ account: "company" }),
@@ -5828,14 +6617,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       ignoreRouteSyncRef.current = true;
                       router.replace("/feed?view=company&companyTab=mine");
                     }}
-                    canCreatePage={isAdmin || subscriptionData?.plan === "premium"}
-                    onUpgrade={() => {
-                      setSidebarToast({
-                        message: "La création de pages entreprise est réservée au forfait Premium. Mettez votre forfait à niveau pour continuer.",
-                        icon: Crown,
-                      });
-                      navigate("abonnement");
-                    }}
+                    canCreatePage={true}
+                    onUpgrade={() => {}}
                   />
                 </div>
               ) : companyLoading ? (
@@ -5862,6 +6645,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     );
                   }}
                   onOpenComposer={(mode) => openCompanyComposer(mode, companyData?.id)}
+                  onOpenSponsor={openCampaign}
                   onMessage={(user) => {
                     setDirectChatOpen(true);
                     openConversationWithUser(user);
@@ -5919,11 +6703,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     <button
                       type="button"
                       onClick={() => {
-                        if (!isAdmin && subscriptionData?.plan !== "premium") {
-                          setSidebarToast({ message: "La création de pages entreprise est réservée au forfait Premium. Mettez votre forfait à niveau pour continuer.", icon: Crown });
-                          navigate("abonnement");
-                          return;
-                        }
                         setCompanyTab("discover");
                         ignoreRouteSyncRef.current = true;
                         router.push("/feed?view=company&companyTab=discover");
@@ -5958,6 +6737,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           onShare={share}
           onOpenArticle={(p) => setOpenArticleId(p.id)}
           onOpenPost={openPostPreview}
+          onOpenReels={(items) => { setReelModalItems(items); setReelsOpen(true); }}
         />
       )}
 
@@ -6053,6 +6833,17 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         <SponsorModal company={companyData} onClose={() => setCampaignModalOpen(false)} />
       )}
 
+      {reelsOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(3, 7, 18, 0.86)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Reel
+            reels={reelModalItems || undefined}
+            onClose={() => { setReelsOpen(false); setReelModalItems(null); }}
+            onOpenProfile={openUserProfile}
+            onOpenCompanyPage={openCompanyPageDetail}
+          />
+        </div>
+      )}
+
       {modalMode && modalMode !== "visuelfocus" && (
         <CreatePostModal
           initialMode={modalMode}
@@ -6119,7 +6910,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             initials: activeProfile.initials || CURRENT_USER.avatar,
             avatarUrl: activeProfileAvatar || null,
           }}
-          onClose={() => setOpenPostId(null)}
+          onClose={() => { setOpenPostId(null); setOpenPostOverride(null); }}
           onToggleLike={toggleLike}
           onReact={selectReaction}
           onToggleBookmark={toggleBookmark}

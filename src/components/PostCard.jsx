@@ -54,6 +54,7 @@ import {
   Send, ExternalLink, X, Flag, EyeOff, Link2, Trash2, ChevronDown,
   ChevronUp, Clock, Tag, ArrowRight, CornerUpLeft, Pencil, CalendarDays,
   MapPin, Video, Download, FileText, Search, Check, Copy, Mail, Megaphone, Briefcase,
+  Info,
 } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWhatsapp, faLinkedin, faFacebook, faXTwitter } from '@fortawesome/free-brands-svg-icons';
@@ -63,8 +64,10 @@ import Emojipicker from "@/components/Emojipicker";
 import RelativeTime from "@/components/RelativeTime";
 import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
+import { fetchBackendApi } from "@/lib/backend-api";
 import CreatePostModal from "./CreatePostModal";
 import { CommentSkeleton } from "@/components/Skeleton";
+import ProfileHoverPreview from "./ProfileHoverPreview";
 
 /* ── Tokens ──────────────────────────────────────────────────────────── */
 const C = {
@@ -256,54 +259,181 @@ function sponsoredActionLabel(post) {
   return "Découvrir";
 }
 
+function SponsoredInfo() {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <span
+      ref={containerRef}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+      style={{ position: "relative", display: "inline-flex" }}
+    >
+      <button
+        type="button"
+        aria-label="Pourquoi vois-je cette publicité ?"
+        aria-expanded={isOpen}
+        onFocus={() => setIsOpen(true)}
+        onBlur={(event) => {
+          if (!containerRef.current?.contains(event.relatedTarget)) setIsOpen(false);
+        }}
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 1, border: 0, background: "transparent", color: "inherit", cursor: "pointer", borderRadius: 4 }}
+      >
+        <Info size={13} />
+      </button>
+      {isOpen && (
+        <span role="status" style={{ position: "absolute", zIndex: 10, top: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)", width: "min(230px, calc(100vw - 32px))", padding: "10px 12px", borderRadius: 8, background: C.navy800, color: "#fff", fontSize: 12, lineHeight: 1.4, fontWeight: 500, textAlign: "left", whiteSpace: "normal", boxShadow: "0 6px 18px rgba(15,51,82,0.22)" }}>
+          Cette publication est sponsorisée par LynoraLink.
+        </span>
+      )}
+    </span>
+  );
+}
+
 function SponsoredDetails({ post, onOpenPost, onMessage }) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const websiteUrl = sponsoredTarget({ website: post.website });
   const whatsappUrl = post.whatsapp ? `https://wa.me/${String(post.whatsapp).replace(/\D/g, "")}` : null;
   const trackClick = () => {
-    if (post.campaignId) fetch("/api/ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: post.campaignId, event: "click" }) }).catch(() => {});
+    if (post.campaignId) fetchBackendApi("/api/ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: post.campaignId, event: "click" }) }).catch(() => {});
   };
   const mediaItems = normalizeMedia(post.media);
-  const description = post.excerpt || post.text || "";
+
+  // --- Texte principal avec repli "Voir plus / Voir moins" ---
+  const description = post.excerpt || post.campaignDescription || post.text || "";
   const descriptionLineCount = description.split("\n").length;
   const descriptionIsLong = description.length > TEXT_COLLAPSE_THRESHOLD || descriptionLineCount > TEXT_COLLAPSE_MAX_LINES;
   const descriptionPreview = descriptionIsLong
     ? truncateText(description, { charLimit: TEXT_COLLAPSE_THRESHOLD, lineLimit: TEXT_COLLAPSE_MAX_LINES }).truncated
     : description;
-  const displayedDescription = descriptionIsLong && !descriptionExpanded ? `${descriptionPreview}…` : description;
-  const actionStyle = {
-    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-    flex: "1 1 0", minWidth: 0, minHeight: 40, padding: "9px 12px", borderRadius: 10,
-    border: "1px solid transparent", fontSize: 12, lineHeight: 1.15,
-    fontWeight: 800, textDecoration: "none", cursor: "pointer", whiteSpace: "nowrap",
-    transition: "transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease",
+  const ellipsis = "\u2026";
+  const displayedDescription = descriptionIsLong && !descriptionExpanded ? `${descriptionPreview}${ellipsis}` : description;
+
+  // --- Headline + libelle CTA ---
+  const headline = post.headline || post.campaignTitle || post.title || "";
+  const ctaLabel = sponsoredActionLabel(post);
+
+  // Nom de domaine affiche sous la headline (factatif).
+  let displayDomain = "lynoralink.com";
+  if (websiteUrl) {
+    try { displayDomain = new URL(websiteUrl).hostname.replace(/^www\./, ""); } catch {}
+  }
+
+  // CTA principal -- identite navy/dore de LynoraLink :
+  // fond dore (C.gold400), texte navy fonce (C.navy800), bordure doree.
+  const ctaBaseStyle = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    gap: 6, padding: "7px 14px", borderRadius: 7,
+    border: `1px solid ${C.gold600}`, fontSize: 13, lineHeight: 1,
+    fontWeight: 700, textDecoration: "none", cursor: "pointer", whiteSpace: "nowrap",
+    color: C.navy800, background: C.gold400,
+    boxShadow: "0 1px 2px rgba(15,51,82,0.10)",
+    transition: "background 160ms ease, filter 160ms ease, transform 160ms ease",
   };
+  const CtaButton = websiteUrl ? (
+    <a
+      className="pc-sponsored-cta"
+      href={websiteUrl}
+      target="_blank"
+      rel="noreferrer"
+      onClick={trackClick}
+      style={ctaBaseStyle}
+    >{ctaLabel}</a>
+  ) : (
+    <button
+      className="pc-sponsored-cta"
+      type="button"
+      onClick={() => { trackClick(); onOpenPost?.(post); }}
+      style={ctaBaseStyle}
+    >{ctaLabel}</button>
+  );
+
   return (
-    <div className="pc-sponsored-block" style={{ margin: "0 16px 14px", border: `1px solid ${C.gold400}99`, borderRadius: 12, overflow: "hidden", background: "#FFFDF7", boxShadow: "0 4px 14px rgba(217,165,54,0.10)" }}>
-      <div style={{ padding: "13px 14px 11px" }}>
-        {description && <div style={{ color: C.muted, fontSize: 13.5, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+    <div className="pc-sponsored-block" style={{ display: "flex", flexDirection: "column" }}>
+      {/* Texte de la publicite (au-dessus de l'image, couleur texte normale,
+          avec "Voir plus / Voir moins" pour les descriptions longues) */}
+      {description && (
+        <div className="pc-sponsored-text" style={{ padding: "0 16px 12px", color: FB.text, fontSize: 15, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
           {displayedDescription}
-          {descriptionIsLong && <button
-            type="button"
-            onClick={() => setDescriptionExpanded((value) => !value)}
-            style={{ display: descriptionExpanded ? "block" : "inline", marginTop: descriptionExpanded ? 4 : 0, background: "none", border: "none", padding: descriptionExpanded ? 0 : "0 0 0 6px", cursor: "pointer", color: C.navy800, fontWeight: 700, fontSize: 13 }}
-          >
-            {descriptionExpanded ? "Voir moins" : "Voir plus"}
-            <ChevronDown size={13} style={{ marginLeft: 3, verticalAlign: "-2px", transform: descriptionExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
-          </button>}
-        </div>}
+          {descriptionIsLong && (
+            <button
+              type="button"
+              onClick={() => setDescriptionExpanded((value) => !value)}
+              style={{
+                display: descriptionExpanded ? "block" : "inline",
+                marginTop: descriptionExpanded ? 6 : 0,
+                marginLeft: descriptionExpanded ? 0 : 6,
+                background: "none", border: "none", padding: 0, cursor: "pointer",
+                color: C.navy800, fontWeight: 700, fontSize: 15,
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+              aria-expanded={descriptionExpanded}
+            >
+              {descriptionExpanded ? "Voir moins" : "Voir plus"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Image / video pleine largeur, sans encadre dore epais ni fond dore pale */}
+      {mediaItems.length > 0 && (
+        <MediaGallery items={mediaItems} onOpenPost={onOpenPost ? () => onOpenPost(post) : null} />
+      )}
+
+      {/* Ligne " headline + bouton CTA " facon Facebook, identite navy/dore */}
+      <div className="pc-sponsored-linkrow" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 16px", background: FB.hover, borderTop: `1px solid ${FB.divider}`, borderBottom: `1px solid ${FB.divider}` }}>
+        {websiteUrl ? (
+          <a className="pc-sponsored-linkinfo" href={websiteUrl} target="_blank" rel="noreferrer" onClick={trackClick} style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3, color: "inherit", textDecoration: "none" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.navy800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{headline || "Publicite"}</span>
+            <span style={{ fontSize: 12, color: FB.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "underline" }}>{displayDomain}</span>
+          </a>
+        ) : (
+          <div className="pc-sponsored-linkinfo" style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.navy800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{headline || "Publicite"}</span>
+            <span style={{ fontSize: 12, color: FB.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayDomain}</span>
+          </div>
+        )}
+        {CtaButton}
       </div>
-      {mediaItems.length > 0 && <MediaGallery items={mediaItems} onOpenPost={onOpenPost ? () => onOpenPost(post) : null} />}
-      <div className="pc-sponsored-actions" style={{ display: "flex", alignItems: "stretch", gap: 8, padding: "12px 14px 14px", borderTop: `1px solid ${C.gold400}55` }}>
-        {websiteUrl ? <a className="pc-sponsored-action pc-sponsored-action-primary" href={websiteUrl} target="_blank" rel="noreferrer" onClick={trackClick} style={{ ...actionStyle, color: C.navy800, background: "#F3C956", borderColor: "#E2B63F", boxShadow: "0 5px 12px rgba(217,165,54,0.20)" }}>{sponsoredActionLabel(post)} <ExternalLink size={13} /></a> : <button className="pc-sponsored-action pc-sponsored-action-primary" type="button" onClick={() => { trackClick(); onOpenPost?.(post); }} style={{ ...actionStyle, color: C.navy800, background: "#F3C956", borderColor: "#E2B63F", boxShadow: "0 5px 12px rgba(217,165,54,0.20)" }}>{sponsoredActionLabel(post)} <ArrowRight size={14} /></button>}
-        {onMessage && <button className="pc-sponsored-action pc-sponsored-action-message" type="button" onClick={() => onMessage(post)} style={{ ...actionStyle, color: "#075B9E", background: "#EAF4FF", borderColor: "#B9D9F5" }}><MessageCircle size={15} /> Message</button>}
-        {whatsappUrl && <a className="pc-sponsored-action pc-sponsored-action-whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer" onClick={trackClick} style={{ ...actionStyle, color: "#127A3D", background: "#EAF8F0", borderColor: "#B9E5C9" }}><FontAwesomeIcon icon={faWhatsapp} /> WhatsApp</a>}
-      </div>
+
+      {/* Actions secondaires discretes (Message / WhatsApp) */}
+      {(onMessage || whatsappUrl) && (
+        <div className="pc-sponsored-secondary" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px 12px" }}>
+          {onMessage && (
+            <button type="button" onClick={() => { trackClick(); onMessage(post); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${FB.divider}`, background: C.white, color: C.navy800, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              <MessageCircle size={15} /> Message
+            </button>
+          )}
+          {whatsappUrl && (
+            <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={trackClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${FB.divider}`, background: C.white, color: "#127A3D", fontSize: 13, fontWeight: 600, textDecoration: "none", cursor: "pointer" }}>
+              <FontAwesomeIcon icon={faWhatsapp} /> WhatsApp
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-/** Formate un nombre (ex. 1200 → "1,2 k") */
 function fmtCount(n = 0) {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace(".0", "")} k`;
   return String(n);
@@ -354,8 +484,8 @@ function EventBanner({ post, onJoinEvent, onOpenEvent }) {
   };
 
   return (
-    <div style={{ margin: "0 16px 12px", border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", background: "#F7FAFC" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", background: navyGrad, color: C.white }}>
+    <div style={{ margin: "0 16px 12px", border: `1px solid ${C.line}`, borderRadius: 0, overflow: "hidden", background: "#F7FAFC" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", background: navyGrad, color: C.white, borderRadius: 0 }}>
         <CalendarDays size={20} color={C.gold400} />
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Événement du groupe</span>
       </div>
@@ -533,7 +663,7 @@ function MediaGallery({ items, onOpenPost }) {
 
   /* Layouts selon le nombre de médias */
   const wrapStyle = {
-    borderRadius: 14,
+    borderRadius: 0,
     overflow: "hidden",
     margin: "0 0 4px",
     cursor: onOpenPost ? "pointer" : "default",
@@ -1079,7 +1209,7 @@ function CommentItem({ comment, currentUser, onToggleLike, onToggleCommentReacti
     try {
       const data = onToggleCommentReaction
         ? await onToggleCommentReaction(postId, comment.id, reactionKey)
-        : await fetch(`/api/posts/${postId}/comments/${comment.id}/reactions`, {
+        : await fetchBackendApi(`/api/posts/${postId}/comments/${comment.id}/reactions`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reaction: reactionKey }),
@@ -1543,7 +1673,7 @@ function CommentSection({ post, currentUser, onAddComment, onReplyComment, onTog
 
   const editComment = async (commentId, newText) => {
     try {
-      const res = await fetch(`/api/posts/${post.id}/comments/${commentId}`, {
+      const res = await fetchBackendApi(`/api/posts/${post.id}/comments/${commentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: newText }),
@@ -1570,7 +1700,7 @@ function CommentSection({ post, currentUser, onAddComment, onReplyComment, onTog
 
   const deleteComment = async (commentId) => {
     try {
-      const res = await fetch(`/api/posts/${post.id}/comments/${commentId}`, {
+      const res = await fetchBackendApi(`/api/posts/${post.id}/comments/${commentId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Erreur lors de la suppression");
@@ -1610,7 +1740,7 @@ function CommentSection({ post, currentUser, onAddComment, onReplyComment, onTog
     if (!reason) return;
 
     try {
-      const res = await fetch("/api/admin/reports", {
+      const res = await fetchBackendApi("/api/admin/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2024,9 +2154,10 @@ function SharedPostBanner({ post }) {
 
       {/* ── Carte article ── */}
       <div
+        className="pc-article-cover"
         style={{
           border: `1px solid ${C.line}`,
-          borderRadius: 14,
+          borderRadius: 12,
           overflow: "hidden",
           cursor: canOpen ? "pointer" : "default",
           transition: "box-shadow 0.18s ease, border-color 0.18s ease",
@@ -2040,7 +2171,7 @@ function SharedPostBanner({ post }) {
         onClick={() => canOpen && onOpenArticle(post)}
       >
         {/* Cover */}
-        <div style={{ position: "relative", width: "100%", height: coverSrc ? 200 : 160 }}>
+        <div className="pc-article-cover" style={{ position: "relative", width: "100%", height: coverSrc ? 200 : 160, borderRadius: 12, overflow: "hidden" }}>
           {coverSrc ? (
             <img
               src={coverSrc}
@@ -2049,6 +2180,7 @@ function SharedPostBanner({ post }) {
                 width: "100%", height: "100%", objectFit: "cover", display: "block",
                 transition: "transform 0.3s ease",
                 transform: coverHovered && canOpen ? "scale(1.02)" : "scale(1)",
+                borderRadius: 12,
               }}
             />
           ) : (
@@ -2268,7 +2400,7 @@ function PostContextMeta({ post, currentUserId }) {
 
 /* ── Texte du post avec expand ───────────────────────────────────────── */
 
-const TEXT_COLLAPSE_THRESHOLD = 280; // nb de caractères max avant troncature
+const TEXT_COLLAPSE_THRESHOLD = 240; // nb de caractères max avant troncature
 const TEXT_COLLAPSE_MAX_LINES = 6;   // nb de retours à la ligne max avant troncature
 
 /**
@@ -2354,8 +2486,8 @@ function ShareModal({ post, group = null, onClose, onRepost }) {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/users", { credentials: "include" }).then((response) => response.ok ? response.json() : null),
-      fetch("/api/groups", { credentials: "include" }).then((response) => response.ok ? response.json() : null),
+      fetchBackendApi("/api/users").then((response) => response.ok ? response.json() : null),
+      fetchBackendApi("/api/groups").then((response) => response.ok ? response.json() : null),
     ]).then(([userData, groupData]) => {
       setUsers(Array.isArray(userData?.users) ? userData.users : []);
       setGroups(Array.isArray(groupData?.groups) ? groupData.groups : []);
@@ -2370,7 +2502,7 @@ function ShareModal({ post, group = null, onClose, onRepost }) {
     setStatus("Envoi en cours...");
     const text = message.trim() || shareText;
     try {
-      const responses = await Promise.all(selectedUsers.map((user) => fetch("/api/messages", {
+      const responses = await Promise.all(selectedUsers.map((user) => fetchBackendApi("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otherUserId: user.id, text, attachments: sharedAttachments }),
@@ -2387,7 +2519,7 @@ function ShareModal({ post, group = null, onClose, onRepost }) {
     if (!selectedGroup) return;
     setStatus("Partage en cours...");
     try {
-      const response = await fetch(`/api/groups/${selectedGroup.id}`, {
+      const response = await fetchBackendApi(`/api/groups/${selectedGroup.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2485,9 +2617,10 @@ function ShareModal({ post, group = null, onClose, onRepost }) {
 /*  POSTCARD — composant principal                                       */
 /* ══════════════════════════════════════════════════════════════════════ */
 
-function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleLike, onSelectReaction, onToggleBookmark, onAddComment, onReplyComment, onToggleCommentLike, onShare, onOpenPost, justShared = false }) {
+function JobOfferCard({ post, currentUser, currentUserId, isOwn = false, onDelete, onJobAction, onToggleLike, onSelectReaction, onToggleBookmark, onAddComment, onReplyComment, onToggleCommentLike, onShare, onOpenPost, onFollowPage, followedPageIds = [], justShared = false }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const engagementRequestRef = useRef(0);
   const engagementStorageKey = `lynoralink:job-engagement:${currentUserId || "guest"}:${post.id}`;
   const normalizeJobReactions = (reactions = {}) => {
@@ -2537,16 +2670,17 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
   const hasMeta = Boolean(post.contract || post.loc);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const description = post.description || post.text || "";
-  const descriptionIsLong = description.length > 420 || description.split("\n").length > 8;
+  const descriptionLineCount = description.split("\n").length;
+  const descriptionIsLong = description.length > TEXT_COLLAPSE_THRESHOLD || descriptionLineCount > TEXT_COLLAPSE_MAX_LINES;
   const descriptionPreview = descriptionIsLong && !descriptionExpanded
-    ? `${description.slice(0, 420).replace(/\s+\S*$/, "").trimEnd()}…`
+    ? `${truncateText(description, { charLimit: TEXT_COLLAPSE_THRESHOLD, lineLimit: TEXT_COLLAPSE_MAX_LINES }).truncated}…`
     : description;
   const actionPost = { ...post, ...jobState };
   const coverSrc = post.coverUrl || post.imageUrl || post.image || normalizeMedia(post.media).find((item) => item?.type === "image")?.url || null;
   const jobId = post.jobId || post.id;
   const loadEngagement = async () => {
     const requestId = ++engagementRequestRef.current;
-    const response = await fetch(`/api/company/jobs/engagement?ownerId=${encodeURIComponent(post.companyPageId)}&jobId=${encodeURIComponent(jobId)}`);
+    const response = await fetchBackendApi(`/api/company/jobs/engagement?ownerId=${encodeURIComponent(post.companyPageId)}&jobId=${encodeURIComponent(jobId)}`);
     if (!response.ok) return;
     const data = await response.json();
     if (requestId !== engagementRequestRef.current) return;
@@ -2589,15 +2723,15 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
   const toggleJobLike = () => {
     const nextReaction = jobState.reaction === "ok" ? null : "ok";
     setJobState((state) => applyJobUserReaction(state, nextReaction));
-    fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction: "ok" }) }).then(() => loadEngagement()).catch(() => {});
+    fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction: "ok" }) }).then(() => loadEngagement()).catch(() => {});
   };
   const toggleJobBookmark = () => {
     setJobState((state) => ({ ...state, bookmarked: !state.bookmarked }));
-    fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "bookmark" }) }).then(() => loadEngagement()).catch(() => {});
+    fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "bookmark" }) }).then(() => loadEngagement()).catch(() => {});
   };
   const selectJobReaction = (_postId, reaction) => {
     setJobState((state) => applyJobUserReaction(state, state.reaction === reaction ? null : reaction));
-    fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction }) }).then(() => loadEngagement()).catch(() => {});
+    fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "reaction", reaction }) }).then(() => loadEngagement()).catch(() => {});
   };
   const addJobComment = async (postId, text) => {
     const result = await onAddComment?.(postId, text);
@@ -2606,7 +2740,7 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
   };
   const toggleJobCommentReaction = async (postId, commentId, reaction) => {
     ++engagementRequestRef.current;
-    const response = await fetch("/api/company/jobs/engagement", {
+    const response = await fetchBackendApi("/api/company/jobs/engagement", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "commentReaction", commentId, reaction }),
@@ -2618,7 +2752,7 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
   };
   const replyJobComment = async (postId, parentCommentId, text, media = []) => {
     ++engagementRequestRef.current;
-    const response = await fetch("/api/company/jobs/engagement", {
+    const response = await fetchBackendApi("/api/company/jobs/engagement", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "commentReply", parentCommentId, text, media }),
@@ -2633,7 +2767,7 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
   };
   const repostJob = () => {
     setJobState((state) => ({ ...state, shares: state.shares + 1 }));
-    fetch("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "share" }) }).then(() => loadEngagement()).catch(() => {});
+    fetchBackendApi("/api/company/jobs/engagement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId: post.companyPageId, jobId, action: "share" }) }).then(() => loadEngagement()).catch(() => {});
     onShare?.(post.id);
   };
   const jobActionHandlers = {
@@ -2641,7 +2775,7 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
     onSelectReaction: selectJobReaction,
     onToggleBookmark: toggleJobBookmark,
     onShare: shareJob,
-    onToggleComments: () => setShowComments(true),
+    onToggleComments: () => onOpenPost?.(actionPost),
     onOpenPost: () => onOpenPost?.(actionPost),
     onOpenArticle: undefined,
     justShared,
@@ -2663,19 +2797,35 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
         }
       `}</style>
       <div className="pc-header pc-job-header" style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 16px 10px" }}>
-        <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} aria-label={`Voir le profil de ${post.author || "Page entreprise"}`} style={{ display: "inline-flex" }}>
-          <Avatar className="pc-header-avatar" initials={post.initials} size={40} imgUrl={post.avatarUrl} />
-        </Link>
+        <ProfileHoverPreview type="page" fallback={{ id: post.companyPageId || post.authorId, name: post.author || "Page entreprise", avatarUrl: post.avatarUrl, coverUrl: post.pageCoverUrl || post.coverUrl, bio: post.description, location: post.location, followersCount: post.followersCount }}>
+          <Link href={`/feed?view=company&pageId=${encodeURIComponent(post.companyPageId || post.authorId || "")}`} aria-label={`Voir la page ${post.author || "Page entreprise"}`} style={{ display: "inline-flex" }}>
+            <Avatar className="pc-header-avatar" initials={post.initials} size={40} imgUrl={post.avatarUrl} />
+          </Link>
+        </ProfileHoverPreview>
         <div className="pc-header-main" style={{ flex: 1, minWidth: 0 }}>
-          <div className="pc-header-title-row" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-            <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} className="pc-header-name" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: FB.text, textDecoration: "none", fontSize: 15, fontWeight: 700 }}>
-              {post.author || "Page entreprise"}
-            </Link>
-            {post.isPlatformAdmin && <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />}
-            {!post.isPlatformAdmin && post.isPremium && <PremiumBadge size={14} />}
+          <div className="pc-header-title-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+              <ProfileHoverPreview type="page" fallback={{ id: post.companyPageId || post.authorId, name: post.author || "Page entreprise", avatarUrl: post.avatarUrl, coverUrl: post.pageCoverUrl || post.coverUrl, bio: post.description, location: post.location, followersCount: post.followersCount }}>
+                <Link href={`/feed?view=company&pageId=${encodeURIComponent(post.companyPageId || post.authorId || "")}`} className="pc-header-name" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: FB.text, textDecoration: "none", fontSize: 15, fontWeight: 700 }}>
+                  {post.author || "Page entreprise"}
+                </Link>
+              </ProfileHoverPreview>
+              <EnterpriseBadge size={14} label="Page entreprise" />
+              {!post.isPlatformAdmin && post.isPremium && <PremiumBadge size={14} />}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {post.companyPageId && onFollowPage && <button type="button" onClick={() => onFollowPage(post.companyPageId)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 8, border: "1px solid #D9A536", background: followedPageIds.some((id) => String(id) === String(post.companyPageId)) ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: "#0F3352", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>{followedPageIds.some((id) => String(id) === String(post.companyPageId)) ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}</button>}
+            <div style={{ position: "relative" }}>
+              <button type="button" aria-label="Options de l'offre" onClick={() => setMenuOpen((open) => !open)} style={{ width: 34, height: 34, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: "50%", background: "transparent", color: FB.textSecondary, cursor: "pointer" }}><MoreHorizontal size={20} /></button>
+              {menuOpen && <ContextMenu isOwn={isOwn} onDelete={() => onDelete?.(post.id)} onOpenPost={() => onOpenPost?.(actionPost)} onClose={() => setMenuOpen(false)} />}
+            </div>
+            </div>
           </div>
           <div className="pc-header-role" style={{ marginTop: 2, color: FB.textSecondary, fontSize: 12.5 }}>
             Publication entreprise
+          </div>
+          <div className="pc-header-meta" style={{ marginTop: 2, color: FB.textSecondary, fontSize: 12 }}>
+            <RelativeTime date={post.createdAt || post.time} />
           </div>
         </div>
       </div>
@@ -2693,8 +2843,8 @@ function JobOfferCard({ post, currentUser, currentUserId, onJobAction, onToggleL
       </div>
       <div className="pc-job-content" style={{ padding: "18px 22px 20px" }}>
         <p style={{ margin: 0, color: C.muted, fontSize: 13.5, lineHeight: 1.65, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{descriptionPreview}</p>
-        {descriptionIsLong && <button type="button" onClick={() => onOpenPost ? onOpenPost(actionPost) : setDescriptionExpanded((expanded) => !expanded)} style={{ marginTop: 7, padding: 0, border: 0, background: "none", color: C.navy800, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-          {onOpenPost ? "Voir plus" : descriptionExpanded ? "Voir moins" : "Voir plus"}
+        {descriptionIsLong && <button type="button" onClick={() => setDescriptionExpanded((expanded) => !expanded)} style={{ marginTop: 7, padding: 0, border: 0, background: "none", color: C.navy800, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+          {descriptionExpanded ? "Voir moins" : "Voir plus"}
         </button>}
         <button className="pc-job-cta" type="button" aria-label={ctaLabel} onClick={() => onJobAction?.(post)} disabled={!onJobAction} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 44, marginTop: 18, border: 0, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold400}, ${C.gold600})`, color: C.navy900, fontSize: 13, fontWeight: 800, cursor: onJobAction ? "pointer" : "default", opacity: onJobAction ? 1 : .65, boxShadow: "0 6px 14px rgba(217,165,54,0.22)" }}>
           {ctaLabel} <ArrowRight size={15} />
@@ -2729,6 +2879,8 @@ export default function PostCard({
   onToggleCommentLike,
   onShare,
   onMessage,
+  onConnect,
+  onRemove,
   onOpenArticle,
   onOpenPost,
   onEditPost,
@@ -2738,6 +2890,7 @@ export default function PostCard({
   isOwn = false,
   group = null,
   onJoinGroup,
+  onLeaveGroup,
   onFollowPage,
   followedPageIds = [],
   isCompanyAccount = false,
@@ -2755,12 +2908,15 @@ export default function PostCard({
   const mediaItems = normalizeMedia(post.media);
   const currentUserId = currentUser?.id;
   const resolvedVariant = variant === "default" && post?.variant ? post.variant : variant;
-  const isPagePost = Boolean(post.companyPageId) && !group;
+  const isPagePost = Boolean((post.authorType === "page" || post.companyPageId || post.pageId || post.title === "Page entreprise" || post.accountType === "company") && !group);
+  const pageProfileId = isPagePost ? (post.companyPageId || post.pageId || post.authorId) : null;
+  const isSponsored = Boolean(post.isSponsored || post.campaignId);
   const isAnnouncement = Boolean(post.presentation?.type === "announcement" || post.presentation === "announcement" || (typeof post.presentation === "string" && post.presentation.includes('"type":"announcement"')));
+  const isOfficialPost = Boolean(post.isPlatformAdmin || isAnnouncement);
   const announcementAuthor = isAnnouncement ? "LynoraLink" : (post.author || "Utilisateur");
   const announcementAvatar = isAnnouncement ? "/logo_lynora.svg" : (post.avatarUrl || null);
-  const isOwnPage = isCompanyAccount && isPagePost && String(post.companyPageId) === String(currentUserId);
-  const isPageFollowed = isPagePost && followedPageIds.some((id) => String(id) === String(post.companyPageId));
+  const isOwnPage = isCompanyAccount && isPagePost && String(pageProfileId) === String(currentUserId);
+  const isPageFollowed = isPagePost && followedPageIds.some((id) => String(id) === String(pageProfileId));
   const isGroupMember = group && (
     group.ownerId === currentUserId ||
     group.memberIds?.includes(currentUserId) ||
@@ -2777,13 +2933,8 @@ export default function PostCard({
     setTimeout(() => setJustShared(false), 1800);
   };
 
-  const toggleComments = async () => {
-    if (!showComments) {
-      setCommentsLoading(true);
-      // Simuler un délai de chargement pour afficher le skeleton
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setCommentsLoading(false);
-    }
+  const toggleComments = () => {
+    setCommentsLoading(false);
     setShowComments((s) => !s);
   };
 
@@ -2801,7 +2952,7 @@ export default function PostCard({
     setTimeout(() => document.addEventListener("click", handleDocClick), 0);
   };
 
-  if (resolvedVariant === "job") return <JobOfferCard post={post} currentUser={currentUser} currentUserId={currentUserId} onJobAction={onJobAction} onToggleLike={onToggleLike} onSelectReaction={onSelectReaction} onToggleBookmark={onToggleBookmark} onAddComment={onAddComment} onReplyComment={onReplyComment} onToggleCommentLike={onToggleCommentLike} onShare={handleShare} onOpenPost={onOpenPost} justShared={justShared} />;
+  if (resolvedVariant === "job") return <JobOfferCard post={post} currentUser={currentUser} currentUserId={currentUserId} isOwn={isOwn} onDelete={onDelete} onJobAction={onJobAction} onToggleLike={onToggleLike} onSelectReaction={onSelectReaction} onToggleBookmark={onToggleBookmark} onAddComment={onAddComment} onReplyComment={onReplyComment} onToggleCommentLike={onToggleCommentLike} onShare={handleShare} onOpenPost={onOpenPost} onFollowPage={onFollowPage} followedPageIds={followedPageIds} justShared={justShared} />;
 
   return (
     <>
@@ -2814,16 +2965,21 @@ export default function PostCard({
           0% { background-position: -1000px 0; }
           100% { background-position: 1000px 0; }
         }
-        .pc-sponsored-action:hover {
-          transform: translateY(-1px);
-          filter: brightness(0.98);
+        .pc-sponsored-cta:hover {
+          background: var(--navy800) !important;
+          color: var(--app-surface) !important;
+          border-color: var(--navy800) !important;
+          filter: none;
         }
-        .pc-sponsored-action:active {
-          transform: translateY(0) scale(0.98);
+        .pc-sponsored-cta:active {
+          transform: scale(0.98);
         }
-        .pc-sponsored-action:focus-visible {
-          outline: 3px solid rgba(10, 102, 194, 0.22);
+        .pc-sponsored-cta:focus-visible {
+          outline: 3px solid rgba(15, 51, 82, 0.22);
           outline-offset: 2px;
+        }
+        .pc-sponsored-linkrow:hover {
+          background: var(--app-bg) !important;
         }
         @media (max-width: 900px) {
           /* Bouton "…" d'un commentaire : visible seulement au survol sur desktop
@@ -2850,9 +3006,34 @@ export default function PostCard({
           }
           .pc-card {
             font-size: 14px !important;
-            width: 100% !important;
-            max-width: 680px !important;
-            margin-inline: auto !important;
+            width: 100vw !important;
+            max-width: none !important;
+            margin: 0 !important;
+            margin-left: calc(50% - 50vw) !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            overflow: hidden;
+          }
+          .pc-card,
+          .pc-card.pc-article-card,
+          .pc-card.pc-event-card,
+          .pc-card.pc-announcement-card {
+            border-radius: 0 !important;
+          }
+          .pc-header-avatar,
+          .pc-header-avatar img,
+          .pc-header-avatar > div {
+            border-radius: 50% !important;
+          }
+          .pc-group-cover,
+          .pc-group-cover img,
+          .pc-group-cover > div {
+            border-radius: 8px !important;
+          }
+          .pc-article-cover,
+          .pc-article-cover img {
+            border-radius: 12px !important;
           }
           .pc-card * {
             box-sizing: border-box;
@@ -2866,24 +3047,27 @@ export default function PostCard({
             gap: 4px !important;
             padding-inline: 2px !important;
           }
-          .pc-sponsored-actions {
-            gap: 5px !important;
-            padding: 10px 8px 11px !important;
+          .pc-sponsored-text {
+            font-size: 14px !important;
           }
-          .pc-sponsored-action {
-            min-width: 0 !important;
-            min-height: 36px !important;
-            padding: 6px 3px !important;
-            gap: 3px !important;
-            font-size: 10px !important;
-            line-height: 1.15 !important;
-            text-align: center !important;
-            overflow-wrap: anywhere !important;
+          .pc-sponsored-linkrow {
+            padding: 8px 12px !important;
           }
-          .pc-sponsored-action svg {
-            width: 12px !important;
-            height: 12px !important;
-            flex-shrink: 0;
+          .pc-sponsored-linkinfo span:first-child {
+            font-size: 13px !important;
+          }
+          .pc-sponsored-cta {
+            padding: 5px 10px !important;
+            font-size: 12px !important;
+          }
+          .pc-sponsored-secondary {
+            gap: 8px !important;
+            padding: 8px 12px 10px !important;
+          }
+          .pc-sponsored-secondary button,
+          .pc-sponsored-secondary a {
+            padding: 5px 10px !important;
+            font-size: 12px !important;
           }
           .pc-header {
             position: relative;
@@ -3029,6 +3213,10 @@ export default function PostCard({
           .pc-card video {
             max-width: 100%;
           }
+          .pc-media-gallery,
+          .pc-media-gallery * {
+            border-radius: 0 !important;
+          }
           .pc-media-gallery-multiple {
             min-height: 0 !important;
             height: auto !important;
@@ -3081,7 +3269,7 @@ export default function PostCard({
       `}</style>
 
       <div
-        className={`pc-card${isAnnouncement ? " pc-announcement-card" : ""}`}
+        className={`pc-card${isAnnouncement ? " pc-announcement-card" : ""}${post.isArticle ? " pc-article-card" : ""}${isEventPost(post) ? " pc-event-card" : ""}`}
         style={{
           width: "100%",
           margin: "0 auto",
@@ -3105,38 +3293,36 @@ export default function PostCard({
         <div className={post.isArticle ? "pc-header pc-article-header" : "pc-header"} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 16px 0" }}>
           {group ? (
             <div style={{ position: "relative", width: 54, height: 46, flexShrink: 0 }}>
-              <Link href={`/feed?view=groups&groupId=${encodeURIComponent(group.id)}`} aria-label={`Voir le groupe ${group.name}`} style={{ display: "inline-flex" }}>
-                <div
-                  aria-label={`Couverture de ${group.name}`}
-                  style={{
-                    position: "absolute", left: 0, top: 0, width: 42, height: 42, borderRadius: 8,
-                    background: group.coverGradient || navyGrad,
-                    backgroundImage: group.coverUrl ? `url(${group.coverUrl})` : undefined,
-                    backgroundSize: "cover", backgroundPosition: "center", border: `2px solid ${C.white}`,
-                    boxShadow: "0 1px 4px rgba(15,51,82,0.16)",
-                    cursor: "pointer",
-                  }}
-                />
-              </Link>
-              <div style={{ position: "absolute", right: 0, bottom: 0 }}>
-                <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} aria-label={`Voir le profil de ${announcementAuthor}`} style={{ display: "inline-flex" }}>
-                  <Avatar className="pc-header-avatar" initials={isAnnouncement ? "LL" : (post.initials || "L")} size={28} imgUrl={announcementAvatar} ring />
+              <ProfileHoverPreview type="group" entity={group} isMember={Boolean(isGroupMember)} onJoin={() => onJoinGroup?.(group)} onLeave={() => onLeaveGroup?.(group.id)} fallback={{ name: group.name, coverUrl: group.coverUrl, memberCount: group.memberCount }}>
+                <Link href={`/feed?${new URLSearchParams({ view: "groups", groupId: String(group.id) }).toString()}`} aria-label={`Voir le groupe ${group.name}`} onClick={(event) => event.stopPropagation()} style={{ display: "inline-flex", position: "absolute", left: 0, top: 0, width: 42, height: 42, borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 4px rgba(15,51,82,0.16)", cursor: "pointer" }}>
+                  <div className="pc-group-cover" aria-label={`Couverture de ${group.name}`} style={{ position: "absolute", inset: 0, borderRadius: 8, background: group.coverGradient || navyGrad, backgroundImage: group.coverUrl ? `url(${group.coverUrl})` : undefined, backgroundSize: "cover", backgroundPosition: "center", border: `2px solid ${C.white}`, boxSizing: "border-box", boxShadow: "0 1px 4px rgba(15,51,82,0.16)" }} />
                 </Link>
+              </ProfileHoverPreview>
+              <div style={{ position: "absolute", right: 0, bottom: 0 }}>
+                <ProfileHoverPreview type="person" fallback={{ id: post.authorId, name: announcementAuthor, avatarUrl: announcementAvatar, title: post.title }}>
+                  <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} aria-label={`Voir le profil de ${announcementAuthor}`} style={{ display: "inline-flex" }}>
+                    <Avatar className="pc-header-avatar" initials={isAnnouncement ? "LL" : (post.initials || "L")} size={28} imgUrl={announcementAvatar} ring />
+                  </Link>
+                </ProfileHoverPreview>
               </div>
             </div>
           ) : (
-            <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} aria-label={`Voir le profil de ${announcementAuthor}`} style={{ display: "inline-flex" }}>
-              <Avatar className="pc-header-avatar" initials={isAnnouncement ? "LL" : (post.initials || "L")} size={40} imgUrl={announcementAvatar} />
-            </Link>
+            <ProfileHoverPreview type={isPagePost ? "page" : "person"} onMessage={onMessage} onConnect={onConnect} onRemove={onRemove} onFollow={onFollowPage} isFollowing={isPageFollowed} fallback={{ id: pageProfileId || post.authorId, name: announcementAuthor, avatarUrl: announcementAvatar, title: post.title, coverUrl: post.pageCoverUrl || post.coverUrl, bio: post.description, location: post.location, website: post.pageWebsite, followersCount: post.followersCount }}>
+              <Link href={isPagePost ? `/feed?view=company&pageId=${encodeURIComponent(pageProfileId || "")}` : `/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} aria-label={`Voir le profil de ${announcementAuthor}`} style={{ display: "inline-flex" }}>
+                <Avatar className="pc-header-avatar" initials={isAnnouncement ? "LL" : (post.initials || "L")} size={40} imgUrl={announcementAvatar} />
+              </Link>
+            </ProfileHoverPreview>
           )}
 
-          <div className="pc-header-main" style={{ flex: 1, minWidth: 0 }}>
+          <div className="pc-header-main" style={{ flex: 1, minWidth: 0, overflow: isSponsored ? "visible" : undefined }}>
             {group ? (
               <>
                 <div className="pc-header-title-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <Link href={`/feed?view=groups&groupId=${encodeURIComponent(group.id)}`} style={{ minWidth: 0, fontSize: 15, fontWeight: 700, color: FB.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none", cursor: "pointer" }}>
-                    <span className="pc-header-name" style={{ display: "block", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{group.name}</span>
-                  </Link>
+                  <ProfileHoverPreview type="group" entity={group} isMember={Boolean(isGroupMember)} onJoin={() => onJoinGroup?.(group)} onLeave={() => onLeaveGroup?.(group.id)} fallback={{ name: group.name, coverUrl: group.coverUrl, memberCount: group.memberCount }}>
+                    <Link href={`/feed?${new URLSearchParams({ view: "groups", groupId: String(group.id) }).toString()}`} onClick={(event) => event.stopPropagation()} style={{ minWidth: 0, fontSize: 15, fontWeight: 700, color: FB.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none", cursor: "pointer" }}>
+                      <span className="pc-header-name" style={{ display: "block", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{group.name}</span>
+                    </Link>
+                  </ProfileHoverPreview>
                   {isGroupMember ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 999, background: C.navy50, color: C.navy800, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                       Membre
@@ -3148,9 +3334,13 @@ export default function PostCard({
                   )}
                 </div>
                 <div className="pc-header-role" style={{ fontSize: 13, fontWeight: 600, color: FB.textSecondary, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {announcementAuthor}
+                  {post.authorId ? (
+                    <ProfileHoverPreview type="person" isMember={Boolean(group && isGroupMember)} onJoin={onJoinGroup} onLeave={onLeaveGroup} fallback={{ id: post.authorId, name: announcementAuthor, avatarUrl: announcementAvatar, title: post.title }}>
+                      <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId)}`} aria-label={`Voir le profil de ${announcementAuthor}`} style={{ color: "inherit", textDecoration: "none" }}>{announcementAuthor}</Link>
+                    </ProfileHoverPreview>
+                  ) : announcementAuthor}
                   {!post.isPlatformAdmin && post.isPremium && <PremiumBadge size={13} />}
-                  {post.isPlatformAdmin && <EnterpriseBadge size={13} label="Administrateur officiel LynoraLink" />}
+                  {isOfficialPost && <EnterpriseBadge size={13} label="Administrateur officiel LynoraLink" />}
                   {(post.role || post.authorTitle || post.title) && (post.role || post.authorTitle || post.title) !== "Membre" && (
                     <span style={{ fontSize: 13, fontWeight: 400, color: FB.textSecondary }}> · {post.role || post.authorTitle || post.title}</span>
                   )}
@@ -3160,28 +3350,35 @@ export default function PostCard({
               <>
                 <div className="pc-header-title-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div className="pc-header-name" style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 6, fontSize: 15, fontWeight: 600, color: FB.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    <Link href={`/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} style={{ overflow: "hidden", textOverflow: "ellipsis", color: "inherit", textDecoration: "none" }}>{announcementAuthor}</Link>
-                    {post.isPlatformAdmin && <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />}
-                    {!post.isPlatformAdmin && post.isPremium && <PremiumBadge size={14} />}
+                    <ProfileHoverPreview type={isPagePost ? "page" : "person"} onMessage={onMessage} onConnect={onConnect} onRemove={onRemove} onFollow={onFollowPage} isFollowing={isPageFollowed} fallback={{ id: pageProfileId || post.authorId, name: announcementAuthor, avatarUrl: announcementAvatar, title: post.title, coverUrl: post.pageCoverUrl || post.coverUrl, bio: post.description, location: post.location, website: post.pageWebsite, followersCount: post.followersCount }}>
+                      <Link href={isPagePost ? `/feed?view=company&pageId=${encodeURIComponent(pageProfileId || "")}` : `/feed?view=profile&userId=${encodeURIComponent(post.authorId || "")}`} style={{ overflow: "hidden", textOverflow: "ellipsis", color: "inherit", textDecoration: "none" }}>{announcementAuthor}</Link>
+                    </ProfileHoverPreview>
+                    {isOfficialPost && <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />}
+                    {!isOfficialPost && post.isPremium && <PremiumBadge size={14} />}
                   </div>
                   {isPagePost && !isOwnPage && (
                     <button
                       type="button"
-                      onClick={() => onFollowPage?.(post.companyPageId)}
-                      disabled={isPageFollowed || !onFollowPage}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: `1px solid ${isPageFollowed ? C.gold600 : C.gold600}`, background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: isPageFollowed ? C.navy800 : C.navy900, fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
+                      onClick={() => onFollowPage?.(pageProfileId)}
+                      disabled={!onFollowPage}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: `1px solid ${C.gold600}`, background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: isPageFollowed ? C.navy800 : C.navy900, fontSize: 11, fontWeight: 800, cursor: onFollowPage ? "pointer" : "default", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
                     >
                       {isPageFollowed ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}
                     </button>
                   )}
                 </div>
-                <div className="pc-header-role" style={{ fontSize: 13, color: FB.textSecondary, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {post.isSponsored ? <><span style={{ color: C.gold600, fontWeight: 700 }}>Sponsorisé</span>{(post.campaignTitle || post.headline || post.title) && <span> · {post.campaignTitle || post.headline || post.title}</span>}</> : post.title}
+                <div className="pc-header-role" style={{ fontSize: 13, color: FB.textSecondary, marginTop: 1, whiteSpace: "nowrap", overflow: isSponsored ? "visible" : "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 4 }}>
+                  {isSponsored
+                    ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.gold600, fontWeight: 700 }}>
+                        <span>Sponsorisé</span>
+                        <SponsoredInfo />
+                      </span>
+                    : post.title}
                 </div>
               </>
             )}
-            <div className="pc-header-meta" style={{ fontSize: 13, color: FB.textSecondary, marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-              <RelativeTime date={post.time} />
+            <div className="pc-header-meta" style={{ fontSize: 13, color: FB.textSecondary, marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", visibility: "visible", height: "auto", overflow: "hidden" }}>
+              <RelativeTime date={post.time || post.createdAt} />
               <span>·</span>
               <VisibilityIcon v={post.visibility} />
               {post.isArticle && (
@@ -3228,7 +3425,7 @@ export default function PostCard({
               {menuOpen && (
                 <ContextMenu
                   isOwn={isOwn}
-                  onEdit={isOwn && !post.isSponsored && onEditPost ? () => setEditOpen(true) : null}
+                  onEdit={isOwn && !isSponsored && onEditPost ? () => setEditOpen(true) : null}
                   onDelete={() => onDelete?.(post.id)}
                   onOpenPost={!post.isArticle && onOpenPost ? () => onOpenPost(post) : null}
                   onOpenArticle={post.isArticle && onOpenArticle ? () => onOpenArticle(post) : null}
@@ -3259,7 +3456,7 @@ export default function PostCard({
           </>
         ) : (
           <>
-            {post.isSponsored ? <SponsoredDetails post={post} onOpenPost={onOpenPost} onMessage={onMessage} /> : <>
+            {isSponsored ? <SponsoredDetails post={post} onOpenPost={onOpenPost} onMessage={onMessage} /> : <>
               <PostText text={post.text} />
               {post.type === "shared-post" && <SharedPostBanner post={post} />}
               {mediaItems.length > 0 && (

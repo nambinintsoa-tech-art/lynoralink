@@ -8,6 +8,7 @@ import { getCompanyFollowers } from "@/lib/companyFollowers";
 
 const USER_SELECT = {
   id: true,
+  role: true,
   createdAt: true,
   updatedAt: true,
   _count: { select: { posts: true, comments: true } },
@@ -43,6 +44,7 @@ function toCompany(page, user, isPremium = false, subscribers = []) {
     createdAt: page.createdAt || user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     isPremium,
+    isPlatformAdmin: user.role === "admin",
   };
 }
 
@@ -87,14 +89,6 @@ export async function PUT(request) {
 
   if (!user) {
     return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
-  }
-
-  const access = await getSubscriptionAccess(user.id);
-  if (!access.isPremium) {
-    return NextResponse.json(
-      { error: access.expired ? "Votre période Premium est terminée." : "La création d'une page entreprise nécessite le forfait Premium." },
-      { status: 403 }
-    );
   }
 
   const body = await request.json();

@@ -18,6 +18,7 @@ import PostCard from "./PostCard";
 import EnterpriseBadge from "./EnterpriseBadge";
 import LogoBadge from "./LogoBadge";
 import AdminSupportPage from "./admin/AdminSupportPage";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ================================================================== */
 /*  TOKENS - palette LynoraLink (identique au feed)                    */
@@ -79,6 +80,8 @@ function saveAdminCache(name, data) {
 const goldGrad = `linear-gradient(135deg, ${C.gold400} 0%, ${C.gold600} 100%)`;
 const navyGrad = `linear-gradient(160deg, ${C.navy800} 0%, ${C.navy900} 100%)`;
 const APP_NAME = "LynoraLink";
+const ADMIN_API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4001").replace(/\/$/, "");
+const adminApi = (path, options = {}) => fetch(`${ADMIN_API_BASE}${path}`, { credentials: "include", ...options });
 
 /* ================================================================== */
 /*  DONNEES ADMIN - Les données viennent maintenant de l'API          */
@@ -570,7 +573,7 @@ function DashboardPage({ users, posts, groups, reports, onNavigate, analytics })
     setAnalyzingTasks(true);
     setTaskError("");
     try {
-      const response = await fetch("/api/admin/ai/tasks", { method: "POST", cache: "no-store" });
+      const response = await adminApi("/v1/admin/ai/tasks", { method: "POST", cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Analyse indisponible");
       setTaskAnalysis(data);
@@ -677,7 +680,7 @@ function DashboardPage({ users, posts, groups, reports, onNavigate, analytics })
               <button onClick={analyzeAdminTasks} disabled={analyzingTasks} style={{ padding: "8px 12px", borderRadius: 8, background: C.navy800, color: C.white, border: "none", cursor: analyzingTasks ? "wait" : "pointer", fontWeight: 700, opacity: analyzingTasks ? 0.7 : 1 }}>{analyzingTasks ? "Analyse en cours..." : "Analyser les actions manuelles"}</button>
               <button onClick={async () => {
                 try {
-                  const resp = await fetch('/api/admin/ai/announcement', { method: 'POST' });
+                  const resp = await adminApi('/v1/admin/ai/announcement', { method: 'POST' });
                   const json = await resp.json();
                   if (!resp.ok) throw new Error(json.error || `Erreur ${resp.status}`);
                   alert(`Annonce publiée dans le feed${json.source === 'fallback' ? ' avec le message de secours' : ' par l\'IA'}.`);
@@ -685,7 +688,7 @@ function DashboardPage({ users, posts, groups, reports, onNavigate, analytics })
               }} style={{ padding: '8px 12px', borderRadius: 8, background: goldGrad, color: C.navy900, border: 'none', cursor: 'pointer', fontWeight: 700 }}>Générer annonce</button>
               <button onClick={async () => {
                 try {
-                  const resp = await fetch('/api/admin/ai/config', { cache: 'no-store' });
+                  const resp = await adminApi('/v1/admin/ai/config', { cache: 'no-store' });
                   const json = await resp.json();
                   if (!resp.ok) throw new Error(json.error || `Erreur ${resp.status}`);
                   alert(`Agent config\nprovider: ${json.provider}\nmodel: ${json.model}\nconnexion: ${json.configured ? 'configurée' : 'non configurée'}`);
@@ -851,7 +854,7 @@ function UsersPage({ users, setUsers, showToast }) {
   };
 
   const persistUserUpdate = async (id, updates) => {
-    const response = await fetch("/api/admin/users", {
+    const response = await adminApi("/v1/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, ...updates }),
@@ -870,13 +873,13 @@ function UsersPage({ users, setUsers, showToast }) {
   };
 
   const notifyUser = (userId, message, type = "info") => {
-    fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, message, type }) }).catch(() => {});
+    fetchBackendApi('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, message, type }) }).catch(() => {});
   };
 
   const handleAction = async (user, type) => {
     try {
       if (type === "delete") {
-        const response = await fetch("/api/admin/users", {
+        const response = await adminApi("/v1/admin/users", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: user.id }),
@@ -914,7 +917,7 @@ function UsersPage({ users, setUsers, showToast }) {
   };
   const handleRoleChange = async (id, role) => {
     try {
-      const response = await fetch("/api/admin/users", {
+      const response = await adminApi("/v1/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, role }),
@@ -1022,7 +1025,7 @@ function PostsPage({ posts, setPosts, showToast }) {
     const post = posts.find(p => p.id === id);
     if (!post) return;
     try {
-      const res = await fetch("/api/admin/posts", {
+      const res = await adminApi("/v1/admin/posts", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, featured: !post.featured }),
@@ -1037,7 +1040,7 @@ function PostsPage({ posts, setPosts, showToast }) {
   };
   const deletePost = async (p) => {
     try {
-      const res = await fetch("/api/admin/posts", {
+      const res = await adminApi("/v1/admin/posts", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: p.id }),
@@ -1053,7 +1056,7 @@ function PostsPage({ posts, setPosts, showToast }) {
   };
   const approvePost = async (id) => {
     try {
-      const res = await fetch("/api/admin/posts", {
+      const res = await adminApi("/v1/admin/posts", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "published" }),
@@ -1199,7 +1202,7 @@ function GroupsPage({ groups, setGroups, showToast }) {
   const toggleStatus = async (group) => {
     const ns = group.status === "active" ? "suspended" : "active";
     try {
-      const res = await fetch("/api/admin/groups", {
+      const res = await adminApi("/v1/admin/groups", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: group.id, status: ns }),
@@ -1215,7 +1218,7 @@ function GroupsPage({ groups, setGroups, showToast }) {
   };
   const deleteGroup = async (group) => {
     try {
-      const res = await fetch("/api/admin/groups", {
+      const res = await adminApi("/v1/admin/groups", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: group.id }),
@@ -1283,17 +1286,17 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, users, showToast }
   });
 
   const updateSubscription = (id, updates) => { setSubscriptions((ss) => ss.map((s) => s.id === id ? { ...s, ...updates } : s)); showToast("Abonnement mis a jour.", "success"); };
-  const notifyUser = (userId, message, type = "info") => { fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, message, type }) }).catch(() => {}); };
+  const notifyUser = (userId, message, type = "info") => { fetchBackendApi('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, message, type }) }).catch(() => {}); };
 
   const changePlan = async (sub, newPlan) => {
-    const response = await fetch("/api/admin/subscriptions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sub.id, plan: newPlan }) }).catch(() => null);
+    const response = await adminApi("/v1/admin/subscriptions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sub.id, plan: newPlan }) }).catch(() => null);
     if (!response?.ok) { showToast("Impossible de modifier le plan.", "danger"); return; }
     updateSubscription(sub.id, { plan: newPlan.toUpperCase() });
     notifyUser(sub.userId, `Votre abonnement a ete modifie vers ${newPlan}.`, "info");
   };
   const toggleCancel = async (sub) => {
     const newStatus = sub.status === 'canceled' ? 'active' : 'canceled';
-    const response = await fetch("/api/admin/subscriptions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sub.id, status: newStatus }) }).catch(() => null);
+    const response = await adminApi("/v1/admin/subscriptions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sub.id, status: newStatus }) }).catch(() => null);
     if (!response?.ok) { showToast("Impossible de modifier le statut.", "danger"); return; }
     updateSubscription(sub.id, { status: newStatus });
     notifyUser(sub.userId, `Votre abonnement a ete ${newStatus === 'canceled' ? 'annule' : 'reactive'} par un administrateur.`, newStatus === 'canceled' ? 'warning' : 'success');
@@ -1360,8 +1363,8 @@ function PagesPage({ pages, setPages, showToast }) {
   const [confirmVerify, setConfirmVerify] = useState(null);
 
   const filtered = pages.filter((p) => String(p.name || "").toLowerCase().includes(search.toLowerCase()));
-  const toggleVerified = (page) => { setPages((ps) => ps.map((p) => (p.id === page.id ? { ...p, verified: !p.verified } : p))); setConfirmVerify(null); showToast(page.verified ? "Verification retiree." : "Page verifiee.", "success"); };
-  const deletePage = (page) => { setPages((ps) => ps.filter((p) => p.id !== page.id)); showToast("Page supprimee.", "danger"); };
+  const toggleVerified = async (page) => { const response = await adminApi("/v1/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, verified: !page.verified }) }).catch(() => null); if (!response?.ok) { showToast("Impossible de modifier la page.", "danger"); return; } setPages((ps) => ps.map((p) => (p.id === page.id ? { ...p, verified: !p.verified } : p))); setConfirmVerify(null); showToast(page.verified ? "Verification retiree." : "Page verifiee.", "success"); };
+  const deletePage = async (page) => { const response = await adminApi("/v1/admin/pages", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id }) }).catch(() => null); if (!response?.ok) { showToast("Impossible de supprimer la page.", "danger"); return; } setPages((ps) => ps.filter((p) => p.id !== page.id)); showToast("Page supprimee.", "danger"); };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1404,7 +1407,7 @@ function PagesPage({ pages, setPages, showToast }) {
 function CampaignsPage({ campaigns, setCampaigns, showToast }) {
   const objectiveLabels = { visibilite: "Visibilité", engagement: "Engagement", trafic: "Trafic", leads: "Leads" };
   const updateStatus = async (campaign, status) => {
-    const response = await fetch("/api/admin/campaigns", {
+    const response = await adminApi("/v1/admin/campaigns", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: campaign.storageId, status }),
@@ -1465,8 +1468,13 @@ function ReportsPage({ reports, setReports, showToast }) {
   const filtered = reports.filter((r) => filter === "all" || r.status === filter);
   const pendingCount = reports.filter((r) => r.status === "pending").length;
 
-  const resolveReport = (id, resolution) => { setReports((rs) => rs.map((r) => (r.id === id ? { ...r, status: "reviewed", resolvedAt: new Date().toISOString(), resolution } : r))); setSelectedReport(null); showToast("Signalement resolu.", "success"); };
-  const dismissReport = (id) => { setReports((rs) => rs.map((r) => (r.id === id ? { ...r, status: "dismissed" } : r))); setSelectedReport(null); showToast("Signalement rejete.", "warning"); };
+  const updateReport = async (id, status, resolution) => {
+    const response = await adminApi("/v1/admin/reports", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status, resolution }) }).catch(() => null);
+    if (!response?.ok) { showToast("Impossible de modifier le signalement.", "danger"); return; }
+    const data = await response.json(); setReports((rs) => rs.map((r) => r.id === id ? { ...r, ...data.report } : r)); setSelectedReport(null); showToast(status === "reviewed" ? "Signalement resolu." : "Signalement rejete.", status === "reviewed" ? "success" : "warning");
+  };
+  const resolveReport = (id, resolution) => updateReport(id, "reviewed", resolution);
+  const dismissReport = (id) => updateReport(id, "dismissed");
 
   const tabs = [
     { id: "all", label: "Tous", icon: Flag, count: reports.length },
@@ -1688,7 +1696,7 @@ function PlatformSettingsPage({ settings, setSettings, showToast }) {
   const save = async () => {
     try {
       setSaving(true);
-      const response = await fetch("/api/admin/settings", {
+      const response = await adminApi("/v1/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ settings: {
@@ -1823,7 +1831,7 @@ export default function LynoraAdmin({ onBack, adminEmail }) {
 
   const markAdminNotificationsRead = useCallback(async () => {
     try {
-      await fetch("/api/notifications", {
+      await fetchBackendApi("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "admin_ai_tasks", read: true }),
@@ -1836,7 +1844,7 @@ export default function LynoraAdmin({ onBack, adminEmail }) {
     let cancelled = false;
     const refreshAdminEvents = async () => {
       try {
-        const response = await fetch("/api/notifications", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/notifications", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         const unreadAdminNotifications = Array.isArray(data.notifications)
@@ -1879,7 +1887,7 @@ export default function LynoraAdmin({ onBack, adminEmail }) {
     const loadAppearance = async () => {
       if (cachedAppearance?.theme) return;
       try {
-        const response = await fetch("/api/settings", { cache: "no-store" });
+        const response = await fetchBackendApi("/api/settings", { cache: "no-store" });
         if (response.ok) {
           const appearance = (await response.json()).appearance;
           try { localStorage.setItem("lynoralink:appearance", JSON.stringify(appearance)); } catch {}
@@ -1907,9 +1915,9 @@ export default function LynoraAdmin({ onBack, adminEmail }) {
     async function loadAll() {
       setLoading(true);
       try {
-        const [usersRes, postsRes, groupsRes, pagesRes, publicPagesRes, campaignsRes, subscriptionsRes, reportsRes, analyticsRes, settingsRes, supportRes] = await Promise.all([
-          fetch("/api/admin/users").then(r => r.ok ? r.json() : { users: [] }).catch(() => ({ users: [] })),
-          fetch("/api/admin/posts")
+        const [usersRes, postsRes, groupsRes, pagesRes, campaignsRes, subscriptionsRes, reportsRes, analyticsRes, settingsRes, supportRes] = await Promise.all([
+          adminApi("/v1/admin/users").then(r => r.ok ? r.json() : { users: [] }).catch(() => ({ users: [] })),
+          adminApi("/v1/admin/posts")
             .then(async (r) => {
               if (!r.ok) {
                 return { posts: [] };
@@ -1918,22 +1926,21 @@ export default function LynoraAdmin({ onBack, adminEmail }) {
               return data && Array.isArray(data.posts) ? data : { posts: [] };
             })
             .catch(() => ({ posts: [] })),
-          fetch("/api/admin/groups").then(r => r.ok ? r.json() : { groups: [] }).catch(() => ({ groups: [] })),
-          fetch("/api/admin/pages").then(r => r.ok ? r.json() : { pages: [] }).catch(() => ({ pages: [] })),
-          fetch("/api/company/pages").then(r => r.ok ? r.json() : { pages: [] }).catch(() => ({ pages: [] })),
-          fetch("/api/admin/campaigns").then(r => r.ok ? r.json() : { campaigns: [] }).catch(() => ({ campaigns: [] })),
-          fetch("/api/admin/subscriptions").then(r => r.ok ? r.json() : { subscriptions: [] }).catch(() => ({ subscriptions: [] })),
-          fetch("/api/admin/reports").then(r => r.ok ? r.json() : { reports: [] }).catch(() => ({ reports: [] })),
-          fetch("/api/admin/analytics").then(r => r.ok ? r.json() : { analytics: null }).catch(() => ({ analytics: null })),
-          fetch("/api/admin/settings").then(r => r.ok ? r.json() : { settings: DEFAULT_PLATFORM_SETTINGS }).catch(() => ({ settings: DEFAULT_PLATFORM_SETTINGS })),
-          fetch("/api/admin/support").then(r => r.ok ? r.json() : { requests: [] }).catch(() => ({ requests: [] })),
+          adminApi("/v1/admin/groups").then(r => r.ok ? r.json() : { groups: [] }).catch(() => ({ groups: [] })),
+          adminApi("/v1/admin/pages").then(r => r.ok ? r.json() : { pages: [] }).catch(() => ({ pages: [] })),
+          adminApi("/v1/admin/campaigns").then(r => r.ok ? r.json() : { campaigns: [] }).catch(() => ({ campaigns: [] })),
+          adminApi("/v1/admin/subscriptions").then(r => r.ok ? r.json() : { subscriptions: [] }).catch(() => ({ subscriptions: [] })),
+          adminApi("/v1/admin/reports").then(r => r.ok ? r.json() : { reports: [] }).catch(() => ({ reports: [] })),
+          adminApi("/v1/admin/analytics").then(r => r.ok ? r.json() : { analytics: null }).catch(() => ({ analytics: null })),
+          adminApi("/v1/admin/settings").then(r => r.ok ? r.json() : { settings: DEFAULT_PLATFORM_SETTINGS }).catch(() => ({ settings: DEFAULT_PLATFORM_SETTINGS })),
+          adminApi("/v1/admin/support").then(r => r.ok ? r.json() : { requests: [] }).catch(() => ({ requests: [] })),
         ]);
 
         if (!cancelled) {
           saveAdminCache("users", usersRes.users || []);
           saveAdminCache("posts", postsRes.posts || []);
           saveAdminCache("groups", groupsRes.groups || []);
-          const loadedPages = [...(pagesRes.pages || []), ...(publicPagesRes.pages || [])];
+          const loadedPages = pagesRes.pages || [];
           saveAdminCache("pages", loadedPages);
           saveAdminCache("subscriptions", subscriptionsRes.subscriptions || []);
           saveAdminCache("reports", reportsRes.reports || []);

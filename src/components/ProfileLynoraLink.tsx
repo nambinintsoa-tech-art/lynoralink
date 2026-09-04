@@ -24,6 +24,7 @@ import FeedArticleViewerPreview from './ArticleViewerPreview';
 import PremiumBadge from './PremiumBadge';
 import EnterpriseBadge from './EnterpriseBadge';
 import { ProfileSkeleton } from './Skeleton';
+import { fetchBackendApi } from '@/lib/backend-api';
 
 const FeedPostCardComponent = FeedPostCard as any;
 const FeedPostViewerPreviewComponent = FeedPostViewerPreview as any;
@@ -887,6 +888,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const [pendingContactIds, setPendingContactIds] = useState<Array<string | number>>([]);
   const [removingContactIds, setRemovingContactIds] = useState<Array<string | number>>([]);
   const [mediaPosts, setMediaPosts] = useState<any[]>([]);
+  const [mediaReels, setMediaReels] = useState<any[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [activityData, setActivityData] = useState<Record<string, number> | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -923,7 +925,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   useEffect(() => {
     if (!isOwner) return undefined;
     const loadOnlineSetting = () => {
-      fetch('/api/settings', { cache: 'no-store' })
+      fetchBackendApi('/api/settings', { cache: 'no-store' })
         .then((response) => response.ok ? response.json() : null)
         .then((data) => {
           if (data?.notifications?.showOnlineStatus !== undefined) setShowOnlineStatus(Boolean(data.notifications.showOnlineStatus));
@@ -939,7 +941,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     setFriendsLoading(true);
     try {
       const userQuery = targetUserId ? `&userId=${encodeURIComponent(targetUserId)}` : '';
-      const response = await fetch(`/api/connections?limit=24&offset=${offset}${userQuery}`, { credentials: 'include', cache: 'no-store' });
+      const response = await fetchBackendApi(`/api/connections?limit=24&offset=${offset}${userQuery}`, { cache: 'no-store' });
       if (!response.ok) return;
       const data = await response.json();
       const page = (Array.isArray(data.connections) ? data.connections : []).map((friend: any) => ({
@@ -962,7 +964,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     setMediaLoading(true);
     try {
       const userQuery = targetUserId ? `&userId=${encodeURIComponent(targetUserId)}` : '';
-      const response = await fetch(`/api/posts?mediaOnly=true&limit=24&offset=${offset}${userQuery}`, { credentials: 'include', cache: 'no-store' });
+      const response = await fetchBackendApi(`/api/posts?mediaOnly=true&limit=24&offset=${offset}${userQuery}`, { cache: 'no-store' });
       if (!response.ok) return;
       const data = await response.json();
       const page = Array.isArray(data.posts) ? data.posts : [];
@@ -971,6 +973,21 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
       setMediaLoading(false);
     }
   };
+
+  const loadMediaReels = async () => {
+    try {
+      const authorId = targetUserId || session?.user?.id;
+      if (!authorId) return;
+      const response = await fetchBackendApi(`/api/reels?authorId=${encodeURIComponent(authorId)}&limit=20`, { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      setMediaReels(Array.isArray(data.reels) ? data.reels : []);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (activeTab === 'Médias') loadMediaReels();
+  }, [activeTab, targetUserId, session?.user?.id]);
 
   const openAllProfileMedia = async () => {
     setActiveTab('Médias');
@@ -1026,7 +1043,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     if (activityData !== null || activityLoading) return;
     setActivityLoading(true);
     const userQuery = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : '';
-    fetch(`/api/profile/activity${userQuery}`, { credentials: 'include', cache: 'no-store' })
+    fetchBackendApi(`/api/profile/activity${userQuery}`, { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : { activity: [] })
       .then((data) => {
         const nextActivity = (Array.isArray(data.activity) ? data.activity : []).reduce((result: Record<string, number>, item: { day: string; count: number }) => {
@@ -1050,7 +1067,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     const userId = profileUserId || targetUserId || sessionUser?.id || profile.id;
     if (!userId) return;
     let mounted = true;
-    fetch(`/api/posts?limit=20&userId=${encodeURIComponent(userId)}`, { credentials: 'include', cache: 'no-store' })
+    fetchBackendApi(`/api/posts?limit=20&userId=${encodeURIComponent(userId)}`, { cache: 'no-store' })
       .then((res) => res.ok ? res.json() : { posts: [] })
       .then((data) => {
         if (!mounted) return;
@@ -1088,7 +1105,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const showToast = (message: string, icon: any) => setToast({ message, icon });
   const closeModal = () => setModalType(null);
   const saveModal = async (preview: string) => {
-    try { const payload: { image?: string; cover?: string } = {}; if (modalType === 'avatar') payload.image = preview; if (modalType === 'cover') payload.cover = preview; await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch (e) { console.error('Failed', e); }
+    try { const payload: { image?: string; cover?: string } = {}; if (modalType === 'avatar') payload.image = preview; if (modalType === 'cover') payload.cover = preview; await fetchBackendApi('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch (e) { console.error('Failed', e); }
     if (modalType === 'avatar') setAvatarSrc(preview); if (modalType === 'cover') setCoverSrc(preview); closeModal();
   };
   const copyProfileLink = () => { const link = `https://lynoralink.com/p/${profile.name.toLowerCase().replace(/\s+/g, '-')}`; navigator.clipboard?.writeText(link).catch(() => {}); showToast('Lien copié', Copy); };
@@ -1099,7 +1116,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     if (pendingContactIds.includes(friend.id)) return;
     setPendingContactIds((current) => [...current, friend.id]);
     try {
-      const response = await fetch('/api/connections', {
+      const response = await fetchBackendApi('/api/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: friend.id }),
@@ -1113,7 +1130,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     if (removingContactIds.includes(friend.id)) return;
     setRemovingContactIds((current) => [...current, friend.id]);
     try {
-      const response = await fetch('/api/connections', {
+      const response = await fetchBackendApi('/api/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: friend.id, action: 'remove' }),
@@ -1130,7 +1147,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const reloadPosts = async () => {
     const userId = profileUserId || targetUserId || sessionUser?.id;
     if (!userId) return;
-    const response = await fetch(`/api/posts?limit=20&userId=${encodeURIComponent(userId)}`, { credentials: 'include', cache: 'no-store' });
+    const response = await fetchBackendApi(`/api/posts?limit=20&userId=${encodeURIComponent(userId)}`, { cache: 'no-store' });
     if (!response.ok) return;
     const data = await response.json();
     setPosts(Array.isArray(data.posts) ? data.posts : []);
@@ -1138,7 +1155,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
 
   const publishPost = async (payload: any = {}) => {
     if (!isOwner) return;
-    const response = await fetch('/api/posts', {
+    const response = await fetchBackendApi('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1165,7 +1182,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
 
   const addComment = async (postId: string | number, text: string, media?: any[]) => {
     if (!text.trim()) return;
-    const response = await fetch(`/api/posts/${postId}/comments`, {
+    const response = await fetchBackendApi(`/api/posts/${postId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text.trim(), media: media || [] }),
@@ -1174,7 +1191,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   };
   const addReply = async (postId: string | number, parentId: string | number, text: string, media?: any[]) => {
     if (!text.trim() || !parentId) return;
-    const response = await fetch(`/api/posts/${postId}/comments`, {
+    const response = await fetchBackendApi(`/api/posts/${postId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text.trim(), parentId, media: media || [] }),
@@ -1182,7 +1199,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     if (response.ok) await reloadPosts();
   };
   const toggleCommentLike = async (postId: string | number, commentId: string | number) => {
-    const response = await fetch(`/api/posts/${postId}/comments/${commentId}/reactions`, {
+    const response = await fetchBackendApi(`/api/posts/${postId}/comments/${commentId}/reactions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reaction: 'ok' }),
@@ -1191,7 +1208,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   };
 
   const togglePostLike = async (postId: string | number) => {
-    const response = await fetch(`/api/posts/${postId}/like`, {
+    const response = await fetchBackendApi(`/api/posts/${postId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reaction: 'ok' }),
@@ -1199,7 +1216,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     if (response.ok) await reloadPosts();
   };
   const selectPostReaction = async (postId: string | number, reaction: string) => {
-    const response = await fetch(`/api/posts/${postId}/like`, {
+    const response = await fetchBackendApi(`/api/posts/${postId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reaction }),
@@ -1209,7 +1226,14 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
 
   const currentProfileUser = { id: profile.id, name: profile.name || 'Utilisateur', initials: profile.initials || 'U', avatarUrl: profile.avatarUrl || avatarSrc || null, title: profile.headline || 'Membre LynoraLink' };
   const feedPosts = posts.map(post => ({ ...post, author: post.author || profile.name || 'Utilisateur', initials: post.initials || profile.initials || 'U', avatarUrl: post.avatarUrl || profile.avatarUrl || avatarSrc || null, title: post.title || profile.headline || 'Membre LynoraLink', liked: post.liked ?? !!likedPosts[post.id], bookmarked: false, comments: Array.isArray(post.comments) ? post.comments : [], shares: 0, visibility: post.visibility || 'public' as VisibilityKey, media: post.image ? [{ type: 'image', url: post.image, label: 'Image' }] : post.media || [], text: post.text || '' }));
-  const profileMedia = getProfileMedia(mediaPosts.length > 0 ? mediaPosts : feedPosts);
+  const reelMediaPosts = mediaReels.map((reel) => ({
+    id: `reel-${reel.id}`,
+    text: reel.caption || '',
+    author: reel.author?.name || profile.name || 'Utilisateur',
+    media: [{ id: `reel-media-${reel.id}`, url: reel.videoUrl || reel.poster, type: 'video', label: 'Reel' }],
+  }));
+  const profileMediaPosts = [...mediaPosts, ...reelMediaPosts];
+  const profileMedia = getProfileMedia(profileMediaPosts.length > 0 ? profileMediaPosts : feedPosts);
   const selectedOpenPost = feedPosts.find(p => p.id === openPostId) || null;
   const selectedOpenArticle = feedPosts.find(p => p.id === openArticleId) || null;
 
@@ -1412,7 +1436,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
               {activeTab === 'Expérience' && <ExperienceCard />}
               {activeTab === 'Activités' && <ActivityHeatmapCard activityData={activityData} loading={activityLoading} />}
               {activeTab === 'Amis' && <FriendsListCard friends={friends} total={friendsTotal} loading={friendsLoading} hasMore={friends.length < friendsTotal} showActions={true} showRemove={isOwner} pendingIds={pendingContactIds} removingIds={removingContactIds} onMessage={messageContact} onConnect={connectContact} onRemove={removeContact} onLoadMore={() => loadFriendsPage(friends.length)} />}
-              {activeTab === 'Médias' && <MediaGalleryCard posts={mediaPosts} loading={mediaLoading} hasMore={mediaPosts.length === 24} onLoadMore={() => loadMediaPage(mediaPosts.length)} onViewMedia={(media) => setMediaViewerIndex(profileMedia.findIndex((item) => item.id === media.id))} />}
+              {activeTab === 'Médias' && <MediaGalleryCard posts={profileMediaPosts} loading={mediaLoading} hasMore={mediaPosts.length === 24} onLoadMore={() => loadMediaPage(mediaPosts.length)} onViewMedia={(media) => setMediaViewerIndex(profileMedia.findIndex((item) => item.id === media.id))} />}
             </div>
 
             {/* RIGHT COLUMN — Sidebar */}

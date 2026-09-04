@@ -35,6 +35,7 @@ import {
 import LogoBadge from "./LogoBadge";
 import RelativeTime from "./RelativeTime";
 import ReactionPicker from "./ReactionPicker";
+import ProfileHoverPreview from "./ProfileHoverPreview";
 import { ShareModal as PostShareModal } from "./PostViewerPreview";
 
 /* ─────────────────────────────────────────────
@@ -111,12 +112,16 @@ function readingTime(text) {
 
 function normalizeArticleMarkdown(raw = "") {
   return String(raw)
+    .replace(/<span\b[^>]*?style\s*=\s*["'][^"']*["']?/gi, "")
+    .replace(/<\/?span\b[^>]*>?/gi, "")
+    .replace(/<\/?(?:u|s|del|strike|mark)\b[^>]*>?/gi, "")
+    .replace(/(^|\n)\s*>\s?/g, "$1")
     .replace(/\*{3,}/g, "")
     .replace(/(^|\n)\s*\*{2}(?=\S)/g, "$1")
     .replace(/\*{2}\s*(?=\n|$)/g, "")
     .replace(/(^|\n)\s*\*(?=\S)/g, "$1")
     .replace(/\*\s*(?=\n|$)/g, "")
-    .replace(/(^|\n)\s*<\/span\b[^>]*>?/gi, "$1");
+    .replace(/(^|\n)\s*<\/?[a-z][^>]*>?/gi, "$1");
 }
 
 function parseArticleBody(raw) {
@@ -328,14 +333,18 @@ function CommentItem({ comment, onToggleCommentReaction, onReply, postAuthorId, 
   };
   return (
     <div style={{ display: "flex", gap: 10, marginLeft: depth * 34 }}>
-      <Avatar initials={comment.initials} size={34} imgUrl={comment.avatarUrl} />
+      <ProfileHoverPreview type={comment.authorType === "page" ? "page" : "person"} fallback={{ id: comment.authorType === "page" ? (comment.companyPageId || comment.authorId) : comment.authorId, name: comment.author, avatarUrl: comment.avatarUrl, coverUrl: comment.coverUrl, bio: comment.description, location: comment.location }}>
+        <Avatar initials={comment.initials} size={34} imgUrl={comment.avatarUrl} />
+      </ProfileHoverPreview>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           background: C.navy50, border: `1px solid ${C.line}`,
           borderRadius: "4px 16px 16px 16px", padding: "10px 14px",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{comment.author}</span>
+            <ProfileHoverPreview type={comment.authorType === "page" ? "page" : "person"} fallback={{ id: comment.authorType === "page" ? (comment.companyPageId || comment.authorId) : comment.authorId, name: comment.author, avatarUrl: comment.avatarUrl, coverUrl: comment.coverUrl, bio: comment.description, location: comment.location }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{comment.author}</span>
+            </ProfileHoverPreview>
             {String(comment.authorId) === String(postAuthorId) && <span title="Auteur de l'article" style={{ color: C.navy800, background: C.navy50, border: `1px solid ${C.navy100}`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>Auteur</span>}
             {comment.authorTitle && (
               <span style={{ fontSize: 11.5, color: C.muted }}>{comment.authorTitle}</span>
@@ -439,9 +448,9 @@ export default function ArticleViewerPreview({
   }[presentation.theme] || C.navy800;
   const articleFont = presentation.font === "modern" ? "'Sora', sans-serif" : presentation.font === "compact" ? "'Trebuchet MS', sans-serif" : "Georgia, serif";
   const reactionCount = getArticleReactionCount(article);
-  const coverUrl = article.coverUrl || (Array.isArray(article.media)
-    ? article.media.find((item) => item?.type === "image" && item?.url)?.url
-    : article.media?.type === "image" ? article.media.url : null);
+  const coverUrl = article.coverUrl || presentation.coverUrl || null;
+  const articleIsPage = article.authorType === "page" || Boolean(article.companyPageId);
+  const articleIdentityId = article.companyPageId || article.authorId;
 
   /* Scroll → bouton back-to-top */
   useEffect(() => {
@@ -540,9 +549,13 @@ export default function ArticleViewerPreview({
 
           {/* Auteur + méta */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 0", borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, marginBottom: 28 }}>
-            <Avatar initials={article.initials} size={52} imgUrl={article.avatarUrl} />
+            <ProfileHoverPreview type={articleIsPage ? "page" : "person"} fallback={{ id: articleIdentityId, name: article.author, avatarUrl: article.avatarUrl, coverUrl: article.coverUrl, bio: article.bio, location: article.location, followersCount: article.followersCount }}>
+              <Avatar initials={article.initials} size={52} imgUrl={article.avatarUrl} />
+            </ProfileHoverPreview>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>{article.author}</div>
+              <ProfileHoverPreview type={articleIsPage ? "page" : "person"} fallback={{ id: articleIdentityId, name: article.author, avatarUrl: article.avatarUrl, coverUrl: article.coverUrl, bio: article.bio, location: article.location, followersCount: article.followersCount }}>
+                <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>{article.author}</div>
+              </ProfileHoverPreview>
               {article.title && (
                 <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{article.title}</div>
               )}
@@ -752,9 +765,13 @@ export default function ArticleViewerPreview({
               À propos de l'auteur
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <Avatar initials={article.initials} size={58} imgUrl={article.avatarUrl} ring />
+              <ProfileHoverPreview type={articleIsPage ? "page" : "person"} fallback={{ id: articleIdentityId, name: article.author, avatarUrl: article.avatarUrl, coverUrl: article.coverUrl, bio: article.bio, location: article.location, followersCount: article.followersCount }}>
+                <Avatar initials={article.initials} size={58} imgUrl={article.avatarUrl} ring />
+              </ProfileHoverPreview>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 16, color: C.ink }}>{article.author}</div>
+                <ProfileHoverPreview type={articleIsPage ? "page" : "person"} fallback={{ id: articleIdentityId, name: article.author, avatarUrl: article.avatarUrl, coverUrl: article.coverUrl, bio: article.bio, location: article.location, followersCount: article.followersCount }}>
+                  <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 16, color: C.ink }}>{article.author}</div>
+                </ProfileHoverPreview>
                 {article.title && <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{article.title}</div>}
                 {article.bio && <div style={{ fontSize: 13, color: C.ink, marginTop: 6, lineHeight: 1.55 }}>{article.bio}</div>}
               </div>

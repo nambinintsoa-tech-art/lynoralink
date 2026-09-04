@@ -2,7 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import UserDashboard from "@/components/userdasboard/src/components/UserDashboard";
+import UserDashboard from "@/components/UserDashboard";
 import { TopNav } from "@/components/TopNav";
 
 export default function DashboardPage() {

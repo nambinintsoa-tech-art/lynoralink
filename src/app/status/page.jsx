@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Activity, AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Database, Gauge, RefreshCw, ShieldCheck, Sparkles, Wifi } from "lucide-react";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 const SERVICE_ICONS = { web: Activity, assistant: Sparkles, database: Database };
 const STATUS_LABELS = { operational: "Opérationnel", major_outage: "Interruption" };
@@ -21,7 +22,7 @@ export default function StatusPage() {
     setRefreshing(true);
     setError("");
     try {
-      const response = await fetch("/api/status", { cache: "no-store" });
+      const response = await fetchBackendApi("/api/status", { cache: "no-store" });
       if (!response.ok) throw new Error("Le statut est momentanément indisponible.");
       setStatus(await response.json());
     } catch (loadError) {

@@ -2,10 +2,10 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sendVerificationEmail } from "@/lib/emailVerification";
+import { sendRegistrationCode } from "@/lib/emailVerification";
 
 const emailSchema = z.string().email();
-const genericMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau lien vient d'être envoyé.";
+const genericMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau code vient d'être envoyé.";
 
 export async function POST(req) {
   try {
@@ -20,11 +20,11 @@ export async function POST(req) {
     if (!pending) return NextResponse.json({ message: genericMessage });
 
     await prisma.verificationToken.deleteMany({ where: { identifier: email } });
-    const token = crypto.randomBytes(32).toString("hex");
+    const code = String(crypto.randomInt(100000, 1000000));
     await prisma.verificationToken.create({
-      data: { identifier: email, token, expires: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      data: { identifier: email, token: code, expires: new Date(Date.now() + 10 * 60 * 1000) },
     });
-    await sendVerificationEmail(email, token);
+    await sendRegistrationCode(email, code);
 
     return NextResponse.json({ message: genericMessage });
   } catch (error) {

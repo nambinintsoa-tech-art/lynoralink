@@ -122,6 +122,15 @@ export async function sendVerificationEmail(email, token) {
   });
 }
 
+export async function sendRegistrationCode(email, code) {
+  await sendWithConfiguredProvider({
+    to: email,
+    subject: "Votre code de confirmation LynoraLink",
+    text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.`,
+    html: buildEmailHtml({ title: "Confirmez votre adresse e-mail", message: "Bienvenue sur LynoraLink. Saisissez ce code pour activer votre compte.", code, expiry: "Ce code expire dans 10 minutes.", baseUrl: getBaseUrl() }),
+  });
+}
+
 export async function sendPasswordResetEmail(email, token) {
   const baseUrl = getBaseUrl();
   const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
@@ -208,6 +217,39 @@ export async function verifyEmailToken(token) {
     }),
     prisma.pendingRegistration.delete({ where: { email: pending.email } }),
     prisma.verificationToken.delete({ where: { token } }),
+  ]);
+  return true;
+}
+
+export async function verifyRegistrationCode(email, code) {
+  const normalizedEmail = String(email || "").toLowerCase().trim();
+  const record = await prisma.verificationToken.findFirst({
+    where: { identifier: normalizedEmail, token: code },
+  });
+  if (!record || record.expires < new Date()) {
+    if (record) await prisma.verificationToken.delete({ where: { token: record.token } });
+    return false;
+  }
+
+  const pending = await prisma.pendingRegistration.findUnique({ where: { email: normalizedEmail } });
+  if (!pending) {
+    await prisma.verificationToken.delete({ where: { token: record.token } });
+    return false;
+  }
+
+  await prisma.$transaction([
+    prisma.user.create({
+      data: {
+        name: pending.name,
+        email: pending.email,
+        password: pending.password,
+        title: pending.title,
+        birthDate: pending.birthDate,
+        emailVerified: new Date(),
+      },
+    }),
+    prisma.pendingRegistration.delete({ where: { email: pending.email } }),
+    prisma.verificationToken.delete({ where: { token: record.token } }),
   ]);
   return true;
 }

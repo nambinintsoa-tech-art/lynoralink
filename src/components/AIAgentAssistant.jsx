@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo, useId } from "react";
+import { fetchBackendApi } from "@/lib/backend-api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPenToSquare,
@@ -196,7 +197,7 @@ function buildExecutor(actions = {}, stateRef, updateState) {
 /* ------------------------------------------------------------------ */
 // Route the platform-wide assistant through its dedicated server endpoint.
 async function callClaude(messages, systemPrompt, signal) {
-  const res = await fetch("/api/assistant", {
+  const res = await fetchBackendApi("/api/assistant", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages, system: systemPrompt }),

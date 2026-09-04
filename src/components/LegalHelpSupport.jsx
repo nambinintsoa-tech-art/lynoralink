@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { fetchBackendApi } from "@/lib/backend-api";
 import {
   ArrowLeft, FileText, LifeBuoy, MessageSquare, Search, ChevronDown,
   Send, Mail, Clock, ShieldCheck, ExternalLink, CheckCircle2,
@@ -353,7 +354,7 @@ function SupportTab({ initialSupportReason = null }) {
 
   const loadRequests = async () => {
     try {
-      const response = await fetch("/api/support", { cache: "no-store" });
+      const response = await fetchBackendApi("/api/support", { cache: "no-store" });
       if (response.ok) setRequests((await response.json()).requests || []);
     } catch {}
   };
@@ -374,7 +375,7 @@ function SupportTab({ initialSupportReason = null }) {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/support", {
+      const response = await fetchBackendApi("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -536,7 +537,7 @@ export default function LegalHelpSupport({ onBack, onOpenAssistant, initialTab =
   const [managedCgu, setManagedCgu] = useState(CGU_SECTIONS);
 
   useEffect(() => {
-    fetch("/api/support/content", { cache: "no-store" }).then((response) => response.ok ? response.json() : { content: {} })
+    fetchBackendApi("/api/support/content", { cache: "no-store" }).then((response) => response.ok ? response.json() : { content: {} })
       .then((data) => {
         const content = data.content || {};
         setManagedContent(content);

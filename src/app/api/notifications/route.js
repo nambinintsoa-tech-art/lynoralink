@@ -26,9 +26,10 @@ function formatTime(value) {
 function normalizeNotification(item) {
   const actor = item.actor || item.user?.name || "LynoraLink";
   const displayActor = actor === "Assistant IA" || actor === "IA" ? "LynoraLink" : actor;
+  const isPlatformNotification = displayActor === "LynoraLink" || ["admin_ai_tasks", "support_reply"].includes(item.type);
   const text = item.text || item.message || "Nouvelle notification";
   const meta = item.meta ? (() => { try { return JSON.parse(item.meta); } catch { return {}; } })() : {};
-  const explicitAvatar = item.avatarUrl || meta.avatarUrl || meta.actorAvatar || meta.image || meta.imageUrl || item.sender?.image || item.user?.image || null;
+  const explicitAvatar = isPlatformNotification ? "/logo_lynora.svg" : (item.avatarUrl || meta.avatarUrl || meta.actorAvatar || meta.image || meta.imageUrl || item.sender?.image || item.user?.image || null);
   const explicitCover = item.coverUrl || meta.coverUrl || meta.groupCover || meta.groupImage || item.sender?.cover || null;
   const avatarUrl = explicitAvatar || (displayActor === "LynoraLink" ? "/logo_lynora.svg" : null);
   const coverUrl = explicitCover || null;
@@ -38,7 +39,7 @@ function normalizeNotification(item) {
     userId: item.userId,
     type: item.type || "info",
     actor: displayActor,
-    initials: item.initials || (displayActor === "LynoraLink" ? "LL" : initialsFromName(displayActor)),
+    initials: isPlatformNotification ? "LL" : (item.initials || initialsFromName(displayActor)),
     text,
     message: item.message || text,
     read: Boolean(item.read),

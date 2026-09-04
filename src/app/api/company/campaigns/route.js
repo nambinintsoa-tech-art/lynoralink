@@ -41,8 +41,6 @@ function parseSetting(setting) {
 export async function GET() {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
-  const access = await getSubscriptionAccess(userId);
-  if (!access.isPremium) return NextResponse.json({ error: "Acces reserve aux pages entreprise Premium" }, { status: 403 });
   const settings = await prisma.userSetting.findMany({
     where: { userId, key: { startsWith: CAMPAIGN_PREFIX } },
     orderBy: { createdAt: "desc" },
@@ -54,13 +52,14 @@ export async function POST(request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
 
+  const access = await getSubscriptionAccess(userId);
+  if (!access.isPremium) return NextResponse.json({ error: "La création de campagnes sponsorisées est réservée aux Pages Entreprise Premium." }, { status: 403 });
+
   const body = await request.json().catch(() => ({}));
   const page = await prisma.userSetting.findUnique({
     where: { userId_key: { userId, key: "companyPage" } },
   });
   if (!page) return NextResponse.json({ error: "Page entreprise introuvable" }, { status: 404 });
-  const access = await getSubscriptionAccess(userId);
-  if (!access.isPremium) return NextResponse.json({ error: "Acces reserve aux pages entreprise Premium" }, { status: 403 });
 
   const budget = Number(body.budget);
   const dailyBudget = Number(body.dailyBudget);
@@ -70,7 +69,7 @@ export async function POST(request) {
   const description = String(body.description || body.text || "").trim();
   const cta = ["En savoir plus", "Acheter", "Visiter"].includes(body.cta) ? body.cta : "En savoir plus";
   const paymentMethod = ["stripe", "paypal", "mobile_money"].includes(body.paymentMethod) ? body.paymentMethod : "stripe";
-  if (!body.objective || !Number.isFinite(budget) || budget < 5 || !Number.isFinite(dailyBudget) || dailyBudget < 1 || dailyBudget > budget || !Number.isFinite(ageMin) || !Number.isFinite(ageMax) || ageMin < 13 || ageMax > 65 || ageMin > ageMax || !description || description.length > 280) {
+  if (!body.objective || !Number.isFinite(budget) || budget < 5 || !Number.isFinite(dailyBudget) || dailyBudget < 1 || dailyBudget > budget || !Number.isFinite(ageMin) || !Number.isFinite(ageMax) || ageMin < 13 || ageMax > 65 || ageMin > ageMax || !description || description.length > 3000) {
     return NextResponse.json({ error: "Informations de campagne invalides" }, { status: 400 });
   }
   const schedule = getCampaignSchedule(budget, dailyBudget);
@@ -132,8 +131,6 @@ export async function POST(request) {
 export async function PATCH(request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
-  const access = await getSubscriptionAccess(userId);
-  if (!access.isPremium) return NextResponse.json({ error: "Acces reserve aux pages entreprise Premium" }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const setting = await prisma.userSetting.findFirst({ where: { id: body.id, userId, key: { startsWith: CAMPAIGN_PREFIX } } });
   if (!setting) return NextResponse.json({ error: "Campagne introuvable" }, { status: 404 });

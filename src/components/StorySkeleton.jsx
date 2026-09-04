@@ -155,9 +155,9 @@ export function SkeletonStoryAddButton({ size = 22, className = "", style = {} }
 
 export function SkeletonStoryRail({
   count = 6,
-  spacing = 14,
-  cardWidth = 104,
-  cardHeight = 140,
+  spacing = 16,
+  cardWidth = 128,
+  cardHeight = 200,
   showAddButton = true,
   background = C.white,
   className = "",

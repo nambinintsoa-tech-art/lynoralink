@@ -89,7 +89,7 @@ export async function GET(request) {
       const userId = story.userId;
       const isCompanyStory = accountMode === "company" && story.companyPageId === user.id;
       const authorName = isCompanyStory ? (companyPage.name || "Page entreprise") : story.author.name;
-      const authorImage = isCompanyStory ? companyPage.logoUrl || null : story.author.image;
+      const authorImage = isCompanyStory ? (companyPage.logoUrl || companyPage.avatarUrl || companyPage.image || null) : story.author.image;
       if (!grouped[userId]) {
         grouped[userId] = {
           id: `group-${userId}`,
@@ -98,6 +98,8 @@ export async function GET(request) {
             name: authorName,
             initials: initials(authorName),
             image: authorImage,
+            authorType: isCompanyStory ? "page" : "person",
+            pageId: isCompanyStory ? story.companyPageId : null,
           },
           items: [],
         };
@@ -105,6 +107,7 @@ export async function GET(request) {
       grouped[userId].items.push({
         id: story.id,
         companyPageId: story.companyPageId,
+        authorType: isCompanyStory ? "page" : "person",
         type: story.type,
         text: story.text,
         image: story.image,
@@ -141,7 +144,9 @@ export async function GET(request) {
         id: user.id,
         name: accountMode === "company" ? (companyPage.name || "Page entreprise") : user.name,
         initials: initials(accountMode === "company" ? (companyPage.name || "Page entreprise") : user.name),
-        image: accountMode === "company" ? companyPage.logoUrl || null : user.image,
+        image: accountMode === "company" ? (companyPage.logoUrl || companyPage.avatarUrl || companyPage.image || null) : user.image,
+        authorType: accountMode === "company" ? "page" : "person",
+        pageId: accountMode === "company" ? user.id : null,
       },
       groups: result,
     });

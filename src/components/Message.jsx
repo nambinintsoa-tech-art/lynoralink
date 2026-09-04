@@ -18,6 +18,7 @@ import SkeletonMessage, { ChatSkeleton } from "@/components/SkeletonMessage";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSmile } from '@fortawesome/free-solid-svg-icons';
 import { Room, RoomEvent } from "livekit-client";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 /* ------------------------------------------------------------------ */
 /*  TOKENS — identiques à LynoraLinkFeed.jsx pour rester cohérent      */
@@ -106,7 +107,7 @@ function uploadToCloudinary(file, { onProgress } = {}) {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", "document");
-      fetch("/api/upload", { method: "POST", body: formData, credentials: "include" })
+      fetchBackendApi("/api/upload", { method: "POST", body: formData })
         .then(async (response) => {
           const data = await response.json().catch(() => ({}));
           if (!response.ok || !data?.url) throw new Error(data.error || "Échec de l'envoi du document");
@@ -1087,7 +1088,7 @@ function ChatSettingsPanel({ settings, onToggle, onNavigate, onClose, top = 40, 
                   renderAction={(user) => ({
                     label: "Accepter",
                     subLabel: "Souhaite vous écrire",
-                    onRun: () => fetch(`/api/messages/requests/${user.id}`, {
+                    onRun: () => fetchBackendApi(`/api/messages/requests/${user.id}`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "accept" }),
@@ -1144,7 +1145,7 @@ function ChatSettingsPanel({ settings, onToggle, onNavigate, onClose, top = 40, 
               renderAction={(user) => ({
                 label: "Retirer",
                 subLabel: "Compte restreint",
-                onRun: () => fetch(`/api/messages/restricted/${user.id}`, { method: "DELETE" })
+                onRun: () => fetchBackendApi(`/api/messages/restricted/${user.id}`, { method: "DELETE" })
                   .then((response) => { if (!response.ok) throw new Error("failed"); }),
               })}
             />
@@ -1159,7 +1160,7 @@ function ChatSettingsPanel({ settings, onToggle, onNavigate, onClose, top = 40, 
                 label: "Débloquer",
                 subLabel: "Compte bloqué",
                 danger: true,
-                onRun: () => fetch(`/api/removed-connections?userId=${encodeURIComponent(user.id)}`, { method: "DELETE" })
+                onRun: () => fetchBackendApi(`/api/removed-connections?userId=${encodeURIComponent(user.id)}`, { method: "DELETE" })
                   .then((response) => { if (!response.ok) throw new Error("failed"); }),
               })}
             />
@@ -1245,12 +1246,12 @@ export function ConversationListModal({
 
   useEffect(() => {
     if (!isOpen) return undefined;
-    fetch("/api/messages/settings", { cache: "no-store" })
+    fetchBackendApi("/api/messages/settings", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (data?.settings) setChatSettings((current) => ({ ...current, ...data.settings }));
       })
-      .then(() => fetch("/api/settings", { cache: "no-store" }))
+      .then(() => fetchBackendApi("/api/settings", { cache: "no-store" }))
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (data?.notifications?.showOnlineStatus !== undefined) {
@@ -1272,7 +1273,7 @@ export function ConversationListModal({
   const updatePreference = async (id, key, value) => {
     setConversations((cs) => cs.map((c) => (c.id === id ? { ...c, [key]: value } : c)));
     try {
-      const response = await fetch("/api/messages/preferences", {
+      const response = await fetchBackendApi("/api/messages/preferences", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: id, key, value }),
@@ -1300,7 +1301,7 @@ export function ConversationListModal({
     const markUnread = conversation.unread <= 0;
     setConversations((cs) => cs.map((c) => (c.id === id ? { ...c, unread: markUnread ? 1 : 0 } : c)));
     try {
-      const response = await fetch("/api/messages", {
+      const response = await fetchBackendApi("/api/messages", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: id, markUnread }),
@@ -1311,7 +1312,7 @@ export function ConversationListModal({
     }
   };
   const remove = async (id) => {
-    const response = await fetch(`/api/messages?conversationId=${encodeURIComponent(id)}`, { method: "DELETE" });
+    const response = await fetchBackendApi(`/api/messages?conversationId=${encodeURIComponent(id)}`, { method: "DELETE" });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Impossible de supprimer la conversation.");
     setConversations((cs) => cs.filter((c) => c.id !== id));
@@ -1326,7 +1327,7 @@ export function ConversationListModal({
       window.dispatchEvent(new CustomEvent("lynora:settings-updated", { detail: { showOnlineStatus: nextValue } }));
     }
     try {
-      const response = await fetch(isOnlineStatus ? "/api/settings" : "/api/messages/settings", {
+      const response = await fetchBackendApi(isOnlineStatus ? "/api/settings" : "/api/messages/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(isOnlineStatus
@@ -1602,11 +1603,11 @@ function CallOverlay({ mode, conversation, status, elapsed, minimized, onMinimiz
       if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
     };
     peer.onicecandidate = (event) => {
-      if (event.candidate) fetch("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "candidate", value: event.candidate }) }).catch(() => {});
+      if (event.candidate) fetchBackendApi("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "candidate", value: event.candidate }) }).catch(() => {});
     };
 
     const signal = async () => {
-      const response = await fetch(`/api/calls?callId=${encodeURIComponent(callSession.id)}`, { cache: "no-store" });
+      const response = await fetchBackendApi(`/api/calls?callId=${encodeURIComponent(callSession.id)}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Signalisation indisponible");
       const data = await response.json();
       const call = data.call;
@@ -1621,7 +1622,7 @@ function CallOverlay({ mode, conversation, status, elapsed, minimized, onMinimiz
         if (!call.isCaller) {
           const answer = await peer.createAnswer();
           await peer.setLocalDescription(answer);
-          await fetch("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: call.id, action: "answer", value: answer }) });
+          await fetchBackendApi("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: call.id, action: "answer", value: answer }) });
         }
       }
       const candidates = JSON.parse(call[call.isCaller ? "calleeCandidates" : "callerCandidates"] || "[]");
@@ -1630,7 +1631,7 @@ function CallOverlay({ mode, conversation, status, elapsed, minimized, onMinimiz
     };
     const configurePeer = async () => {
       try {
-        const configResponse = await fetch("/api/calls?config=1", { cache: "no-store" });
+        const configResponse = await fetchBackendApi("/api/calls?config=1", { cache: "no-store" });
         if (configResponse.ok) {
           const config = await configResponse.json();
           if (Array.isArray(config.iceServers) && config.iceServers.length) {
@@ -1642,7 +1643,7 @@ function CallOverlay({ mode, conversation, status, elapsed, minimized, onMinimiz
       if (callSession.isCaller) {
       peer.createOffer().then(async (offer) => {
         await peer.setLocalDescription(offer);
-        await fetch("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "offer", value: offer }) });
+        await fetchBackendApi("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "offer", value: offer }) });
       }).catch(() => setSignalError("Connexion de l'appel impossible."));
       }
       signal().catch(() => setSignalError("Connexion de l'appel impossible."));
@@ -1823,7 +1824,7 @@ function LiveKitCallOverlay({ mode, conversation, minimized, onMinimize, onEnd, 
     const onConnectedRoom = () => {
       setConnected(true);
       onConnected?.();
-      fetch("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "connect" }) }).catch(() => {});
+      fetchBackendApi("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "connect" }) }).catch(() => {});
       refreshTracks();
     };
     const onLocalTrackPublished = (publication) => {
@@ -1833,7 +1834,7 @@ function LiveKitCallOverlay({ mode, conversation, minimized, onMinimize, onEnd, 
     const onTrackUnsubscribed = () => refreshTracks();
     const connect = async () => {
       try {
-        const response = await fetch("/api/calls/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id }) });
+        const response = await fetchBackendApi("/api/calls/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Token LiveKit indisponible");
         await room.connect(data.url, data.token);
@@ -1991,7 +1992,7 @@ function TransferMessageModal({ message, onClose, onTransferred, mobile = false 
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/connections", { credentials: "include", cache: "no-store" })
+    fetchBackendApi("/api/connections", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("failed")))
       .then((data) => setUsers(Array.isArray(data.connections) ? data.connections : []))
       .catch(() => setError("Impossible de charger vos relations."))
@@ -2005,7 +2006,7 @@ function TransferMessageModal({ message, onClose, onTransferred, mobile = false 
     setError("");
     try {
       const results = await Promise.all(selectedUsers.map(async (user) => {
-        const response = await fetch("/api/messages", {
+        const response = await fetchBackendApi("/api/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2098,7 +2099,7 @@ export function ChatModal({
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
-    const loadOnlineStatus = () => fetch("/api/settings", { cache: "no-store" })
+    const loadOnlineStatus = () => fetchBackendApi("/api/settings", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (data?.notifications?.showOnlineStatus !== undefined) setShowOnlineStatus(Boolean(data.notifications.showOnlineStatus));
@@ -2120,7 +2121,7 @@ export function ChatModal({
     const nextValue = !showOnlineStatus;
     setShowOnlineStatus(nextValue);
     try {
-      const response = await fetch("/api/settings", {
+      const response = await fetchBackendApi("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notifications: { showOnlineStatus: nextValue } }),
@@ -2140,7 +2141,7 @@ export function ChatModal({
     if (!isOpen || !conversation?.id || !draft.trim()) {
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (conversation?.id) {
-        fetch("/api/messages/typing", {
+        fetchBackendApi("/api/messages/typing", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ conversationId: conversation.id, typing: false }),
@@ -2149,13 +2150,13 @@ export function ChatModal({
       return undefined;
     }
 
-    fetch("/api/messages/typing", {
+    fetchBackendApi("/api/messages/typing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversationId: conversation.id, typing: true }),
     }).catch(() => {});
     typingTimerRef.current = setTimeout(() => {
-      fetch("/api/messages/typing", {
+      fetchBackendApi("/api/messages/typing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: conversation.id, typing: false }),
@@ -2180,7 +2181,7 @@ export function ChatModal({
   const updateConversationPreference = async (key, value) => {
     patch({ [key]: value });
     try {
-      const response = await fetch("/api/messages/preferences", {
+      const response = await fetchBackendApi("/api/messages/preferences", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: conv.id, key, value }),
@@ -2196,7 +2197,7 @@ export function ChatModal({
     let cancelled = false;
     const checkIncomingCall = async () => {
       try {
-        const response = await fetch(`/api/calls?conversationId=${encodeURIComponent(conv.id)}`, { cache: "no-store" });
+        const response = await fetchBackendApi(`/api/calls?conversationId=${encodeURIComponent(conv.id)}`, { cache: "no-store" });
         if (cancelled || !response.ok) return;
         const data = await response.json();
         if (!cancelled && data.call?.status === "ringing" && !data.call.isCaller && !dismissedCallIdsRef.current.has(data.call.id)) {
@@ -2314,7 +2315,7 @@ export function ChatModal({
     });
     setReactionPickerId(null);
     try {
-      const response = await fetch(`/api/messages/${encodeURIComponent(messageId)}/reaction`, {
+      const response = await fetchBackendApi(`/api/messages/${encodeURIComponent(messageId)}/reaction`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reaction: emoji }),
@@ -2330,7 +2331,7 @@ export function ChatModal({
     patch({ messages: previousMessages.filter((x) => x.id !== messageId) });
     setMsgMenuId(null);
     try {
-      const response = await fetch(`/api/messages/${encodeURIComponent(messageId)}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "me" }) });
+      const response = await fetchBackendApi(`/api/messages/${encodeURIComponent(messageId)}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "me" }) });
       if (!response.ok) throw new Error("Suppression impossible");
       window.dispatchEvent(new CustomEvent("lynoralink:messages-updated"));
     } catch {
@@ -2343,7 +2344,7 @@ export function ChatModal({
     patch({ messages: previousMessages.map((x) => (x.id === messageId ? { ...x, deletedForEveryone: true, reactions: [] } : x)) });
     setMsgMenuId(null);
     try {
-      const response = await fetch(`/api/messages/${encodeURIComponent(messageId)}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "everyone" }) });
+      const response = await fetchBackendApi(`/api/messages/${encodeURIComponent(messageId)}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "everyone" }) });
       if (!response.ok) throw new Error("Suppression impossible");
       window.dispatchEvent(new CustomEvent("lynoralink:messages-updated"));
     } catch {
@@ -2353,7 +2354,7 @@ export function ChatModal({
 
   const startCall = async (mode) => {
     try {
-      const response = await fetch("/api/calls", {
+      const response = await fetchBackendApi("/api/calls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: conv.id, type: mode }),
@@ -2382,7 +2383,7 @@ export function ChatModal({
     if (!call?.id) return;
     dismissedCallIdsRef.current.add(call.id);
     try {
-      await fetch("/api/calls", {
+      await fetchBackendApi("/api/calls", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ callId: call.id, action: conv.isGroup ? "leave" : "reject" }),
@@ -2409,7 +2410,7 @@ export function ChatModal({
     setCallMinimized(false);
     if (remote || !mode || !currentCall?.id) return;
     try {
-      await fetch("/api/calls", {
+      await fetchBackendApi("/api/calls", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ callId: currentCall.id, action: groupCall ? "leave" : "end" }),
@@ -2428,7 +2429,7 @@ export function ChatModal({
     let cancelled = false;
     const checkCallStatus = async () => {
       try {
-        const response = await fetch(`/api/calls?callId=${encodeURIComponent(callSession.id)}`, { cache: "no-store" });
+        const response = await fetchBackendApi(`/api/calls?callId=${encodeURIComponent(callSession.id)}`, { cache: "no-store" });
         if (!response.ok || cancelled) return;
         const data = await response.json();
         const status = data.call?.status;
@@ -2772,7 +2773,7 @@ export function ChatModal({
                 onDeleted ? onDeleted(conv.id) : onClose();
               } else if (confirmAction === "block") {
                 try {
-                  const response = await fetch("/api/messages/block", {
+                  const response = await fetchBackendApi("/api/messages/block", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ conversationId: conv.id, targetUserId: conv.otherUserId }),
@@ -2787,7 +2788,7 @@ export function ChatModal({
                 }
               } else {
                 try {
-                  const response = await fetch("/api/admin/reports", {
+                  const response = await fetchBackendApi("/api/admin/reports", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ type: "conversation", targetId: conv.id, targetLabel: conv.name, reason: "Signalement depuis une conversation" }),
@@ -2904,7 +2905,7 @@ function GroupMembersModal({ conv, onClose, onAddParticipants, onLeaveGroup, onL
     let cancelled = false;
     setLoadingCandidates(true);
     setError("");
-    fetch("/api/users", { credentials: "include", cache: "no-store" })
+    fetchBackendApi("/api/users", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Chargement impossible"))))
       .then((data) => {
         if (cancelled) return;
@@ -3239,7 +3240,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
-    const heartbeat = () => fetch("/api/presence", { method: "POST", credentials: "include" }).catch(() => {});
+    const heartbeat = () => fetchBackendApi("/api/presence", { method: "POST" }).catch(() => {});
     heartbeat();
     const intervalId = window.setInterval(heartbeat, 30000);
     return () => window.clearInterval(intervalId);
@@ -3248,7 +3249,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   useEffect(() => {
     if (!session?.user?.id) return undefined;
     let active = true;
-    fetch("/api/messages/settings", { credentials: "include", cache: "no-store" })
+    fetchBackendApi("/api/messages/settings", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (active && data?.settings?.autoOpenNewMessages !== undefined) {
@@ -3284,7 +3285,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
     const checkCalls = async () => {
       for (const conversation of conversations) {
         try {
-          const response = await fetch(`/api/calls?conversationId=${encodeURIComponent(conversation.id)}`, { cache: "no-store" });
+          const response = await fetchBackendApi(`/api/calls?conversationId=${encodeURIComponent(conversation.id)}`, { cache: "no-store" });
           const data = await response.json();
           if (!cancelled && data.call && !data.call.isCaller) {
             setActiveId(conversation.id);
@@ -3335,7 +3336,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   };
 
   const deleteConversation = async (id) => {
-    const response = await fetch(`/api/messages?conversationId=${encodeURIComponent(id)}`, { method: "DELETE" });
+    const response = await fetchBackendApi(`/api/messages?conversationId=${encodeURIComponent(id)}`, { method: "DELETE" });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Impossible de supprimer la conversation.");
     setConversations((cs) => cs.filter((c) => c.id !== id));
@@ -3346,7 +3347,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
     const payload = isGroup
       ? { participantIds, groupName: groupName || undefined, isGroup: true, createOnly: true }
       : { otherUserId, createOnly: true };
-    const response = await fetch("/api/messages", {
+    const response = await fetchBackendApi("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -3355,7 +3356,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
     if (!response.ok || !data.conversationId) {
       throw new Error(data.error || (isGroup ? "Impossible de créer le groupe." : "Impossible d'ouvrir la conversation."));
     }
-    const conversationsResponse = await fetch(`/api/messages?userId=${encodeURIComponent(session.user.id)}`, { cache: "no-store" });
+    const conversationsResponse = await fetchBackendApi("/api/messages", { cache: "no-store" });
     const conversationsData = await conversationsResponse.json().catch(() => ({}));
     const nextConversations = Array.isArray(conversationsData.conversations) ? conversationsData.conversations : [];
     setConversations(nextConversations);
@@ -3365,7 +3366,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   };
 
   const addParticipants = async (conversationId, participantIds) => {
-    const response = await fetch(`/api/messages/${conversationId}/participants`, {
+    const response = await fetchBackendApi(`/api/messages/${conversationId}/participants`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ participantIds }),
@@ -3380,7 +3381,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   };
 
   const leaveGroup = async (conversationId) => {
-    const response = await fetch(`/api/messages/${conversationId}/participants`, {
+    const response = await fetchBackendApi(`/api/messages/${conversationId}/participants`, {
       method: "DELETE",
     });
     const data = await response.json().catch(() => ({}));

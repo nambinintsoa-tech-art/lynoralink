@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendPushNotification } from "@/lib/push";
 import { broadcastRealtimeEvent } from "@/lib/realtime";
+import { getMutualConnections } from "@/lib/mutual-connections";
 
 function initials(name = "") {
   return (name || "")
@@ -80,8 +81,8 @@ export async function GET(req) {
       where: hasPagination ? acceptedWhere : baseWhere,
       ...(hasPagination ? { skip: offset, take: limit } : {}),
       include: {
-        userA: { select: { id: true, name: true, title: true, image: true, birthDate: true } },
-        userB: { select: { id: true, name: true, title: true, image: true, birthDate: true } },
+        userA: { select: { id: true, name: true, title: true, image: true, cover: true, birthDate: true } },
+        userB: { select: { id: true, name: true, title: true, image: true, cover: true, birthDate: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -103,15 +104,26 @@ export async function GET(req) {
         cover: otherUser.cover || null,
         coverUrl: otherUser.cover || null,
         birthDate: otherUser.birthDate ? new Date(otherUser.birthDate).toISOString().slice(0, 10) : null,
-        mutual: 0,
       };
     });
+
+  const mutualCandidateIds = [
+    ...connections.map((connection) => connection.userId),
+    ...rows.filter((row) => row.status === "pending").map((row) => row.userAId === userId ? row.userBId : row.userAId),
+  ];
+  const mutualByCandidate = session?.user?.id
+    ? await getMutualConnections(prisma, session.user.id, mutualCandidateIds)
+    : new Map();
+  const addMutual = (entry) => ({
+    ...entry,
+    ...(mutualByCandidate.get(entry.userId) || { mutual: 0, mutualAvatars: [] }),
+  });
 
   const invitations = rows
     .filter((row) => row.status === "pending" && row.userBId === userId)
     .map((row) => {
       const otherUser = row.userA;
-      return {
+      return addMutual({
         id: row.id,
         connectionId: row.id,
         userId: otherUser.id,
@@ -122,14 +134,13 @@ export async function GET(req) {
         cover: otherUser.cover || null,
         coverUrl: otherUser.cover || null,
         birthDate: otherUser.birthDate ? new Date(otherUser.birthDate).toISOString().slice(0, 10) : null,
-        mutual: 0,
         time: "maintenant",
-      };
+      });
     });
 
   const pendingRequests = rows
     .filter((row) => row.status === "pending" && row.userAId === userId)
-    .map((row) => ({
+    .map((row) => addMutual({
       id: row.userBId,
       connectionId: row.id,
       userId: row.userBId,
@@ -140,11 +151,10 @@ export async function GET(req) {
       cover: row.userB.cover || null,
       coverUrl: row.userB.cover || null,
       birthDate: row.userB.birthDate ? new Date(row.userB.birthDate).toISOString().slice(0, 10) : null,
-      mutual: 0,
       time: "maintenant",
     }));
 
-  return NextResponse.json({ connections, totalConnections, invitations, pendingRequests });
+  return NextResponse.json({ connections: connections.map(addMutual), totalConnections, invitations, pendingRequests });
 }
 
 export async function POST(req) {
