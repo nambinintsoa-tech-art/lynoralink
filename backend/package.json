@@ -22,9 +22,7 @@
     "lynoralink": "file:..",
     "next-auth": "^4.24.7",
     "nodemailer": "^9.1.1",
+    "prisma": "^5.20.0",
     "redis": "^6.2.1"
-  },
-  "devDependencies": {
-    "prisma": "^5.20.0"
   }
 }
