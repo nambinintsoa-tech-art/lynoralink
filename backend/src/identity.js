@@ -10,7 +10,22 @@ const validEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
 const genericResetMessage = "Si un compte correspond à cette adresse, un lien de réinitialisation a été envoyé.";
 const genericRegistrationMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau code vient d'être envoyé.";
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+}
+
+function renderEmailHtml(subject, text) {
+  const logoUrl = process.env.EMAIL_LOGO_URL || `${process.env.APP_URL || "https://lynoralink.vercel.app"}/logo_lynora.svg`;
+  const safeText = escapeHtml(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#1f6feb;font-weight:600;">$1</a>').replace(/\n/g, "<br>");
+  const code = text.match(/\b\d{6}\b/)?.[0];
+  const content = code
+    ? `<p style="margin:0 0 18px;color:#40516d;font-size:16px;line-height:1.6;">Votre code de confirmation est :</p><div style="margin:0 auto 20px;padding:16px 20px;border:1px solid #ead08a;border-radius:12px;background:#fff9e9;color:#152a4d;font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;">${code}</div><p style="margin:0;color:#6b7890;font-size:14px;line-height:1.6;">Ce code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>`
+    : `<p style="margin:0;color:#40516d;font-size:16px;line-height:1.7;">${safeText}</p>`;
+  return `<!doctype html><html lang="fr"><body style="margin:0;background:#f3f6fa;font-family:Arial,Helvetica,sans-serif;color:#152a4d;"><div style="padding:32px 16px;"><div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e1e7ef;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(21,42,77,.08);"><div style="padding:26px 28px;background:#152a4d;text-align:center;"><img src="${escapeHtml(logoUrl)}" width="64" height="64" alt="LynoraLink" style="display:block;margin:0 auto 12px;border-radius:50%;"><div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.2px;">LynoraLink</div></div><div style="padding:30px 28px;"><h1 style="margin:0 0 20px;color:#152a4d;font-size:24px;line-height:1.3;">${escapeHtml(subject)}</h1>${content}</div><div style="padding:18px 28px;border-top:1px solid #e1e7ef;color:#8290a5;font-size:12px;line-height:1.5;text-align:center;">LynoraLink · Le réseau qui crée des connexions utiles</div></div></div></body></html>`;
+}
+
 async function sendEmail({ to, subject, text }) {
+  const html = renderEmailHtml(subject, text);
   const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
   const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
   if (provider === "brevo") {
@@ -20,7 +35,7 @@ async function sendEmail({ to, subject, text }) {
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text }),
+      body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text, htmlContent: html }),
     });
     if (!response.ok) {
       let details = "";
@@ -51,13 +66,13 @@ async function sendEmail({ to, subject, text }) {
       socketTimeout: 15000,
       auth: { user, pass: password },
     });
-    await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || user, to, subject, text });
+    await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || user, to, subject, text, html });
     return;
   }
 
   const from = process.env.RESEND_FROM_EMAIL;
   if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration Resend backend manquante");
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text }) });
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
   if (!response.ok) throw new Error(`Email provider returned ${response.status}`);
 }
 
