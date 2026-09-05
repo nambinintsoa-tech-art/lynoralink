@@ -49,7 +49,7 @@ const app = Fastify({
   trustProxy: true,
 });
 
-const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
+const frontendOrigin = process.env.FRONTEND_ORIGIN || (process.env.NODE_ENV === "production" ? "https://lynoralink.netlify.app" : "http://localhost:3000");
 const port = Number.parseInt(process.env.PORT || process.env.BACKEND_PORT || "4001", 10);
 const host = process.env.HOST || process.env.BACKEND_HOST || "0.0.0.0";
 
