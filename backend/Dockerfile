@@ -16,4 +16,4 @@ RUN npm --prefix backend ci --legacy-peer-deps
 COPY backend ./backend
 
 EXPOSE 4001
-CMD ["npm", "--prefix", "backend", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema prisma/schema.prisma && npm --prefix backend start"]
