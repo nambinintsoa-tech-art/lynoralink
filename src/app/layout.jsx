@@ -23,7 +23,12 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }) {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (error) {
+    console.error("NextAuth server session unavailable:", error);
+  }
 
   return (
     <html lang="fr" suppressHydrationWarning>
