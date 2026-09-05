@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { SessionProvider } from "next-auth/react";
 import ToastProvider from "./ToastProvider";
 import NavigationProgress from "./NavigationProgress";
@@ -8,7 +9,9 @@ export default function Providers({ children, session }) {
   return (
     <SessionProvider session={session}>
       <ToastProvider>
-        <NavigationProgress />
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         {children}
       </ToastProvider>
     </SessionProvider>

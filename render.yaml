@@ -31,7 +31,7 @@ services:
       - key: BREVO_FROM_NAME
         value: LynoraLink
       - key: WEB_PUSH_VAPID_PUBLIC_KEY
-        sync: false
+        value: BI_dbBnOg1YYh73_ovsfVLAhYAGYpHExFhH0IPAiz-gIhPhf33nFDh00NcW9Seotam9vJEaRDv8iFzi4eRahb-o
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
