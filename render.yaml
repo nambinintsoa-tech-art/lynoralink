@@ -6,6 +6,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
     healthCheckPath: /v1/health
+    preDeployCommand: npx prisma migrate deploy --schema prisma/schema.prisma
     envVars:
       - key: NODE_ENV
         value: production
