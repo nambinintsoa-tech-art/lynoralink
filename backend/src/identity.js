@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
 import { prisma } from "./db.js";
 import { getSessionUserId } from "./auth.js";
 
@@ -9,8 +10,26 @@ const genericResetMessage = "Si un compte correspond à cette adresse, un lien d
 const genericRegistrationMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau code vient d'être envoyé.";
 
 async function sendEmail({ to, subject, text }) {
-  const from = process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL;
-  if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration email backend manquante");
+  const provider = (process.env.EMAIL_PROVIDER || "resend").toLowerCase();
+  if (provider === "smtp") {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const password = process.env.SMTP_PASSWORD?.replace(/\s+/g, "");
+    if (!host || !user || !password) throw new Error("Configuration SMTP backend manquante");
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
+      auth: { user, pass: password },
+    });
+    await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || user, to, subject, text });
+    return;
+  }
+
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration Resend backend manquante");
   const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text }) });
   if (!response.ok) throw new Error(`Email provider returned ${response.status}`);
 }
