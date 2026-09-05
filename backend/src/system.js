@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
 
 export async function registerSystemRoutes(app) {
@@ -13,7 +12,6 @@ export async function registerSystemRoutes(app) {
   });
 
   app.get("/v1/stats", async (request, reply) => {
-    const userId = await getSessionUserId(request); if (!userId) return reply.code(401).send({ error: "Non authentifié" });
     const [usersCount, companiesCount, postsCount, commentsCount] = await Promise.all([prisma.user.count({ where: { status: "active" } }), prisma.user.count({ where: { status: "active", title: { not: null } } }), prisma.post.count({ where: { status: "published" } }), prisma.comment.count({ where: { post: { status: "published" } } })]);
     return reply.send({ stats: [{ value: usersCount, label: "Professionnels actifs" }, { value: companiesCount, label: "Entreprises présentes" }, { value: postsCount, label: "Publications partagées" }, { value: commentsCount, label: "Échanges engagés" }] });
   });
