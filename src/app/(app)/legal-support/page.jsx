@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import LegalHelpSupport from "@/components/LegalHelpSupport";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LegalSupportPage() {
+function LegalSupportPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get("tab");
@@ -21,4 +21,8 @@ export default function LegalSupportPage() {
       initialSupportReason={initialSupportReason}
     />
   );
+}
+
+export default function LegalSupportPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-white" />}><LegalSupportPageContent /></Suspense>;
 }

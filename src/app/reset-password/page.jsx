@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import LogoBadge from "@/components/LogoBadge";
 import { getPasswordRequirements, isStrongPassword } from "@/lib/passwordPolicy";
 import { fetchBackendApi } from "@/lib/backend-api";
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
@@ -102,4 +102,8 @@ export default function ResetPasswordPage() {
       </section>
     </main>
   );
+}
+
+export default function ResetPasswordPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-navy900" />}><ResetPasswordPageContent /></Suspense>;
 }

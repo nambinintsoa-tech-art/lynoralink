@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { fetchBackendApi } from "@/lib/backend-api";
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const verificationStarted = useRef(false);
@@ -69,4 +69,8 @@ export default function VerifyEmailPage() {
       </section>
     </main>
   );
+}
+
+export default function VerifyEmailPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-navy900" />}><VerifyEmailPageContent /></Suspense>;
 }
