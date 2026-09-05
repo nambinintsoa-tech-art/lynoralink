@@ -23,6 +23,7 @@ async function sendEmail({ to, subject, text }) {
       port,
       secure: port === 465,
       requireTLS: port === 587,
+      family: 4,
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
