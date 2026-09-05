@@ -10,6 +10,7 @@ RUN apt-get update \
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY backend/package.json backend/package-lock.json ./backend/
+RUN npm ci --include=dev
 RUN npm --prefix backend ci --legacy-peer-deps
 
 COPY backend ./backend
