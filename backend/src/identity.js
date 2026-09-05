@@ -72,7 +72,7 @@ export async function registerIdentityRoutes(app) {
     await prisma.verificationToken.deleteMany({ where: { identifier: email } });
     const code = String(crypto.randomInt(100000, 1000000));
     await prisma.verificationToken.create({ data: { identifier: email, token: code, expires: new Date(Date.now() + 600000) } });
-    try { await sendEmail({ to: email, subject: "Votre code de confirmation LynoraLink", text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.` }); } catch { await prisma.pendingRegistration.delete({ where: { email } }); await prisma.verificationToken.deleteMany({ where: { identifier: email } }); return reply.code(503).send({ error: "Impossible d'envoyer le code de confirmation." }); }
+    try { await sendEmail({ to: email, subject: "Votre code de confirmation LynoraLink", text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.` }); } catch (error) { request.log.error({ err: error, provider: process.env.EMAIL_PROVIDER || "resend" }, "Registration email delivery failed"); await prisma.pendingRegistration.delete({ where: { email } }); await prisma.verificationToken.deleteMany({ where: { identifier: email } }); return reply.code(503).send({ error: "Impossible d'envoyer le code de confirmation." }); }
     return reply.code(201).send({ message: "Un code de confirmation à 6 chiffres a été envoyé à votre adresse email." });
   });
 
