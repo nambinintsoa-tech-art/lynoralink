@@ -6,8 +6,7 @@ import LegalHelpSupport from "../LegalHelpSupport";
 import { CGU_SECTIONS, FAQ_ITEMS } from "../LegalHelpSupport";
 import AdminContentEditor from "./AdminContentEditor";
 
-const ADMIN_API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4001").replace(/\/$/, "");
-const adminApi = (path, options = {}) => fetch(`${ADMIN_API_BASE}${path}`, { credentials: "include", ...options });
+const adminApi = (path, options = {}) => fetch(path, { credentials: "include", ...options });
 
 const SUPPORT_CATEGORIES = ["Question générale", "Problème technique", "Compte & sécurité", "Facturation", "Signaler un contenu"];
 
