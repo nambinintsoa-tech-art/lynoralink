@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import dns from "node:dns/promises";
 import nodemailer from "nodemailer";
 import { prisma } from "./db.js";
 import { getSessionUserId } from "./auth.js";
@@ -18,12 +19,14 @@ async function sendEmail({ to, subject, text }) {
     const user = process.env.SMTP_USER;
     const password = process.env.SMTP_PASSWORD?.replace(/\s+/g, "");
     if (!host || !user || !password) throw new Error("Configuration SMTP backend manquante");
+    const smtpAddress = (await dns.lookup(host, { family: 4 })).address;
     const transporter = nodemailer.createTransport({
-      host,
+      host: smtpAddress,
       port,
       secure: port === 465,
       requireTLS: port === 587,
       family: 4,
+      tls: { servername: host },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
