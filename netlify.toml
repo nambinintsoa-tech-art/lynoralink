@@ -4,6 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--include=dev"
   NEXT_TELEMETRY_DISABLED = "1"
 
 [[plugins]]
