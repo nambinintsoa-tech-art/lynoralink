@@ -22,6 +22,14 @@ services:
         sync: false
       - key: APP_URL
         sync: false
+      - key: EMAIL_PROVIDER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: BREVO_FROM_NAME
+        value: LynoraLink
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL

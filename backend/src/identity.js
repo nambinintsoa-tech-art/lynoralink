@@ -14,15 +14,22 @@ async function sendEmail({ to, subject, text }) {
   const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
   const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
   if (provider === "brevo") {
-    const fromEmail = process.env.BREVO_FROM_EMAIL;
-    const apiKey = process.env.BREVO_API_KEY;
+    const fromEmail = process.env.BREVO_FROM_EMAIL?.trim();
+    const apiKey = process.env.BREVO_API_KEY?.trim();
     if (!fromEmail || !apiKey) throw new Error("Configuration Brevo backend manquante");
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text }),
     });
-    if (!response.ok) throw new Error(`Brevo returned ${response.status}`);
+    if (!response.ok) {
+      let details = "";
+      try {
+        const payload = await response.json();
+        details = typeof payload?.message === "string" ? `: ${payload.message}` : "";
+      } catch {}
+      throw new Error(`Brevo returned ${response.status}${details}`);
+    }
     return;
   }
   if (provider === "smtp") {
