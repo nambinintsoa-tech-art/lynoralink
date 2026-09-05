@@ -10,7 +10,7 @@ const genericResetMessage = "Si un compte correspond à cette adresse, un lien d
 const genericRegistrationMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau code vient d'être envoyé.";
 
 async function sendEmail({ to, subject, text }) {
-  const provider = (process.env.EMAIL_PROVIDER || "resend").toLowerCase();
+  const provider = String(process.env.EMAIL_PROVIDER || "resend").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
   if (provider === "smtp") {
     const host = process.env.SMTP_HOST;
     const port = Number(process.env.SMTP_PORT || 587);
