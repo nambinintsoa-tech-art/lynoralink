@@ -12,7 +12,19 @@ const genericRegistrationMessage = "Si un compte non confirmé correspond à cet
 
 async function sendEmail({ to, subject, text }) {
   const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
-  const provider = configuredProvider || (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
+  const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
+  if (provider === "brevo") {
+    const fromEmail = process.env.BREVO_FROM_EMAIL;
+    const apiKey = process.env.BREVO_API_KEY;
+    if (!fromEmail || !apiKey) throw new Error("Configuration Brevo backend manquante");
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text }),
+    });
+    if (!response.ok) throw new Error(`Brevo returned ${response.status}`);
+    return;
+  }
   if (provider === "smtp") {
     const host = process.env.SMTP_HOST;
     const port = Number(process.env.SMTP_PORT || 587);
@@ -80,7 +92,7 @@ export async function registerIdentityRoutes(app) {
     await prisma.verificationToken.deleteMany({ where: { identifier: email } });
     const code = String(crypto.randomInt(100000, 1000000));
     await prisma.verificationToken.create({ data: { identifier: email, token: code, expires: new Date(Date.now() + 600000) } });
-    try { await sendEmail({ to: email, subject: "Votre code de confirmation LynoraLink", text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.` }); } catch (error) { const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase(); const provider = configuredProvider || (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend"); request.log.error({ err: error, provider }, "Registration email delivery failed"); await prisma.pendingRegistration.delete({ where: { email } }); await prisma.verificationToken.deleteMany({ where: { identifier: email } }); return reply.code(503).send({ error: "Impossible d'envoyer le code de confirmation." }); }
+    try { await sendEmail({ to: email, subject: "Votre code de confirmation LynoraLink", text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.` }); } catch (error) { const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase(); const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend"); request.log.error({ err: error, provider }, "Registration email delivery failed"); await prisma.pendingRegistration.delete({ where: { email } }); await prisma.verificationToken.deleteMany({ where: { identifier: email } }); return reply.code(503).send({ error: "Impossible d'envoyer le code de confirmation." }); }
     return reply.code(201).send({ message: "Un code de confirmation à 6 chiffres a été envoyé à votre adresse email." });
   });
 
