@@ -80,23 +80,27 @@ export default function RegisterPage() {
     setSuccess("");
     setLoading(true);
 
-    const res = await fetchBackendApi("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetchBackendApi("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setError(data.error || "Une erreur est survenue.");
+      if (!res.ok) {
+        setError(data.error || "Une erreur est survenue.");
+        return;
+      }
+
+      setSuccess(data.message || "Un code de confirmation a été envoyé à votre adresse email.");
+      setVerificationEmail(form.email.trim());
+      setVerificationStep(true);
+    } catch {
+      setError("Le serveur est momentanément indisponible. Réessayez dans quelques instants.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setSuccess(data.message || "Un code de confirmation a été envoyé à votre adresse email.");
-    setVerificationEmail(form.email.trim());
-    setVerificationStep(true);
-    setLoading(false);
   };
 
   const handleResend = async () => {

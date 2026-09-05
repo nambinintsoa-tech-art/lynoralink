@@ -23,6 +23,9 @@ async function sendEmail({ to, subject, text }) {
       port,
       secure: port === 465,
       requireTLS: port === 587,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
       auth: { user, pass: password },
     });
     await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || user, to, subject, text });
@@ -73,7 +76,7 @@ export async function registerIdentityRoutes(app) {
     await prisma.verificationToken.deleteMany({ where: { identifier: email } });
     const code = String(crypto.randomInt(100000, 1000000));
     await prisma.verificationToken.create({ data: { identifier: email, token: code, expires: new Date(Date.now() + 600000) } });
-    try { await sendEmail({ to: email, subject: "Votre code de confirmation LynoraLink", text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.` }); } catch (error) { request.log.error({ err: error, provider: process.env.EMAIL_PROVIDER || "resend" }, "Registration email delivery failed"); await prisma.pendingRegistration.delete({ where: { email } }); await prisma.verificationToken.deleteMany({ where: { identifier: email } }); return reply.code(503).send({ error: "Impossible d'envoyer le code de confirmation." }); }
+    try { await sendEmail({ to: email, subject: "Votre code de confirmation LynoraLink", text: `Votre code de confirmation est ${code}. Il expire dans 10 minutes.` }); } catch (error) { const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase(); const provider = configuredProvider || (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend"); request.log.error({ err: error, provider }, "Registration email delivery failed"); await prisma.pendingRegistration.delete({ where: { email } }); await prisma.verificationToken.deleteMany({ where: { identifier: email } }); return reply.code(503).send({ error: "Impossible d'envoyer le code de confirmation." }); }
     return reply.code(201).send({ message: "Un code de confirmation à 6 chiffres a été envoyé à votre adresse email." });
   });
 
