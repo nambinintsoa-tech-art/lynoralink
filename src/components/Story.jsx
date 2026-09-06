@@ -74,7 +74,7 @@ const glassPanelStrong = {
   border: "1px solid rgba(255,255,255,0.18)",
 };
 
-const STORY_DURATION = 6000;
+const STORY_DURATION = 15000;
 const STORY_TTL_MS = 24 * 60 * 60 * 1000; // les stories expirent au bout de 24h
 
 const STORY_BACKGROUNDS = [
