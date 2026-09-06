@@ -15,7 +15,10 @@ export async function registerUploadRoutes(app) {
       return reply.send({ url: result.secure_url, type, publicId: result.public_id, fallback: false });
     } catch (error) {
       request.log.error({ err: error, type, resourceType }, "Cloudinary upload failed");
-      return reply.code(502).send({ error: "Cloudinary a refusé l'upload. Vérifiez les identifiants Cloudinary." });
+      return reply.code(502).send({
+        error: "Cloudinary a refusé l'upload. Vérifiez les identifiants Cloudinary.",
+        details: error?.message || "Erreur Cloudinary inconnue",
+      });
     }
   });
 }
