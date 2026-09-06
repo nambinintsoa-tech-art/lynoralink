@@ -3280,18 +3280,9 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
         .company-pages-pills::-webkit-scrollbar { display: none; }
         .company-pages-pills > button { -webkit-tap-highlight-color: transparent; }
         @media (min-width: 1280px) {
-          .company-pages-feed-layout { grid-template-columns: minmax(0, 760px) 320px; }
-          .company-pages-right-rail {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            position: sticky;
-            top: calc(var(--lynora-header-offset, 0px) + 16px);
-          }
-        }
-        @media (max-width: 1279px) {
           .company-pages-right-rail { display: none !important; }
         }
+        .company-pages-right-rail { display: none !important; }
 
         .company-sidebar-close {
           display: none !important;
@@ -3367,9 +3358,23 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             min-height: 100% !important;
           }
           .company-sidebar {
-            display: none !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            position: fixed !important;
+            top: var(--lynora-header-offset, 0px) !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 360px !important;
+            height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            min-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+            max-height: none !important;
+            z-index: 3 !important;
+            overflow-y: auto !important;
+            padding-bottom: 32px !important;
           }
-          .company-pages-main { width: 100% !important; height: 100%; margin-left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+          .company-pages-main { width: calc(100% - 360px) !important; height: 100%; margin-left: 360px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
           .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
             display: none !important;
           }
@@ -3402,10 +3407,6 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
           .company-pages-statistics-kpis > div { padding: 12px !important; }
           .company-pages-statistics-kpis strong { font-size: 20px !important; }
           .company-pages-statistics-columns { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
-        }
-        .company-pages-directory .company-sidebar,
-        .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
-          display: none !important;
         }
         .company-page { overflow-x: hidden; }
         .company-pages-directory, .company-page { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
