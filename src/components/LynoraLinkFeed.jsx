@@ -2789,7 +2789,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const reelPreviewSuppressClickRef = useRef(false);
   const [reelViewportWidth, setReelViewportWidth] = useState(390);
   const mobileReelCardWidth = isMobileReelPreview ? Math.min(Math.max(reelViewportWidth - 48, 260), 340) : 220;
-  const mobileReelViewportWidth = isMobileReelPreview ? mobileReelCardWidth : "100%";
   const [jobEngagementVersion, setJobEngagementVersion] = useState(0);
   const [openEventId, setOpenEventId] = useState(null);
   const [view, setView] = useState(requestedView); // feed | profile | settings | network | messages | notifications | company | saved | groups | pages | trend
@@ -6065,7 +6064,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                         Publiez le premier message pour lancer le fil d’actualité.
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
+                    <div className="lynora-feed-inline-suggestions" style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
                       <SuggestionsSection
                         suggestions={(activeAccount === "company" ? pageSuggestions : networkSuggestions).filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
                         connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
@@ -6154,7 +6153,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                       Voir tout
                                     </button>
                                   </div>
-                                  <div className="lynora-reel-preview-viewport" onPointerDown={handleReelPreviewPointerDown} onPointerUp={handleReelPreviewPointerUp} onPointerCancel={handleReelPreviewPointerCancel} style={{ position: "relative", overflow: "hidden", display: "flex", justifyContent: "flex-start", width: isMobileReelPreview ? "100vw" : "100%", height: isMobileReelPreview ? 560 : 360, maxWidth: isMobileReelPreview ? "100vw" : "100%", padding: 0, boxSizing: "border-box", marginLeft: isMobileReelPreview ? "calc((100vw - 100%) / -2)" : 0, marginRight: isMobileReelPreview ? "calc((100vw - 100%) / -2)" : 0, touchAction: "pan-x", cursor: "grab" }}>
+                                  <div className="lynora-reel-preview-viewport" onPointerDown={handleReelPreviewPointerDown} onPointerUp={handleReelPreviewPointerUp} onPointerCancel={handleReelPreviewPointerCancel} style={{ position: "relative", overflow: "hidden", display: "flex", justifyContent: "flex-start", width: "100%", height: isMobileReelPreview ? 430 : 360, maxWidth: "100%", padding: isMobileReelPreview ? 8 : 0, boxSizing: "border-box", border: "1px solid rgba(15,51,82,0.12)", borderRadius: isMobileReelPreview ? 16 : 24, background: "#F7FAFD", touchAction: "pan-x", cursor: "grab" }}>
                                     {reelPreview.length > 1 && !reelPreviewLoading && (
                                       <>
                                         <button
@@ -6178,9 +6177,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                       </>
                                     )}
                                     {reelPreviewLoading ? (
-                                      <div style={{ display: "flex", gap: isMobileReelPreview ? 0 : 16 }}>
+                                      <div style={{ display: "flex", gap: isMobileReelPreview ? 8 : 16 }}>
                                         {[1, 2, 3, 4].map((item) => (
-                                          <div key={item} style={{ width: isMobileReelPreview ? "100vw" : 220, height: isMobileReelPreview ? 560 : 360, borderRadius: isMobileReelPreview ? 0 : 24, background: "linear-gradient(135deg, rgba(19,35,70,0.22), rgba(246,211,116,0.16))", flexShrink: 0 }} />
+                                          <div key={item} style={{ width: isMobileReelPreview ? mobileReelCardWidth : 220, height: isMobileReelPreview ? 412 : 360, borderRadius: isMobileReelPreview ? 12 : 24, background: "linear-gradient(135deg, rgba(19,35,70,0.22), rgba(246,211,116,0.16))", flexShrink: 0 }} />
                                         ))}
                                       </div>
                                     ) : (
@@ -6188,10 +6187,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                         className="lynora-reel-preview-track"
                                         style={{
                                           display: "flex",
-                                          gap: isMobileReelPreview ? 0 : 16,
-                                          transform: isMobileReelPreview ? `translateX(-${reelPreviewIndex * reelViewportWidth}px)` : `translateX(-${reelPreviewIndex * 236}px)`,
+                                          gap: isMobileReelPreview ? 8 : 16,
+                                          transform: isMobileReelPreview ? `translateX(-${reelPreviewIndex * (mobileReelCardWidth + 8)}px)` : `translateX(-${reelPreviewIndex * 236}px)`,
                                           transition: "transform 380ms ease",
-                                          width: isMobileReelPreview ? `${Math.max(reelPreview.length * reelViewportWidth, 0)}px` : `${Math.max(reelPreview.length * 236, 0)}px`,
+                                          width: isMobileReelPreview ? `${Math.max(reelPreview.length * (mobileReelCardWidth + 8), 0)}px` : `${Math.max(reelPreview.length * 236, 0)}px`,
                                           paddingBottom: 4,
                                           justifyContent: "flex-start",
                                         }}
@@ -6222,13 +6221,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                                 }
                                               }}
                                               style={{
-                                                width: isMobileReelPreview ? "100vw" : 220,
+                                                width: isMobileReelPreview ? mobileReelCardWidth : 220,
                                                 border: "none",
                                                 background: "transparent",
                                                 padding: 0,
                                                 textAlign: "left",
                                                 cursor: "pointer",
-                                                borderRadius: isMobileReelPreview ? 0 : 24,
+                                                borderRadius: isMobileReelPreview ? 12 : 24,
                                                 overflow: "hidden",
                                                 boxShadow: "none",
                                                 flexShrink: 0,
@@ -6237,8 +6236,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                               <div
                                                 style={{
                                                   position: "relative",
-                                                  height: isMobileReelPreview ? 560 : 360,
-                                                  borderRadius: 24,
+                                                  height: isMobileReelPreview ? 412 : 360,
+                                                  borderRadius: isMobileReelPreview ? 12 : 24,
                                                   background: posterUrl || videoUrl ? "transparent" : gradient,
                                                   overflow: "hidden",
                                                 }}
@@ -6282,39 +6281,45 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                 </section>
                               )}
                               {index === 3 && showPageSuggestions && (
-                                <PageSuggestionsGrid
-                                  key={`content-suggestion-page-${suggestionRotation}`}
-                                  pages={pageSuggestions}
-                                  followedPageIds={followedPageIds}
-                                  onFollowPage={followPage}
-                                  onNavigate={navigate}
-                                  onDismiss={dismissSuggestion}
-                                  dismissedIds={dismissedSuggestionIds}
-                                />
+                                <div className="lynora-feed-inline-suggestions">
+                                  <PageSuggestionsGrid
+                                    key={`content-suggestion-page-${suggestionRotation}`}
+                                    pages={pageSuggestions}
+                                    followedPageIds={followedPageIds}
+                                    onFollowPage={followPage}
+                                    onNavigate={navigate}
+                                    onDismiss={dismissSuggestion}
+                                    dismissedIds={dismissedSuggestionIds}
+                                  />
+                                </div>
                               )}
                               {index === 5 && showGroupSuggestions && (
-                                <GroupSuggestionsRail
-                                  key={`content-suggestion-group-${suggestionRotation}`}
-                                  groups={sidebarGroups}
-                                  currentUserId={session?.user?.id}
-                                  onJoinGroup={joinGroupFromFeed}
-                                  onNavigate={navigate}
-                                  compactGrid
-                                  onDismiss={dismissSuggestion}
-                                  dismissedIds={dismissedSuggestionIds}
-                                />
+                                <div className="lynora-feed-inline-suggestions">
+                                  <GroupSuggestionsRail
+                                    key={`content-suggestion-group-${suggestionRotation}`}
+                                    groups={sidebarGroups}
+                                    currentUserId={session?.user?.id}
+                                    onJoinGroup={joinGroupFromFeed}
+                                    onNavigate={navigate}
+                                    compactGrid
+                                    onDismiss={dismissSuggestion}
+                                    dismissedIds={dismissedSuggestionIds}
+                                  />
+                                </div>
                               )}
                               {((index === 2) || (visibleFeedPosts.length < 3 && index === visibleFeedPosts.length - 1)) && personSuggestions.length > 0 && (
-                                <SuggestionsSection
-                                  suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
-                                  connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
-                                  pendingRequestIds={pendingSuggestionIds}
-                                  onConnect={connectSuggestion}
-                                  onCancel={cancelConnectionRequest}
-                                  onDismiss={dismissSuggestion}
-                                  onNavigate={navigate}
-                                  onOpenProfile={openUserProfile}
-                                />
+                                <div className="lynora-feed-inline-suggestions">
+                                  <SuggestionsSection
+                                    suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
+                                    connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
+                                    pendingRequestIds={pendingSuggestionIds}
+                                    onConnect={connectSuggestion}
+                                    onCancel={cancelConnectionRequest}
+                                    onDismiss={dismissSuggestion}
+                                    onNavigate={navigate}
+                                    onOpenProfile={openUserProfile}
+                                  />
+                                </div>
                               )}
                             </React.Fragment>
                           ))}
@@ -6976,6 +6981,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
       {sidebarToast && (
         <div
+          className="lynora-feed-toast"
           style={{
             position: "fixed",
             bottom: "1.5rem",
@@ -6994,7 +7000,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           }}
         >
           {sidebarToast.icon && <sidebarToast.icon size={16} style={{ color: "#F6D374", flexShrink: 0 }} />}
-          <span style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap" }}>{sidebarToast.message}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 500, overflowWrap: "anywhere" }}>{sidebarToast.message}</span>
           <button
             onClick={() => setSidebarToast(null)}
             style={{ marginLeft: "0.375rem", borderRadius: 9999, padding: "0.125rem", border: "none", background: "none", cursor: "pointer", color: "#5C6B78" }}

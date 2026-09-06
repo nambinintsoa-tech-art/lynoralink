@@ -241,7 +241,7 @@ function Toast({ message, icon: ToastIcon, color, visible, onDone }) {
 
   if (!visible && !exited) return null;
   return (
-    <div style={{
+    <div className="lynora-dashboard-toast" style={{
       position: "fixed", bottom: 28, left: "50%", transform: `translateX(-50%) translateY(${exited ? 20 : 0}px)`,
       background: C.ink, color: C.white, padding: "12px 22px", borderRadius: 12,
       display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600,
@@ -249,7 +249,7 @@ function Toast({ message, icon: ToastIcon, color, visible, onDone }) {
       opacity: exited ? 0 : 1, transition: "all 0.35s ease", pointerEvents: "none",
     }}>
       <ToastIcon size={18} color={color} />
-      {message}
+      <span>{message}</span>
     </div>
   );
 }

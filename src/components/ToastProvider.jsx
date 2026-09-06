@@ -16,9 +16,9 @@ function ClientToast({ message, type = "info", onClose }) {
     return () => clearTimeout(timeoutId);
   }, [onClose]);
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, background: c.bg, color: c.fg, boxShadow: "0 8px 30px rgba(0,0,0,0.12)", minWidth: 260 }}>
-        <div style={{ fontWeight: 700 }}>{message}</div>
+    <div className="lynora-toast-provider" style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999 }}>
+      <div className="lynora-toast-content" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, background: c.bg, color: c.fg, boxShadow: "0 8px 30px rgba(0,0,0,0.12)" }}>
+        <div style={{ fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" }}>{message}</div>
         <button onClick={onClose} style={{ marginLeft: "auto", background: "transparent", border: "none", cursor: "pointer", color: c.fg }}>×</button>
       </div>
     </div>

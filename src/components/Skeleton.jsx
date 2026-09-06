@@ -34,6 +34,7 @@ const STYLE_CSS = `
 }
 .lyn-pulse { background: ${C.base}; animation: lyn-pulse 1.6s ease-in-out infinite; }
 .lyn-static { background: ${C.base}; }
+.lynora-skeleton-block { box-sizing: border-box; max-width: 100%; }
 .lyn-media-fade { animation: lyn-fade-in .45s ease both; }
 .lyn-spin { animation: lyn-spin .9s linear infinite; }
 @media (max-width: 1024px) {
@@ -164,6 +165,8 @@ const STYLE_CSS = `
   .lynora-settings-skeleton,
   .lynora-dashboard-skeleton,
   .lynora-admin-skeleton { padding-inline: 12px; }
+  .lynora-reel-skeleton { min-height: min(620px, calc(100dvh - var(--lynora-header-offset, 0px))) !important; max-height: calc(100dvh - var(--lynora-header-offset, 0px)); }
+  .lynora-reel-skeleton > div:first-child { min-height: 0 !important; height: 100% !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lyn-shimmer, .lyn-pulse { animation: none; background: ${C.base}; }
@@ -212,7 +215,7 @@ export function Skeleton({ width = "100%", height = 12, radius = 8, variant = "s
   return (
     <div
       aria-hidden="true"
-      className={`${cls} ${className}`}
+      className={`${cls} lynora-skeleton-block ${className}`}
       style={{
         width,
         height,
@@ -878,7 +881,7 @@ export function CompanyPagePostsSkeleton({ count = 2 }) {
 
 export function ReelSkeleton() {
   return (
-    <Frame style={{ maxWidth: 520, minHeight: 620, margin: "0 auto", overflow: "hidden", position: "relative", background: C.navy900 }}>
+    <Frame className="lynora-reel-skeleton" style={{ maxWidth: 520, minHeight: 620, margin: "0 auto", overflow: "hidden", position: "relative", background: C.navy900 }}>
       <SkeletonVideo ratio="9/16" radius={0} style={{ height: "100%", minHeight: 620, background: "#102A40" }} />
       <div style={{ position: "absolute", left: 18, right: 64, bottom: 20, display: "flex", flexDirection: "column", gap: 9 }}>
         <Skeleton width="42%" height={14} radius={5} style={{ background: "rgba(255,255,255,.25)" }} />
