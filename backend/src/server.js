@@ -61,8 +61,9 @@ await app.register(cors, {
   credentials: true,
 });
 await app.register(rateLimit, {
-  max: process.env.NODE_ENV === "production" ? 120 : 600,
+  max: process.env.NODE_ENV === "production" ? 300 : 600,
   timeWindow: "1 minute",
+  keyGenerator: (request) => request.headers["x-lynora-user-id"] || request.ip,
 });
 await app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
 
