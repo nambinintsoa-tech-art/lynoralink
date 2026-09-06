@@ -17,6 +17,17 @@ const getSafeRedirectTarget = (value) => {
   return nextValue;
 };
 
+function getLoginDeviceId() {
+  const storageKey = "lynoralink:login-device-id";
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const generated = typeof window.crypto?.randomUUID === "function"
+    ? window.crypto.randomUUID()
+    : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+  window.localStorage.setItem(storageKey, generated);
+  return generated;
+}
+
 function LoginPageContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -83,6 +94,14 @@ function LoginPageContent() {
     }
 
     setLoadingMessage("Chargement de votre espace personnel...");
+
+    try {
+      await fetch("/api/security/new-device", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: getLoginDeviceId() }),
+      });
+    } catch {}
 
     try {
       const accountResponse = await fetchBackendApi("/api/account");

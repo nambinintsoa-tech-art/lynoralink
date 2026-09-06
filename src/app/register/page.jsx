@@ -21,6 +21,11 @@ export default function RegisterPage() {
   const [verificationStep, setVerificationStep] = useState(false);
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const updateBirthDate = (e) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+    const formatted = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join("/");
+    setForm((f) => ({ ...f, birthDate: formatted }));
+  };
 
   const calculatePasswordStrength = (password) => {
     if (!password) return { strength: 0, label: "", color: "" };
@@ -75,6 +80,35 @@ export default function RegisterPage() {
       setError("Le mot de passe ne respecte pas tous les critères.");
       return;
     }
+    const birthDateMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(form.birthDate);
+    if (!birthDateMatch) {
+      setError("Saisissez une date de naissance valide au format JJ/MM/AAAA.");
+      return;
+    }
+    const birthDateValue = new Date(Date.UTC(
+      Number(birthDateMatch[3]),
+      Number(birthDateMatch[2]) - 1,
+      Number(birthDateMatch[1]),
+      12,
+    ));
+    const today = new Date();
+    const latestBirthDate = new Date(Date.UTC(
+      today.getUTCFullYear() - 16,
+      today.getUTCMonth(),
+      today.getUTCDate(),
+      12,
+    ));
+    if (Number.isNaN(birthDateValue.getTime())
+      || birthDateValue.getUTCFullYear() !== Number(birthDateMatch[3])
+      || birthDateValue.getUTCMonth() !== Number(birthDateMatch[2]) - 1
+      || birthDateValue.getUTCDate() !== Number(birthDateMatch[1])) {
+      setError("Saisissez une date de naissance valide au format JJ/MM/AAAA.");
+      return;
+    }
+    if (birthDateValue > latestBirthDate) {
+      setError("Vous devez avoir au moins 16 ans pour créer un compte.");
+      return;
+    }
     
     setError("");
     setSuccess("");
@@ -84,7 +118,7 @@ export default function RegisterPage() {
       const res = await fetchBackendApi("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, birthDate: `${birthDateMatch[3]}-${birthDateMatch[2]}-${birthDateMatch[1]}` }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -197,10 +231,14 @@ export default function RegisterPage() {
                 <label htmlFor="birthDate" className="text-xs font-medium text-muted">Date de naissance</label>
                 <input
                   id="birthDate"
-                  type="date"
+                  type="text"
+                  inputMode="numeric"
                   required
+                  autoComplete="bday"
+                  placeholder="JJ/MM/AAAA"
+                  maxLength={10}
                   value={form.birthDate}
-                  onChange={update("birthDate")}
+                  onChange={updateBirthDate}
                   className="rounded-lg border border-navy100 bg-white px-3.5 py-2.5 text-sm text-[#132433] placeholder:text-[#5c7488] outline-none focus:border-navy700 focus:ring-2 focus:ring-navy700 focus:ring-opacity-20 transition-all"
                 />
               </div>
@@ -285,9 +323,9 @@ export default function RegisterPage() {
                 />
                 <label htmlFor="cgu" className="text-xs text-muted">
                   J'accepte les{" "}
-                  <a href="/cgu" className="text-navy800 underline hover:text-navy900">
+                  <Link href="/legal" className="text-navy800 underline hover:text-navy900">
                     conditions générales d'utilisation
-                  </a>
+                  </Link>
                 </label>
               </div>}
 

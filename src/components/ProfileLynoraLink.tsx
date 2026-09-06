@@ -1111,7 +1111,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const copyProfileLink = () => { const link = `https://lynoralink.com/p/${profile.name.toLowerCase().replace(/\s+/g, '-')}`; navigator.clipboard?.writeText(link).catch(() => {}); showToast('Lien copié', Copy); };
   const toggleNotif = () => { setNotifMuted(v => !v); showToast(notifMuted ? 'Notifications réactivées' : 'Notifications désactivées', notifMuted ? Bell : BellOff); };
   const toggleLike = (id: string | number) => setLikedPosts(prev => ({ ...prev, [id]: !prev[id] }));
-  const messageContact = (friend: FriendProfile) => router.push(`/feed?view=messages&userId=${encodeURIComponent(String(friend.id))}`);
+  const messageContact = (friend: FriendProfile) => window.history.pushState({}, '', `/feed?view=messages&userId=${encodeURIComponent(String(friend.id))}`);
   const connectContact = async (friend: FriendProfile) => {
     if (pendingContactIds.includes(friend.id)) return;
     setPendingContactIds((current) => [...current, friend.id]);
@@ -1350,7 +1350,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
 
                   {/* Connection count */}
                   <button type="button" onClick={() => setActiveTab('Amis')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, padding: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
-                    <AvatarStack people={friends} extraCount={Math.max(0, friendsTotal - friends.length)} size={34} max={4} onClick={() => setActiveTab('Amis')} onPersonClick={(person) => router.push(`/feed?view=profile&userId=${encodeURIComponent(String(person.id))}`)} />
+                    <AvatarStack people={friends} extraCount={Math.max(0, friendsTotal - friends.length)} size={34} max={4} onClick={() => setActiveTab('Amis')} onPersonClick={(person) => window.history.pushState({}, '', `/feed?view=profile&userId=${encodeURIComponent(String(person.id))}`)} />
                     <span style={{ fontSize: 14, color: 'rgba(0,0,0,0.6)' }}><strong style={{ color: 'rgba(0,0,0,0.9)' }}>{profile.connections.toLocaleString('fr-FR')}</strong> relations</span>
                     <ChevronDown size={14} style={{ transform: 'rotate(-90deg)', color: '#0a66c2' }} />
                   </button>
@@ -1361,7 +1361,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
                   {isOwner ? (
                     <>
                       <button className="lynora-profile-action" onClick={() => router.push('/dashboard')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 24, border: 'none', background: '#0a66c2', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(10,102,194,0.3)' }}>Tableau de bord</button>
-                      <button className="lynora-profile-action" onClick={() => router.push('/settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 24, border: '1px solid #9CA3AF', background: '#fff', color: 'rgba(0,0,0,0.7)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Modifier</button>
+                      <button className="lynora-profile-action" onClick={() => window.history.pushState({}, '', '/feed?view=settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 24, border: '1px solid #9CA3AF', background: '#fff', color: 'rgba(0,0,0,0.7)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Modifier</button>
                     </>
                   ) : (
                     <>

@@ -3081,6 +3081,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setCompanyData(c);
     try { if (typeof window !== 'undefined') localStorage.setItem('companyData', JSON.stringify(c)); } catch (e) {}
   };
+  const navigateFeedRoute = (route, replace = false) => {
+    window.history[replace ? "replaceState" : "pushState"]({}, "", route);
+  };
   const openCompanyComposer = (mode, pageId = companyData?.id) => {
     setComposerCompanyId(pageId || null);
     setModalMode(mode);
@@ -3090,7 +3093,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setCompanyTab("discover");
     setView("company");
     ignoreRouteSyncRef.current = true;
-    router.replace("/feed?view=company&companyTab=discover");
+    navigateFeedRoute("/feed?view=company&companyTab=discover", true);
   };
   const handleCompanyDeleted = () => {
     setCompanyData(null);
@@ -3105,7 +3108,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setCompanyTab("discover");
     setView("company");
     ignoreRouteSyncRef.current = true;
-    router.replace("/feed?view=company&companyTab=discover");
+    navigateFeedRoute("/feed?view=company&companyTab=discover", true);
   };
   const updateSelectedCompanyPage = (patch) => {
     setSelectedCompanyPage((current) => {
@@ -4059,7 +4062,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setView(targetView);
     ignoreRouteSyncRef.current = true;
     const nextRoute = targetView === "feed" ? "/feed" : `/feed?view=${encodeURIComponent(targetView)}`;
-    router.replace(nextRoute);
+    window.dispatchEvent(new Event("lynora:navigation-start"));
+    window.history.replaceState({}, "", nextRoute);
 
     if (type === "messages") {
       setMessagesModalOpen(false);
@@ -4148,8 +4152,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setTargetProfileId(userId);
     setView("profile");
     ignoreRouteSyncRef.current = true;
-    router.push(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
-  }, [router]);
+    window.history.pushState({}, "", `/feed?view=profile&userId=${encodeURIComponent(userId)}`);
+  }, []);
 
   const openCompanyPageDetail = useCallback((pageId) => {
     if (!pageId) return;
@@ -4158,8 +4162,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setCompanyTab("mine");
     setView("company");
     ignoreRouteSyncRef.current = true;
-    router.push(`/feed?view=company&pageId=${encodeURIComponent(pageId)}`);
-  }, [companyData, pageCatalog, publicCompanyPages, router]);
+    window.history.pushState({}, "", `/feed?view=company&pageId=${encodeURIComponent(pageId)}`);
+  }, [companyData, pageCatalog, publicCompanyPages]);
 
   useEffect(() => {
     if (view !== "network") return;
@@ -4190,7 +4194,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setSelectedCompanyPage(null);
       setView("company");
       ignoreRouteSyncRef.current = true;
-      router.push("/feed?view=company&companyTab=discover");
+      navigateFeedRoute("/feed?view=company&companyTab=discover");
       return;
     }
 
@@ -4209,7 +4213,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setSelectedCompanyPage(null);
       setView("company");
       ignoreRouteSyncRef.current = true;
-      router.push(`/feed?view=company&companyTab=${nextCompanyTab}`);
+      navigateFeedRoute(`/feed?view=company&companyTab=${nextCompanyTab}`);
       return;
     }
 
@@ -4230,7 +4234,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           body: JSON.stringify({ conversationId: activeConversationId }),
         }).catch(() => {});
       }
-      router.push("/feed?view=messages");
+      ignoreRouteSyncRef.current = true;
+      window.history.pushState({}, "", "/feed?view=messages");
       return;
     }
 
@@ -4245,7 +4250,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setNotificationsModalOpen(true);
       setMessagesModalOpen(false);
       markAllNotificationsRead();
-      router.push("/feed?view=notifications");
+      window.history.pushState({}, "", "/feed?view=notifications");
       return;
     }
 
@@ -4253,7 +4258,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setMessagesModalOpen(false);
       setNotificationsModalOpen(false);
       setView("abonnement");
-      router.push("/feed?view=abonnement");
+      window.history.pushState({}, "", "/feed?view=abonnement");
       return;
     }
 
@@ -4265,11 +4270,11 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       if (view === "feed") {
         setFeedContentReady(false);
         refreshFeedContent().finally(() => setFeedContentReady(true));
-        router.replace("/feed", { scroll: false });
+        window.history.replaceState({}, "", "/feed");
         return;
       }
 
-      router.push("/feed");
+      window.history.pushState({}, "", "/feed");
       return;
     }
 
@@ -4278,7 +4283,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setMessagesModalOpen(false);
       setNotificationsModalOpen(false);
       setView("settings");
-      router.push(`/feed?view=settings&section=${encodeURIComponent(section)}`);
+      window.history.pushState({}, "", `/feed?view=settings&section=${encodeURIComponent(section)}`);
       return;
     }
 
@@ -4308,16 +4313,16 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (id === "network") {
       const nextTab = options.tab || networkInitialTab || "connections";
       setNetworkInitialTab(nextTab);
-      router.replace(`/feed?view=network&tab=${encodeURIComponent(nextTab)}`, { scroll: false });
+      window.history.replaceState({}, "", `/feed?view=network&tab=${encodeURIComponent(nextTab)}`);
       markNetworkNotificationsRead();
     }
 
     if (id === "company") {
       setView("company");
-      router.push("/feed?view=company");
+      window.history.pushState({}, "", "/feed?view=company");
     } else {
       setView(id);
-      router.push(`/feed?view=${id}`);
+      window.history.pushState({}, "", `/feed?view=${id}`);
     }
   };
 
@@ -4453,7 +4458,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const handleSearchResult = useCallback((result) => {
     if (result?.targetType === "user" && result.targetId) {
       setTargetProfileId(result.targetId);
-      router.push(`/feed?view=profile&userId=${encodeURIComponent(result.targetId)}`);
+      navigateFeedRoute(`/feed?view=profile&userId=${encodeURIComponent(result.targetId)}`);
       return;
     }
     if (result?.targetType === "page" && result.targetId) {
@@ -4461,13 +4466,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       if (page) {
         setSelectedCompanyPage(page);
         setCompanyTab("mine");
-        router.push(`/feed?view=company&pageId=${encodeURIComponent(result.targetId)}`);
+        navigateFeedRoute(`/feed?view=company&pageId=${encodeURIComponent(result.targetId)}`);
       }
       return;
     }
     if (result?.targetType === "group" && result.targetId) {
       setTargetGroupId(result.targetId);
-      router.push(`/feed?view=groups&groupId=${encodeURIComponent(result.targetId)}`);
+      navigateFeedRoute(`/feed?view=groups&groupId=${encodeURIComponent(result.targetId)}`);
       return;
     }
     navigate(result?.view || "feed");
@@ -4823,7 +4828,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (meta.groupId) {
       setTargetGroupId(meta.groupId);
       setView("groups");
-      router.push(`/feed?view=groups&groupId=${encodeURIComponent(meta.groupId)}`);
+      navigateFeedRoute(`/feed?view=groups&groupId=${encodeURIComponent(meta.groupId)}`);
       return;
     }
     if (meta.postId) {
@@ -4834,11 +4839,11 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         setOpenArticleId(isArticle ? targetPost.id : null);
         if (!isArticle) setOpenPostId(targetPost.id);
         setView("feed");
-        router.push("/feed");
+        navigateFeedRoute("/feed");
       } else {
         setView("feed");
         const articleParam = notification?.type === "article" || meta.isArticle ? "&article=1" : "";
-        router.push(`/feed?post=${encodeURIComponent(meta.postId)}${articleParam}`);
+        navigateFeedRoute(`/feed?post=${encodeURIComponent(meta.postId)}${articleParam}`);
       }
       return;
     }
@@ -4847,12 +4852,12 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setCompanyTab("mine");
       setSelectedCompanyPage(targetPage || null);
       setView("company");
-      router.push(`/feed?view=company&pageId=${encodeURIComponent(meta.pageId)}`);
+      navigateFeedRoute(`/feed?view=company&pageId=${encodeURIComponent(meta.pageId)}`);
       return;
     }
     if (meta.storyId) {
       setView("feed");
-      router.push("/feed");
+      navigateFeedRoute("/feed");
       return;
     }
     if (meta.view) {
@@ -4865,6 +4870,35 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
     if (typeof notification === "object" && notification.type === "suggestion") {
       navigate("network", { tab: "suggestions" });
+    }
+  };
+
+  const handleSecurityAlertResponse = async (notification, response) => {
+    try {
+      const result = await fetch("/api/security/alert-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId: notification.id, response }),
+      });
+      const data = await result.json().catch(() => ({}));
+      if (!result.ok) {
+        setSidebarToast({ message: data.error || "Impossible de traiter cette alerte.", icon: X });
+        return;
+      }
+
+      handleNotificationChange(notifications.map((item) => (
+        item.id === notification.id ? { ...item, read: true } : item
+      )));
+      if (response === "yes") {
+        setSidebarToast({ message: "Connexion confirmée.", icon: Check });
+        return;
+      }
+
+      window.localStorage.removeItem("lynoralink:login-device-id");
+      window.localStorage.removeItem("lynoralink:connectedAccounts");
+      await signOut({ callbackUrl: `/reset-password?email=${encodeURIComponent(session?.user?.email || "")}` });
+    } catch {
+      setSidebarToast({ message: "Impossible de traiter cette alerte.", icon: X });
     }
   };
 
@@ -6414,7 +6448,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 setNotificationsModalOpen(false);
                 setView("profile");
                 ignoreRouteSyncRef.current = true;
-                router.push(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
+                navigateFeedRoute(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
               }}
               onOpenChatSettings={(target) => {
                 const sectionByTarget = {
@@ -6429,7 +6463,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 setDirectChatOpen(false);
                 setView("settings");
                 ignoreRouteSyncRef.current = true;
-                router.push(`/feed?view=settings&section=${section}`);
+                navigateFeedRoute(`/feed?view=settings&section=${section}`);
               }}
               onClose={() => closeOverlay("messages")}
               loading={messagesLoading}
@@ -6473,6 +6507,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 notifications={notifications}
                 onChange={handleNotificationChange}
                 onOpenNotification={markNotificationRead}
+                onSecurityResponse={handleSecurityAlertResponse}
                 modal
                 onClose={() => {
                   closeOverlay("notifications");
@@ -6544,7 +6579,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 setTargetProfileId(userId);
                 setView("profile");
                 ignoreRouteSyncRef.current = true;
-                router.push(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
+                navigateFeedRoute(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
               }}
               onCreateCampaign={() => {}}
               onWithdraw={() => {}}
@@ -6586,7 +6621,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       setSelectedCompanyPage(null);
                       setCompanyTab(nextTab);
                       ignoreRouteSyncRef.current = true;
-                      router.push(`/feed?view=company&companyTab=${nextTab}`);
+                      navigateFeedRoute(`/feed?view=company&companyTab=${nextTab}`);
                     }}
                     onOpenCompany={setSelectedCompanyPage}
                     currentCompanyId={companyData?.id}
@@ -6594,7 +6629,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     onOpenMyPage={() => {
                       setSelectedCompanyPage(null);
                       setCompanyTab("mine");
-                      router.push("/feed?view=company&companyTab=mine");
+                      navigateFeedRoute("/feed?view=company&companyTab=mine");
                     }}
                     followedPageIds={followedPageIds}
                     onFollowPage={followPage}
@@ -6621,7 +6656,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       setCompanyTab("mine");
                       setView("company");
                       ignoreRouteSyncRef.current = true;
-                      router.replace("/feed?view=company&companyTab=mine");
+                      navigateFeedRoute("/feed?view=company&companyTab=mine", true);
                     }}
                     canCreatePage={true}
                     onUpgrade={() => {}}
@@ -6662,7 +6697,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     setTargetProfileId(userId);
                     setView("profile");
                     ignoreRouteSyncRef.current = true;
-                    router.push(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
+                    navigateFeedRoute(`/feed?view=profile&userId=${encodeURIComponent(userId)}`);
                   }}
                   onToggleLike={toggleLike}
                   onSelectReaction={selectReaction}
@@ -6691,7 +6726,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                         onClick={() => {
                           setCompanyTab(tab.id);
                           ignoreRouteSyncRef.current = true;
-                          router.push(`/feed?view=company&companyTab=${tab.id}`);
+                          navigateFeedRoute(`/feed?view=company&companyTab=${tab.id}`);
                         }}
                         className="relative px-3 py-3 text-sm font-semibold"
                         style={{ color: companyTab === tab.id ? C.navy700 : C.muted }}
@@ -6712,7 +6747,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       onClick={() => {
                         setCompanyTab("discover");
                         ignoreRouteSyncRef.current = true;
-                        router.push("/feed?view=company&companyTab=discover");
+                        navigateFeedRoute("/feed?view=company&companyTab=discover");
                       }}
                       className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
                       style={{ background: C.navy700 }}

@@ -7,6 +7,7 @@ import { getSessionUserId } from "./auth.js";
 
 const strongPassword = (value) => typeof value === "string" && value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
 const validEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
+const MINIMUM_AGE = 16;
 const genericResetMessage = "Si un compte correspond à cette adresse, un lien de réinitialisation a été envoyé.";
 const genericRegistrationMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau code vient d'être envoyé.";
 
@@ -79,7 +80,14 @@ async function sendEmail({ to, subject, text }) {
 function birthDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return null;
   const date = new Date(`${value}T12:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  return date;
+}
+
+function isAtLeastMinimumAge(date) {
+  const today = new Date();
+  const latestBirthDate = new Date(Date.UTC(today.getUTCFullYear() - MINIMUM_AGE, today.getUTCMonth(), today.getUTCDate(), 12));
+  return date <= latestBirthDate;
 }
 
 async function verifyRegistration(email, code) {
@@ -106,11 +114,13 @@ export async function registerIdentityRoutes(app) {
   app.post("/v1/register", async (request, reply) => {
     const body = request.body || {};
     const email = String(body.email || "").trim().toLowerCase();
-    if (typeof body.name !== "string" || body.name.trim().length < 2 || !validEmail(email) || !strongPassword(body.password) || !birthDate(body.birthDate)) return reply.code(400).send({ error: "Données d'inscription invalides" });
+    const parsedBirthDate = birthDate(body.birthDate);
+    if (typeof body.name !== "string" || body.name.trim().length < 2 || !validEmail(email) || !strongPassword(body.password) || !parsedBirthDate) return reply.code(400).send({ error: "Données d'inscription invalides" });
+    if (!isAtLeastMinimumAge(parsedBirthDate)) return reply.code(400).send({ error: "Vous devez avoir au moins 16 ans pour créer un compte." });
     const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, emailVerified: true } });
     if (existing?.emailVerified) return reply.code(409).send({ error: "Un compte existe déjà avec cet email." });
     if (existing) await prisma.user.delete({ where: { id: existing.id } });
-    await prisma.pendingRegistration.upsert({ where: { email }, update: { name: body.name.trim(), title: body.title || null, birthDate: birthDate(body.birthDate), password: await bcrypt.hash(body.password, 10) }, create: { email, name: body.name.trim(), title: body.title || null, birthDate: birthDate(body.birthDate), password: await bcrypt.hash(body.password, 10) } });
+    await prisma.pendingRegistration.upsert({ where: { email }, update: { name: body.name.trim(), title: body.title || null, birthDate: parsedBirthDate, password: await bcrypt.hash(body.password, 10) }, create: { email, name: body.name.trim(), title: body.title || null, birthDate: parsedBirthDate, password: await bcrypt.hash(body.password, 10) } });
     await prisma.verificationToken.deleteMany({ where: { identifier: email } });
     const code = String(crypto.randomInt(100000, 1000000));
     await prisma.verificationToken.create({ data: { identifier: email, token: code, expires: new Date(Date.now() + 600000) } });

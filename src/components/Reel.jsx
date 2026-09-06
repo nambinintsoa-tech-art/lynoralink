@@ -907,7 +907,7 @@ const ReelSlide = React.memo(function ReelSlide({ reel, active, nearby, muted, c
     }
 
     if (authorId) {
-      router.push(`/feed?view=profile&userId=${encodeURIComponent(authorId)}`);
+      window.history.pushState({}, "", `/feed?view=profile&userId=${encodeURIComponent(authorId)}`);
     }
   };
 

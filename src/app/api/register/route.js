@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { sendRegistrationCode } from "@/lib/emailVerification";
 import { isStrongPassword } from "@/lib/passwordPolicy";
 
+const MINIMUM_AGE = 16;
+
 const parseBirthDate = (value) => {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
@@ -17,11 +19,25 @@ const parseBirthDate = (value) => {
 
   const [, year, month, day] = match;
   const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
-  if (Number.isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())
+    || date.getUTCFullYear() !== Number(year)
+    || date.getUTCMonth() !== Number(month) - 1
+    || date.getUTCDate() !== Number(day)) {
     throw new Error("La date de naissance est invalide.");
   }
 
   return date;
+};
+
+const isAtLeastMinimumAge = (date) => {
+  const today = new Date();
+  const latestBirthDate = new Date(Date.UTC(
+    today.getUTCFullYear() - MINIMUM_AGE,
+    today.getUTCMonth(),
+    today.getUTCDate(),
+    12,
+  ));
+  return date <= latestBirthDate;
 };
 
 const registerSchema = z.object({
@@ -36,7 +52,13 @@ const registerSchema = z.object({
     } catch {
       return false;
     }
-  }, "La date de naissance est invalide."),
+  }, "La date de naissance est invalide.").refine((value) => {
+    try {
+      return isAtLeastMinimumAge(parseBirthDate(value));
+    } catch {
+      return false;
+    }
+  }, "Vous devez avoir au moins 16 ans pour créer un compte."),
 });
 
 export async function POST(req) {

@@ -989,6 +989,10 @@ export default function Reseau({
                     const isCompany = s.type === "company";
                     const done = connectedIds.includes(s.id);
                     const pending = pendingRequestIds.includes(s.id);
+                    const incomingInvitation = !isCompany
+                      ? invitations.find((invitation) => (invitation.userId || invitation.id) === s.id)
+                      : null;
+                    const incomingAccepted = incomingInvitation && acceptedInvitationIds.includes(incomingInvitation.id);
                     const avatarUrl = s.avatarUrl || s.image || s.logoUrl || s.photoUrl || null;
                     const coverUrl = s.coverUrl || s.cover || s.bannerUrl || s.backgroundImage || null;
                     const mutualLabel = isCompany ? "abonnés" : "relations en commun";
@@ -1052,20 +1056,23 @@ export default function Reseau({
                           <MutualRow mutual={mutualValue} label={mutualLabel} avatars={s.mutualAvatars} />
 
                           <button
-                            onClick={() => (pending ? onCancelConnectionRequest?.(s.id) : connectSuggestion(s.id))}
-                            disabled={done}
-                            className={`fb-btn ${done ? "done" : "fb-btn-primary"}`}
+                            onClick={() => incomingInvitation
+                              ? acceptInvitation(incomingInvitation.id)
+                              : (pending ? onCancelConnectionRequest?.(s.id) : connectSuggestion(s.id))}
+                            disabled={done || incomingAccepted}
+                            className={`fb-btn ${done || incomingAccepted ? "done" : "fb-btn-primary"}`}
                             style={{
-                              background: done ? FB.gray : pending ? FB.white : "#D4A72C",
-                              color: done ? FB.textSecondary : pending ? "#D32F2F" : FB.white,
-                              border: pending ? "1px solid #E4E6EB" : "none",
-                              boxShadow: pending ? "none" : "0 1px 2px rgba(15, 51, 82, 0.12)",
+                              background: done || incomingAccepted ? FB.gray : pending ? FB.white : "#D4A72C",
+                              color: done || incomingAccepted ? FB.textSecondary : pending ? "#D32F2F" : FB.white,
+                              border: pending && !incomingInvitation ? "1px solid #E4E6EB" : "none",
+                              boxShadow: pending && !incomingInvitation ? "none" : "0 1px 2px rgba(15, 51, 82, 0.12)",
                               fontSize: 11,
                               padding: "7px 10px",
                               marginTop: 4,
                             }}
                           >
-                            {done ? (<><Check size={14} /> {isCompany ? "Suivi" : "Connecté"}</>)
+                            {done || incomingAccepted ? (<><Check size={14} /> {isCompany ? "Suivi" : "Connecté"}</>)
+                              : incomingInvitation ? (<><Check size={14} /> Confirmer</>)
                               : pending ? (<><X size={14} /> Annuler</>)
                               : (<><UserPlus size={14} /> {isCompany ? "Suivre" : "Se connecter"}</>)}
                           </button>

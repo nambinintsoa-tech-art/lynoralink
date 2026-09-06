@@ -68,6 +68,7 @@ model User {
   reportsSent             Report[]             @relation("ReportReporter")
   savedPosts              SavedPost[]
   sessions                Session[]
+  loginDevices            LoginDevice[]
   stories                 Story[]
   storyReactions          StoryReaction[]
   storyViews              StoryView[]
@@ -129,6 +130,19 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginDevice {
+  id         String   @id @default(cuid())
+  userId     String
+  deviceHash String
+  deviceName String
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceHash])
+  @@index([userId, lastSeenAt])
 }
 
 model VerificationToken {

@@ -44,6 +44,7 @@ const NOTIF_TYPES = {
   mention: { icon: faAt, color: C.navy800, label: "Mentions" },
   article: { icon: faBookOpen, color: C.gold600, label: "Articles" },
   story: { icon: faEye, color: C.navy700, label: "Stories" },
+  security_alert: { icon: faBell, color: C.danger, label: "Sécurité" },
 };
 
 /* Données de démonstration — utilisées uniquement si le composant est monté sans props */
@@ -58,12 +59,12 @@ export const DEMO_NOTIFICATIONS = [];
 function normalizeNotification(notification) {
   if (!notification || typeof notification !== "object") return null;
   if (notification.type === "message") return null;
-  const kind = notification.type && ["like", "comment", "connection", "page", "suggestion", "mention", "article", "story"].includes(notification.type)
+  const kind = notification.type && ["like", "comment", "connection", "page", "suggestion", "mention", "article", "story", "security_alert"].includes(notification.type)
     ? notification.type
     : (notification.type === "warning" || notification.type === "danger" ? "article" : "article");
 
   const actor = notification.actor || notification.meta?.actor || "LynoraLink";
-  const isPlatformNotification = actor === "LynoraLink" || actor === "Assistant IA" || actor === "IA" || ["admin_ai_tasks", "support_reply"].includes(notification.type);
+  const isPlatformNotification = actor === "LynoraLink" || actor === "Assistant IA" || actor === "IA" || ["admin_ai_tasks", "support_reply", "security_alert"].includes(notification.type);
   const displayActor = isPlatformNotification ? "LynoraLink" : actor;
   const initials = isPlatformNotification ? "LL" : (notification.initials || (typeof displayActor === "string" ? displayActor.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "L" : "L"));
 
@@ -177,7 +178,7 @@ function NotificationMenu({ notification, typeLabel, onMarkRead, onMarkUnread, o
 /* ------------------------------------------------------------------ */
 /*  LIGNE DE NOTIFICATION                                             */
 /* ------------------------------------------------------------------ */
-function NotificationItem({ notification, menuOpen, onToggleMenu, onCloseMenu, onOpen, onMarkRead, onMarkUnread, onMuteType, onDelete }) {
+function NotificationItem({ notification, menuOpen, onToggleMenu, onCloseMenu, onOpen, onMarkRead, onMarkUnread, onMuteType, onDelete, onSecurityResponse }) {
   const cfg = NOTIF_TYPES[notification.type] || { icon: faBell, color: C.navy700, label: "Autre" };
   const relativeTime = useRelativeTime(notification.time);
   const reaction = DEFAULT_REACTIONS.find((item) => item.key === notification.meta?.reaction);
@@ -211,6 +212,16 @@ function NotificationItem({ notification, menuOpen, onToggleMenu, onCloseMenu, o
           <span style={{ fontWeight: 700 }}>{notification.actor}</span> {notification.text}
         </div>
         <div style={{ fontSize: 10.5, color: C.mutedLight, marginTop: 3 }}>{relativeTime}</div>
+        {notification.type === "security_alert" && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }} onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => onSecurityResponse?.(notification, "yes")} style={{ border: "none", borderRadius: 7, padding: "6px 8px", background: C.success, color: C.white, fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>
+              Oui, c'est moi
+            </button>
+            <button type="button" onClick={() => onSecurityResponse?.(notification, "no")} style={{ border: `1px solid ${C.danger}`, borderRadius: 7, padding: "6px 8px", background: C.danger50, color: C.danger, fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>
+              Non, sécuriser
+            </button>
+          </div>
+        )}
       </div>
 
       {!notification.read && <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.gold600, marginTop: 4, flexShrink: 0 }} />}
@@ -271,7 +282,7 @@ function SettingsView({ mutedTypes, onToggleType, onBack }) {
 /* ------------------------------------------------------------------ */
 export function NotificationsPanel({
   notifications, mutedTypes, onMarkRead, onMarkUnread, onMarkAllRead, onMuteType, onDelete, onOpen,
-  onClose, showClose, variant,
+  onClose, showClose, variant, onSecurityResponse,
 }) {
   const [tab, setTab] = useState("all");
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -331,6 +342,7 @@ export function NotificationsPanel({
               onMarkUnread={onMarkUnread}
               onMuteType={onMuteType}
               onDelete={onDelete}
+              onSecurityResponse={onSecurityResponse}
             />
           ))
         )}
@@ -345,7 +357,7 @@ export function NotificationsPanel({
 /*    <NotificationBell />                                             */
 /*    <NotificationBell notifications={data} onChange={setData} />     */
 /* ------------------------------------------------------------------ */
-export function NotificationBell({ notifications: controlled, onChange, onOpenNotification }) {
+export function NotificationBell({ notifications: controlled, onChange, onOpenNotification, onSecurityResponse }) {
   const [internal, setInternal] = useState([]);
   const [mutedTypes, setMutedTypes] = useState(() => new Set());
   const [open, setOpen] = useState(false);
@@ -428,6 +440,7 @@ export function NotificationBell({ notifications: controlled, onChange, onOpenNo
             onMuteType={muteType}
             onDelete={remove}
             onOpen={openOne}
+            onSecurityResponse={onSecurityResponse}
             onClose={() => setOpen(false)}
             showClose
             variant="dropdown"
@@ -442,7 +455,7 @@ export function NotificationBell({ notifications: controlled, onChange, onOpenNo
 /*  VARIANTE PLEINE PAGE — même logique, sans dropdown                */
 /*    <NotificationsPage />                                            */
 /* ------------------------------------------------------------------ */
-export function NotificationsPage({ notifications: controlled, onChange, onOpenNotification, modal = false, onClose }) {
+export function NotificationsPage({ notifications: controlled, onChange, onOpenNotification, onSecurityResponse, modal = false, onClose }) {
   const [internal, setInternal] = useState([]);
   const [mutedTypes, setMutedTypes] = useState(() => new Set());
   const notifications = useMemo(() => (controlled ?? internal).map(normalizeNotification).filter(Boolean), [controlled, internal]);
@@ -500,6 +513,7 @@ export function NotificationsPage({ notifications: controlled, onChange, onOpenN
           onMuteType={muteType}
           onDelete={remove}
           onOpen={openOne}
+          onSecurityResponse={onSecurityResponse}
           onClose={onClose}
           showClose={modal}
           variant="page"

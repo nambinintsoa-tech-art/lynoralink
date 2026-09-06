@@ -152,6 +152,23 @@ export async function sendPasswordResetEmail(email, token) {
   }
 }
 
+export async function sendNewDeviceAlertEmail(email, deviceName) {
+  const safeDeviceName = String(deviceName || "un appareil inconnu");
+  await sendWithConfiguredProvider({
+    to: email,
+    subject: "Nouvelle connexion à votre compte LynoraLink",
+    text: `Une nouvelle connexion à votre compte LynoraLink a été détectée depuis ${safeDeviceName} le ${new Date().toLocaleString("fr-FR")}.
+
+Si vous êtes à l'origine de cette connexion, aucune action n'est nécessaire. Si ce n'est pas vous, changez immédiatement votre mot de passe et révoquez vos sessions actives depuis les paramètres de sécurité.`,
+    html: buildEmailHtml({
+      title: "Nouvelle connexion détectée",
+      message: `Une nouvelle connexion à votre compte a été détectée depuis <strong>${safeDeviceName}</strong>. Si vous êtes à l'origine de cette connexion, aucune action n'est nécessaire. Si ce n'est pas vous, sécurisez immédiatement votre compte depuis les paramètres de sécurité.`,
+      expiry: "Cet email est une alerte de sécurité automatique.",
+      baseUrl: getBaseUrl(),
+    }),
+  });
+}
+
 export async function sendTwoFactorCode(email, code) {
   await sendWithConfiguredProvider({
     to: email,
