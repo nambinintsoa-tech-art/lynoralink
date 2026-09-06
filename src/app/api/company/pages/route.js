@@ -17,7 +17,7 @@ export async function GET() {
       userId: true,
       value: true,
       updatedAt: true,
-      user: { select: { subscription: { select: { status: true, currentPeriodEnd: true } } } },
+      user: { select: { subscription: { select: { status: true, currentPeriodEnd: true } }, role: true } },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -41,6 +41,7 @@ export async function GET() {
         displayName: name,
         followed: followedPages.includes(setting.userId),
         isPremium: hasActiveSubscription(setting.user.subscription),
+        isPlatformAdmin: setting.user?.role === "admin",
         subscribers,
         stats: { ...(page.stats || {}), followers: subscribers.length },
       }];

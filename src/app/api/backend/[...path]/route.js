@@ -30,8 +30,22 @@ export async function handler(request, { params }) {
   const init = { method: request.method, headers, redirect: "manual", cache: "no-store" };
   if (!["GET", "HEAD"].includes(request.method)) init.body = await request.arrayBuffer();
 
+  // Set appropriate timeout based on route type
+  // AI generation endpoints need longer timeouts
+  let timeoutMs = 10000; // 10 seconds default
+  if (path.includes("ai-image") || path.includes("ai-article")) {
+    timeoutMs = 120000; // 120 seconds for AI generation
+  } else if (path.includes("notifications")) {
+    timeoutMs = 5000; // 5 seconds for notifications
+  }
+
   try {
-    const response = await fetch(target, init);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const response = await fetch(target, { ...init, signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     const responseHeaders = new Headers();
     for (const name of ["content-type", "cache-control", "location"]) {
       const value = response.headers.get(name);
@@ -39,7 +53,10 @@ export async function handler(request, { params }) {
     }
     return new NextResponse(response.body, { status: response.status, headers: responseHeaders });
   } catch (error) {
-    console.error("Backend proxy error", error);
+    console.error(`Backend proxy error for ${path}:`, error);
+    if (error?.name === "AbortError") {
+      return NextResponse.json({ error: "Requête backend expirée (timeout)" }, { status: 504 });
+    }
     return NextResponse.json({ error: "Backend indisponible" }, { status: 502 });
   }
 }

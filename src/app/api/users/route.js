@@ -33,7 +33,7 @@ export async function GET(req) {
     where: { key: "searchable" },
     select: { userId: true, value: true },
   });
-  const searchableIds = new Set(userSettings.filter((setting) => setting.value !== "false").map((setting) => setting.userId));
+  const searchableIds = new Set(userSettings.filter((setting) => setting.value === "true" || setting.value === true).map((setting) => setting.userId));
 
   const rows = await prisma.connection.findMany({
     where: {

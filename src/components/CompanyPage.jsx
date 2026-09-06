@@ -20,6 +20,7 @@ import CompanyComposer from "./CompanyComposer";
 import PostCard from "./PostCard";
 import PostViewerPreview from "./PostViewerPreview";
 import PremiumBadge from "./PremiumBadge";
+import EnterpriseBadge from "./EnterpriseBadge";
 import { getCampaignSchedule } from "@/lib/campaignSchedule";
 import { fetchBackendApi } from "@/lib/backend-api";
 
@@ -1993,7 +1994,7 @@ export function CompanyPage({ company, onBack, onDeleted, isOwner = false, canCr
             <div className="pt-6 sm:pt-5 pb-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-[22px] font-bold tracking-tight truncate" style={{ color: C.ink }}>{companyName}</h1>
-                {company?.isPremium ? <PremiumBadge size={19} label="Page Premium" /> : company?.verified && <Check size={18} style={{ color: C.blueMid }} />}
+                {company?.isPlatformAdmin ? <EnterpriseBadge size={19} label="Officiel" /> : company?.isPremium ? <PremiumBadge size={19} label="Page Premium" /> : company?.verified && <Check size={18} style={{ color: C.blueMid }} />}
               </div>
               <p className="text-xs sm:text-sm mt-0.5 line-clamp-2" style={{ color: C.inkFaint }}>{companySlogan}</p>
             </div>
@@ -2628,9 +2629,10 @@ export function CreateCompanyPage({ onBack, onCreate }) {
 }
 
 /* ---------------------------------------------------------------
-   Company pages grid — REDESIGNED
-   Inspired by reference: clean header, nav tabs, search,
-   horizontal category pills, polished card grid
+   Company pages grid — Facebook-inspired layout
+   Left rail + centered feed column + horizontal category pills
+   + card grid + right suggestions rail
+   Lynora palette (navy/gold) & existing logic preserved
 ----------------------------------------------------------------*/
 export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, currentCompanyId, currentUserId, companyTab = "discover", onCompanyTabChange, onNavigate, onMessage, canCreatePage = true, onUpgrade, initialPages = [], onPageCreated, followedPageIds = [], onFollowPage }) {
   const [activeCategory, setActiveCategory] = useState("toutes");
@@ -2817,16 +2819,15 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             pointerEvents: mobileSidebarOpen ? "auto" : "none",
           }}
         >
-          {/* Sidebar header: "Pages" + settings */}
+          {/* Sidebar header: "Pages" + settings — Facebook-style top bar */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "18px 10px", margin: "0 -12px 14px",
-            background: C.navyGradSolid,
-            position: "relative", overflow: "hidden",
+            padding: "16px 12px 8px",
+            position: "sticky", top: 0,
+            background: C.card, zIndex: 5,
           }}>
-            <div style={{ position: "absolute", inset: 0, opacity: .12, backgroundImage: "radial-gradient(circle at 85% 20%, #fff 0, transparent 45%)" }} />
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: "#fff", margin: 0, paddingLeft: 6, position: "relative", letterSpacing: .2 }}>Pages</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+            <h2 style={{ fontSize: 23, fontWeight: 800, color: C.ink, margin: 0, letterSpacing: -.3 }}>Pages</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <button
                 type="button"
                 aria-label="Fermer la sidebar des pages"
@@ -2834,9 +2835,9 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                 className="company-sidebar-close"
                 style={{
                   width: 36, height: 36, borderRadius: "50%",
-                  background: "rgba(255,255,255,.14)", border: `1px solid rgba(255,255,255,.18)`,
-                  alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", color: "#fff",
+                  background: C.surface, border: `1px solid ${C.border}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: C.navy,
                 }}
               >
                 <X size={17} />
@@ -2847,15 +2848,15 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                 onClick={() => setDirectorySettingsOpen(true)}
                 style={{
                   width: 36, height: 36, borderRadius: "50%",
-                  background: "rgba(255,255,255,.14)", border: `1px solid rgba(255,255,255,.18)`,
+                  background: C.surface, border: `1px solid ${C.border}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   cursor: "pointer", position: "relative",
                   transition: "background .15s ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.24)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.14)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.navySoft; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = C.surface; }}
               >
-                <Settings size={17} style={{ color: C.gold }} />
+                <Settings size={17} style={{ color: C.navy }} />
               </button>
             </div>
           </div>
@@ -2873,7 +2874,7 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             />
           </div>
 
-          {/* Create page button */}
+          {/* Create page button — Facebook-style primary CTA (Lynora navy) */}
           <button
             type="button"
             onClick={() => {
@@ -2883,23 +2884,24 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             }}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              width: "100%", padding: "11px 12px",
-              borderRadius: 10, border: `1.5px solid ${C.gold}`,
-              background: C.goldSoft,
-              color: C.navy,
+              width: "100%", padding: "12px 12px",
+              borderRadius: 10, border: 0,
+              background: C.navyGradSolid,
+              color: "#fff",
               fontFamily: "inherit", fontSize: 15, fontWeight: 700,
               cursor: "pointer",
               marginBottom: 8,
+              boxShadow: "0 4px 12px rgba(14,27,61,.28)",
               transition: "background .15s ease, transform .15s ease",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = C.goldGrad; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = C.goldSoft; e.currentTarget.style.transform = "translateY(0)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 8px 18px rgba(14,27,61,.34)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(14,27,61,.28)"; }}
           >
-            <Plus size={16} /> Créer une Page
+            <Plus size={17} /> Créer une Page
           </button>
 
           {/* Separator */}
-          <div style={{ height: 1, background: C.border, margin: "4px 0" }} />
+          <div style={{ height: 1, background: C.border, margin: "6px 0 4px" }} />
 
           {/* Primary navigation items */}
           <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4 }}>
@@ -2914,25 +2916,26 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "10px 12px",
                     borderRadius: 10, border: "none",
-                    background: active ? C.navyGradSolid : "transparent",
-                    color: active ? "#fff" : C.ink,
-                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 700 : 500,
+                    background: active ? C.navySoft : "transparent",
+                    color: active ? C.navy : C.ink,
+                    fontFamily: "inherit", fontSize: 15.5, fontWeight: active ? 700 : 600,
                     cursor: "pointer", width: "100%", textAlign: "left",
-                    boxShadow: active ? "0 4px 12px rgba(15,30,66,.25)" : "none",
                     transition: "background 0.15s ease",
                   }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = C.surface; }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
                 >
                   <span style={{
                     width: 32, height: 32, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
-                    background: active ? "rgba(255,255,255,0.18)" : "#EEF1F6",
+                    background: active ? C.navyGradSolid : "#EEF1F6",
                   }}>
                     <item.icon size={16} style={{ color: active ? C.gold : C.navy }} />
                   </span>
                   {item.label}
                   {item.chevron && (
-                    <ChevronRight size={14} style={{ marginLeft: "auto", color: active ? "rgba(255,255,255,0.7)" : "#8A8D91" }} />
+                    <ChevronRight size={14} style={{ marginLeft: "auto", color: active ? C.navy : "#8A8D91" }} />
                   )}
                 </button>
               );
@@ -2940,7 +2943,7 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
           </div>
 
           {/* Separator */}
-          <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
+          <div style={{ height: 1, background: C.border, margin: "8px 0 4px" }} />
 
           {/* Secondary navigation items */}
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -2955,32 +2958,33 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "10px 12px",
                     borderRadius: 10, border: "none",
-                    background: active ? C.navyGradSolid : "transparent",
-                    color: active ? "#fff" : C.ink,
-                    fontFamily: "inherit", fontSize: 15, fontWeight: active ? 700 : 500,
+                    background: active ? C.navySoft : "transparent",
+                    color: active ? C.navy : C.ink,
+                    fontFamily: "inherit", fontSize: 15.5, fontWeight: active ? 700 : 600,
                     cursor: "pointer", width: "100%", textAlign: "left",
-                    boxShadow: active ? "0 4px 12px rgba(15,30,66,.25)" : "none",
                     transition: "background 0.15s ease",
                   }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = C.surface; }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
                 >
                   <span style={{
                     width: 32, height: 32, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
-                    background: active ? "rgba(255,255,255,0.18)" : "#EEF1F6",
+                    background: active ? C.navyGradSolid : "#EEF1F6",
                   }}>
                     <item.icon size={16} style={{ color: active ? C.gold : C.navy }} />
                   </span>
                   <div style={{ flex: 1, textAlign: "left" }}>
                     {item.label}
                     {item.id === "invitations" && (
-                      <div style={{ fontSize: 13, fontWeight: 400, color: active ? "rgba(255,255,255,0.8)" : "#65676B", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 13, fontWeight: 400, color: active ? C.navyMid : "#65676B", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.gold, display: "inline-block" }} />
                         {pageInvitations.length} en attente
                       </div>
                     )}
                   </div>
-                  <ChevronRight size={14} style={{ color: active ? "rgba(255,255,255,0.7)" : "#8A8D91" }} />
+                  <ChevronRight size={14} style={{ color: active ? C.navy : "#8A8D91" }} />
                 </button>
               );
             })}
@@ -3056,7 +3060,7 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
               </div>
             </section>
           ) : sidebarActive === "invitations" ? (
-            <section aria-labelledby="page-invitations-title">
+            <section className="company-pages-invitations company-pages-feed" aria-labelledby="page-invitations-title">
               <h1 id="page-invitations-title" style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: "0 0 16px" }}>Invitations à suivre une page</h1>
               {pageInvitationsLoading && <div style={{ padding: 32, textAlign: "center", color: C.inkFaint }}>Chargement des invitations...</div>}
               {!pageInvitationsLoading && pageInvitationsError && <div style={{ padding: 20, borderRadius: 8, background: C.redSoft, color: C.red, fontSize: 13 }}>{pageInvitationsError}</div>}
@@ -3087,16 +3091,51 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
               )}
             </section>
           ) : (
-          <div>
+          <div className="company-pages-feed-layout">
+            {/* ===== CENTER COLUMN — Facebook feed-style ===== */}
+            <div className="company-pages-feed">
           {/* Heading */}
           <div style={{ marginBottom: 18 }}>
             <div style={{ color: C.goldDeep, fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Annuaire</div>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: C.navy, margin: 0, letterSpacing: -.2 }}>{directoryTitle}</h1>
           </div>
 
+          {/* Category pills — Facebook-style horizontal filters */}
+          <div className="company-pages-pills" role="tablist" aria-label="Filtrer par catégorie">
+            {CATEGORIES.map((category) => {
+              const active = activeCategory === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveCategory(category.id)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 7,
+                    padding: "9px 16px",
+                    borderRadius: 999, flexShrink: 0,
+                    border: `1.5px solid ${active ? C.navy : C.border}`,
+                    background: active ? C.navyGradSolid : C.card,
+                    color: active ? "#fff" : C.inkSoft,
+                    fontFamily: "inherit", fontSize: 13, fontWeight: active ? 800 : 600,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    transition: "background .15s ease, color .15s ease, border-color .15s ease",
+                  }}
+                  onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = C.navySoft; e.currentTarget.style.color = C.navy; } }}
+                  onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.inkSoft; } }}
+                >
+                  <category.icon size={14} style={{ color: active ? C.goldBright : C.navy }} />
+                  {category.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Stats line */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "16px 0 18px" }}>
             {[
+              [`${filtered.length} résultat${filtered.length > 1 ? "s" : ""}`, Filter],
               [`${pages.length} page${pages.length > 1 ? "s" : ""}`, Building2],
               [`${managedCount} gérée${managedCount > 1 ? "s" : ""}`, LayoutDashboard],
               [`${totalFollowers} abonnés`, Users],
@@ -3136,6 +3175,72 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
               ))}
             </div>
           )}
+            </div>
+
+            {/* ===== RIGHT RAIL — Facebook-style suggestions ===== */}
+            <aside className="company-pages-right-rail" aria-label="Pages suggérées">
+              <div className="company-pages-rail-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: C.r_lg, padding: 16, boxShadow: C.shadowSm }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.navy }}>Pages suggérées</h3>
+                  <Sparkles size={16} style={{ color: C.gold }} />
+                </div>
+                <p style={{ margin: "0 0 10px", fontSize: 12, color: C.inkFaint }}>Les pages les plus suivies de l'annuaire.</p>
+                {pageStats.leaders.length === 0 ? (
+                  <p style={{ padding: "14px 0", fontSize: 13, color: C.inkFaint, textAlign: "center" }}>Aucune suggestion pour le moment.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    {pageStats.leaders.map((page, index) => (
+                      <button
+                        key={page.id}
+                        type="button"
+                        onClick={() => openPage(page)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "9px 6px", borderRadius: 10, border: 0,
+                          borderTop: index ? `1px solid ${C.border}` : 0,
+                          background: "transparent", cursor: "pointer",
+                          textAlign: "left", width: "100%",
+                          transition: "background .15s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = C.surface; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <Avatar label={page.name} image={page.avatarUrl || page.logoUrl || page.image} size={38} tone={C.blueDeep} />
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <strong style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{page.name}</strong>
+                          <small style={{ display: "block", fontSize: 11, color: C.inkFaint }}>{Number(page.followers) || 0} abonné{Number(page.followers) === 1 ? "" : "s"} · {page.tag || page.industry || "Page"}</small>
+                        </span>
+                        <ChevronRight size={14} style={{ color: C.inkFaint, flexShrink: 0 }} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Promotional rail card */}
+              <div className="company-pages-rail-card" style={{ background: C.navyGradSolid, borderRadius: C.r_lg, padding: 18, color: "#fff", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", inset: 0, opacity: .14, backgroundImage: "radial-gradient(circle at 85% 15%, #fff , transparent 45%)" }} />
+                <div style={{ position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Building2 size={15} style={{ color: C.goldBright }} />
+                    </span>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "#FFD77A" }}>Votre vitrine</span>
+                  </div>
+                  <p style={{ margin: "0 0 12px", fontSize: 13.5, lineHeight: 1.45, color: "rgba(255,255,255,.9)" }}>Créez une page entreprise et rassemblez votre communauté autour de votre activité.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!canCreatePage) { onUpgrade?.(); return; }
+                      setCreateOpen(true);
+                    }}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: 0, background: C.goldGrad, color: C.navyDeep, fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer", boxShadow: C.shadowGold }}
+                  >
+                    + Créer une Page
+                  </button>
+                </div>
+              </div>
+            </aside>
           </div>
           )}
         </main>
@@ -3145,6 +3250,48 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
 
       {/* Responsive styles */}
       <style>{`
+        /* ===== Facebook-style feed layout (centered column + right rail) ===== */
+        .company-pages-feed-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 760px);
+          gap: 24px;
+          justify-content: center;
+          align-items: start;
+          max-width: 1160px;
+          margin: 0 auto;
+        }
+        .company-pages-feed {
+          width: 100%;
+          min-width: 0;
+          max-width: 760px;
+          margin-inline: auto;
+        }
+        .company-pages-pills {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding: 2px 2px 8px;
+          margin: 0 -2px 4px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          -webkit-overflow-scrolling: touch;
+        }
+        .company-pages-pills::-webkit-scrollbar { display: none; }
+        .company-pages-pills > button { -webkit-tap-highlight-color: transparent; }
+        @media (min-width: 1280px) {
+          .company-pages-feed-layout { grid-template-columns: minmax(0, 760px) 320px; }
+          .company-pages-right-rail {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: calc(var(--lynora-header-offset, 0px) + 16px);
+          }
+        }
+        @media (max-width: 1279px) {
+          .company-pages-right-rail { display: none !important; }
+        }
+
         .company-sidebar-close {
           display: none !important;
         }
@@ -3248,8 +3395,11 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
         @media (max-width: 640px) {
           .company-pages-directory { height: auto !important; min-height: 100dvh !important; overflow: visible !important; }
           .company-pages-shell { display: block !important; width: 100% !important; max-width: none !important; min-height: 100dvh !important; }
-          .company-pages-main { width: 100% !important; height: auto !important; overflow: visible !important; padding: calc(var(--lynora-header-offset, 0px) + 60px) 0 56px !important; }
-          .company-page-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; padding: 0 8px; }
+          .company-pages-main { width: 100% !important; height: auto !important; overflow: visible !important; padding: calc(var(--lynora-header-offset, 0px) + 60px) 12px 56px !important; }
+          .company-pages-feed-layout { display: block !important; max-width: none !important; }
+          .company-pages-feed { max-width: none !important; }
+          .company-pages-pills { padding-right: 56px; }
+          .company-page-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; padding: 0 4px; }
           .company-page-card { border-radius: 14px !important; }
           .company-page-card-cover { height: 68px !important; }
           .company-page-card-header { padding-inline: 8px !important; gap: 6px !important; }

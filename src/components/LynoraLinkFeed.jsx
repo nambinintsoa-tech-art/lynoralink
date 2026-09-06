@@ -3337,7 +3337,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [session?.user?.id, view, posts]);
 
   useEffect(() => {
-    if (view !== "feed") return;
+    if (view !== "feed" && view !== "company") return;
     let active = true;
     fetchBackendApi("/api/company/pages", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)

@@ -21,6 +21,11 @@ export async function POST(req, { params }) {
 
     const { storyId } = params;
     const story = await prisma.story.findUnique({ where: { id: storyId }, select: { userId: true } });
+    
+    if (!story) {
+      return NextResponse.json({ error: "Story not found" }, { status: 404 });
+    }
+    
     const body = await req.json();
     const { reaction } = body;
 

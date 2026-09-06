@@ -896,11 +896,16 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
     if (prompt.trim().length < 8) { setError("Décrivez plus en détail (minimum 8 caractères)."); return; }
     setError(""); setIsGenerating(true); setImages([]);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds for AI image generation
+      
       const res = await fetchBackendApi("/api/ai-image/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: prompt.trim(), style: styleId, aspect: aspectId, count }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -909,6 +914,9 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
           setError("");
           setIsGenerating(false);
           return;
+        }
+        if (res.status === 504 || (res.status === 502 && data?.error?.includes("timeout"))) {
+          throw new Error("La génération prend plus de temps que prévu. Veuillez réessayer.");
         }
         throw new Error(data?.error || "La génération d'image a échoué.");
       }
@@ -920,7 +928,11 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
       throw new Error("Le fournisseur n'a renvoyé aucune image.");
     } catch (err) {
       setIsGenerating(false);
-      setError(err?.message || "Erreur inconnue pendant la génération.");
+      if (err?.name === "AbortError") {
+        setError("La génération a dépassé le délai d'attente. Veuillez réessayer avec un prompt plus simple.");
+      } else {
+        setError(err?.message || "Erreur inconnue pendant la génération.");
+      }
     }
   }, [prompt, styleId, aspectId, count, toast]);
 
@@ -929,11 +941,16 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
     if (topic.trim().length < 5) { setError("Sujet trop court (minimum 5 caractères)."); return; }
     setError(""); setIsGenerating(true); setArticle(null);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds for AI article generation
+      
       const res = await fetchBackendApi("/api/ai-article/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: topic.trim(), tone, length, format, images: articleImages }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -942,6 +959,9 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
           setError("");
           setIsGenerating(false);
           return;
+        }
+        if (res.status === 504 || (res.status === 502 && data?.error?.includes("timeout"))) {
+          throw new Error("La génération prend plus de temps que prévu. Veuillez réessayer.");
         }
         throw new Error(data?.error || "La génération d'article a échoué.");
       }
@@ -953,7 +973,11 @@ export default function AIVisualEditorModal({ onClose, onPublish, currentUser })
       throw new Error("Le fournisseur n'a renvoyé aucun article.");
     } catch (err) {
       setIsGenerating(false);
-      setError(err?.message || "Erreur inconnue pendant la génération.");
+      if (err?.name === "AbortError") {
+        setError("La génération a dépassé le délai d'attente. Veuillez réessayer avec un sujet plus simple.");
+      } else {
+        setError(err?.message || "Erreur inconnue pendant la génération.");
+      }
     }
   }, [topic, tone, length, format, articleImages, toast]);
 
