@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, Loader2, UserRound, X } from "lucide-react";
+import { fetchBackendApi } from "@/lib/backend-api";
 
 const INITIAL_FORM = {
   title: "",
