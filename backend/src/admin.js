@@ -34,8 +34,12 @@ async function requireAdmin(request, reply) {
     reply.code(401).send({ error: "Non authentifié" });
     return null;
   }
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  if (user?.role !== "admin") {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } });
+  const configuredAdminEmails = [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL]
+    .filter(Boolean)
+    .map((email) => email.trim().toLowerCase());
+  const isConfiguredAdmin = user?.email && configuredAdminEmails.includes(user.email.toLowerCase());
+  if (user?.role !== "admin" && !isConfiguredAdmin) {
     reply.code(403).send({ error: "Accès réservé aux administrateurs" });
     return null;
   }

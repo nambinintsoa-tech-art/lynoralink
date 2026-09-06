@@ -22,6 +22,8 @@ services:
         sync: false
       - key: APP_URL
         sync: false
+      - key: ADMIN_EMAIL
+        sync: false
       - key: EMAIL_PROVIDER
         value: brevo
       - key: BREVO_API_KEY
