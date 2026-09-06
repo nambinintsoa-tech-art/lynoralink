@@ -2,6 +2,12 @@ import { AccessToken } from "livekit-server-sdk";
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
 
+function getLiveKitUrl() {
+  const value = process.env.NEXT_PUBLIC_LIVEKIT_URL?.trim();
+  if (!value) return "";
+  return value.replace(/\/$/, "").replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://");
+}
+
 async function authorizedCall(callId, userId) {
   return prisma.callSession.findFirst({ where: { id: callId, conversation: { OR: [{ userAId: userId }, { userBId: userId }, { members: { some: { userId } } }] } } });
 }
@@ -61,11 +67,12 @@ export async function registerCallRoutes(app) {
   app.post("/v1/calls/token", async (request, reply) => {
     const userId = await getSessionUserId(request);
     if (!userId) return reply.code(401).send({ error: "Non authentifié" });
-    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.NEXT_PUBLIC_LIVEKIT_URL) return reply.code(503).send({ error: "Configuration LiveKit incomplète" });
+    const liveKitUrl = getLiveKitUrl();
+    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !liveKitUrl) return reply.code(503).send({ error: "Configuration LiveKit incomplète" });
     const call = await authorizedCall(request.body?.callId, userId);
     if (!call || !["ringing", "connected"].includes(call.status)) return reply.code(404).send({ error: "Appel introuvable" });
     const token = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, { identity: userId, name: userId, ttl: "2h" });
     token.addGrant({ roomJoin: true, room: `call-${call.id}`, canPublish: true, canSubscribe: true });
-    return reply.send({ token: await token.toJwt(), roomName: `call-${call.id}`, url: process.env.NEXT_PUBLIC_LIVEKIT_URL, type: call.type });
+    return reply.send({ token: await token.toJwt(), roomName: `call-${call.id}`, url: liveKitUrl, type: call.type });
   });
 }

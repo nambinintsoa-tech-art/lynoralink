@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth";
 import { AccessToken } from "livekit-server-sdk";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getLiveKitUrl, hasLiveKitConfig } from "@/lib/livekit-config";
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
-  if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.NEXT_PUBLIC_LIVEKIT_URL) {
+  if (!hasLiveKitConfig()) {
     return NextResponse.json({ error: "Configuration LiveKit incomplete" }, { status: 503 });
   }
 
@@ -30,5 +31,5 @@ export async function POST(req) {
     ttl: "2h",
   });
   token.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
-  return NextResponse.json({ token: await token.toJwt(), roomName, url: process.env.NEXT_PUBLIC_LIVEKIT_URL, type: call.type });
+  return NextResponse.json({ token: await token.toJwt(), roomName, url: getLiveKitUrl(), type: call.type });
 }
