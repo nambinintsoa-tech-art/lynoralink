@@ -684,16 +684,6 @@ export const TopNav = forwardRef(function TopNav({
             {isCompact && (
               <>
                 <IconButton
-                  icon={Mail}
-                  label="Messages"
-                  onClick={() => onNavigate("messages")}
-                  active={view === "messages"}
-                  badge={unreadMessages}
-                  badgeSize="sm"
-                  size={20}
-                  boxSize={34}
-                />
-                <IconButton
                   icon={Bell}
                   label="Notifications"
                   onClick={() => onNavigate("notifications")}

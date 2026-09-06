@@ -2788,7 +2788,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const reelPreviewSwipeRef = useRef(null);
   const reelPreviewSuppressClickRef = useRef(false);
   const [reelViewportWidth, setReelViewportWidth] = useState(390);
-  const mobileReelCardWidth = isMobileReelPreview ? Math.min(Math.max(reelViewportWidth - 48, 260), 340) : 220;
+  const mobileReelCardWidth = isMobileReelPreview ? Math.min(Math.max(reelViewportWidth - 64, 220), 340) : 220;
   const [jobEngagementVersion, setJobEngagementVersion] = useState(0);
   const [openEventId, setOpenEventId] = useState(null);
   const [view, setView] = useState(requestedView); // feed | profile | settings | network | messages | notifications | company | saved | groups | pages | trend
@@ -5749,18 +5749,17 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           }
           .feed-page-suggestion-card button { width: 100%; justify-content: center; }
           .lynora-reel-rail {
-            margin-inline: -12px;
-            padding: 12px 0 0;
-            border-right: 0;
-            border-left: 0;
-            border-radius: 0;
-            box-shadow: none;
+            margin-inline: 0;
+            padding: 12px;
+            border: 1px solid ${C.line};
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(15, 51, 82, 0.06);
           }
           .lynora-reel-rail > div:first-child {
             padding-inline: 12px !important;
           }
           .lynora-reel-rail .lynora-reel-preview-viewport {
-            border-radius: 0;
+            border-radius: 12px;
           }
           .lynora-feed-page input, .lynora-feed-page textarea { font-size: 16px; }
         }
@@ -6192,6 +6191,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                           transition: "transform 380ms ease",
                                           width: isMobileReelPreview ? `${Math.max(reelPreview.length * (mobileReelCardWidth + 8), 0)}px` : `${Math.max(reelPreview.length * 236, 0)}px`,
                                           paddingBottom: 4,
+                                          margin: "0 auto",
                                           justifyContent: "flex-start",
                                         }}
                                       >
