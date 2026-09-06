@@ -19,7 +19,7 @@ import {
   faTrophy, faRotate, faQrcode, faListCheck, faUserGroup,
 } from "@fortawesome/free-solid-svg-icons";
 import { faWhatsapp, faLinkedin } from "@fortawesome/free-brands-svg-icons";
-import { GroupsGridSkeleton, GroupDetailSkeleton } from "./Skeleton";
+import { GroupSkeleton } from "./Skeleton";
 import CreatePostModal from "./CreatePostModal";
 import PostCard from "./PostCard";
 import PostViewerPreview from "./PostViewerPreview";
@@ -4979,7 +4979,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
       {view === "grid" && (
         <>
           {status === "loading" || loadingGroups ? (
-            <GroupsGridSkeleton count={6} />
+            <GroupSkeleton />
           ) : !session?.user?.id ? (
             <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 20px", fontFamily: S.font, color: C.muted, textAlign: "center", minHeight: "60vh" }}>
               Veuillez vous connecter pour voir les groupes.
@@ -5404,7 +5404,7 @@ export default function Groupe({ onBack, initialGroupId = null, onPostCreated })
           onComposerHandled={() => setComposerTarget(null)}
         />
       ) : (
-        <GroupDetailSkeleton />
+        <GroupSkeleton detail />
       ))}
       {view === "admin" && selectedGroup && (
         <GroupAdminPanel group={selectedGroup} onBack={handleAdminBack} onToast={showToast} onDeleteGroup={handleDeleteGroup} onUpdateGroup={updateGroup} />

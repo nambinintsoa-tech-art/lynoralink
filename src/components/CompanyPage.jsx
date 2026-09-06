@@ -23,6 +23,7 @@ import PremiumBadge from "./PremiumBadge";
 import EnterpriseBadge from "./EnterpriseBadge";
 import { getCampaignSchedule } from "@/lib/campaignSchedule";
 import { fetchBackendApi } from "@/lib/backend-api";
+import { CompanyPagePostsSkeleton } from "@/components/Skeleton";
 
 /* ---------------------------------------------------------------
    Design tokens — Updated palette inspired by reference images
@@ -473,7 +474,7 @@ function PublicationsTab({ company, posts = [], loading = false, error = "", onR
     <div className="flex flex-col gap-5" style={{ width: "100%", maxWidth: 716, minWidth: 0 }}>
       {canCreatePost && <CompanyComposer onOpen={onOpenComposer} avatarUrl={company?.avatarUrl || company?.logoUrl || company?.image || null} initials={(company?.displayName || company?.name || "Entreprise").split(" ").map((word) => word[0]).slice(0, 2).join("")} />}
 
-      {loading && <p className="text-sm text-center py-8" style={{ color: C.inkFaint }}>Chargement des publications...</p>}
+      {loading && <CompanyPagePostsSkeleton count={2} />}
       {!loading && error && <div className="flex flex-col items-center gap-3 py-8 text-center"><p className="text-sm" style={{ color: C.red }}>{error}</p><button type="button" onClick={onRetry} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ border: `1px solid ${C.border}`, background: C.card, color: C.blueMid }}>Réessayer</button></div>}
       {!loading && !error && posts.length === 0 && <p className="text-sm text-center py-8" style={{ color: C.inkFaint }}>Aucune publication pour le moment.</p>}
       {!loading && !error && posts.map((post) => (
@@ -3366,23 +3367,9 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             min-height: 100% !important;
           }
           .company-sidebar {
-            display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
-            position: fixed !important;
-            top: var(--lynora-header-offset, 0px) !important;
-            left: 0 !important;
-            bottom: 0 !important;
-            width: 360px !important;
-            height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
-            min-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
-            max-height: none !important;
-            z-index: 3 !important;
-            overflow-y: auto !important;
-            padding-bottom: 32px !important;
+            display: none !important;
           }
-          .company-pages-main { width: calc(100% - 360px) !important; height: 100%; margin-left: 360px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+          .company-pages-main { width: 100% !important; height: 100%; margin-left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
           .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
             display: none !important;
           }
@@ -3415,6 +3402,10 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
           .company-pages-statistics-kpis > div { padding: 12px !important; }
           .company-pages-statistics-kpis strong { font-size: 20px !important; }
           .company-pages-statistics-columns { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+        }
+        .company-pages-directory .company-sidebar,
+        .company-pages-directory > div > button[aria-label="Ouvrir le menu des pages"] {
+          display: none !important;
         }
         .company-page { overflow-x: hidden; }
         .company-pages-directory, .company-page { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }

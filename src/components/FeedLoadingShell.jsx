@@ -5,12 +5,25 @@ import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { useLayoutEffect } from "react";
 import { TopNav } from "@/components/TopNav";
-import { ComposerSkeleton, FeedSkeleton, LeftSidebarSkeleton, ProfileSkeleton, RightSidebarSkeleton } from "@/components/Skeleton";
+import {
+  ComposerSkeleton,
+  CompanySkeleton,
+  FeedSkeleton,
+  GroupsGridSkeleton,
+  LeftSidebarSkeleton,
+  MessagesSkeleton,
+  NetworkSkeleton,
+  NotificationsSkeleton,
+  ProfileSkeleton,
+  RightSidebarSkeleton,
+  SubscriptionSkeleton,
+} from "@/components/Skeleton";
 import { SkeletonStoryRail } from "@/components/StorySkeleton";
 
-export default function FeedLoadingShell({ profileView = false }) {
+export default function FeedLoadingShell({ view = "feed", profileView = false }) {
   const router = useRouter();
   const { data: session } = useSession();
+  const loadingView = profileView ? "profile" : view;
   const profile = {
     id: session?.user?.id || null,
     name: session?.user?.name || "Utilisateur",
@@ -38,7 +51,14 @@ export default function FeedLoadingShell({ profileView = false }) {
         }}
       />
 
-      {profileView ? <main aria-hidden="true" className="lynora-profile-loading-main" style={{ maxWidth: 1400, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 16px 24px", pointerEvents: "none" }}><ProfileSkeleton /></main> : <div aria-hidden="true" style={{ maxWidth: 1400, width: "100%", margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0, 1fr) 320px", gap: 32, alignItems: "start", padding: "28px 20px 60px", pointerEvents: "none" }} className="lynora-grid lynora-feed-container lynora-skeleton-feed-grid">
+      {loadingView === "profile" || loadingView === "settings" ? <main aria-hidden="true" className="lynora-profile-loading-main" style={{ maxWidth: 1400, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 16px 24px", pointerEvents: "none" }}><ProfileSkeleton /></main>
+        : loadingView === "network" ? <main aria-hidden="true" style={{ maxWidth: 1000, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><NetworkSkeleton /></main>
+          : loadingView === "groups" ? <main aria-hidden="true" style={{ paddingTop: "var(--lynora-header-offset, 96px)", pointerEvents: "none" }}><GroupsGridSkeleton /></main>
+            : loadingView === "company" ? <main aria-hidden="true" style={{ maxWidth: 1400, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><CompanySkeleton /></main>
+              : loadingView === "abonnement" ? <main aria-hidden="true" style={{ maxWidth: 1200, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><SubscriptionSkeleton /></main>
+                : loadingView === "messages" ? <main aria-hidden="true" style={{ maxWidth: 900, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><MessagesSkeleton /></main>
+                  : loadingView === "notifications" ? <main aria-hidden="true" style={{ maxWidth: 520, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><NotificationsSkeleton /></main>
+                    : <div aria-hidden="true" style={{ maxWidth: 1400, width: "100%", margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0, 1fr) 320px", gap: 32, alignItems: "start", padding: "28px 20px 60px", pointerEvents: "none" }} className="lynora-grid lynora-feed-container lynora-skeleton-feed-grid">
         <aside aria-label="Chargement de la navigation latérale" style={{ minWidth: 0 }}>
           <div className="lynora-skeleton-fixed-sidebar" style={{ position: "fixed", top: "calc(var(--lynora-header-offset, 96px) + 28px)", left: "calc((100vw - min(1400px, 100vw)) / 2 + 20px)", width: 300, maxHeight: "calc(100vh - var(--lynora-header-offset, 96px) - 28px)", overflowY: "auto", paddingRight: 8 }}>
             <LeftSidebarSkeleton />

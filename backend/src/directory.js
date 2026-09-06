@@ -9,7 +9,8 @@ export async function registerDirectoryRoutes(app) {
     const userId = await getSessionUserId(request); if (!userId) return reply.code(401).send({ error: "Non authentifié" });
     const search = String(request.query?.search || "").trim().toLowerCase(); const limit = Math.min(Number(request.query?.limit) || 50, 100);
     const users = await prisma.user.findMany({ where: { id: { not: userId }, ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { email: { contains: search, mode: "insensitive" } }] } : {}) }, select: { id: true, name: true, title: true, image: true, cover: true }, orderBy: { createdAt: "desc" }, take: limit });
-    return reply.send({ users: users.map((user) => ({ ...user, name: user.name || "Utilisateur", initials: initials(user.name || "Utilisateur") })), suggestions: [] });
+    const formattedUsers = users.map((user) => ({ ...user, name: user.name || "Utilisateur", initials: initials(user.name || "Utilisateur") }));
+    return reply.send({ users: formattedUsers, suggestions: formattedUsers });
   });
 
   app.get("/v1/company/pages", async (request, reply) => {

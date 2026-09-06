@@ -24,6 +24,7 @@ function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [error, setError] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [twoFactorStep, setTwoFactorStep] = useState(false);
@@ -45,6 +46,7 @@ function LoginPageContent() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setLoadingMessage(twoFactorStep ? "Vérification du code sécurisé..." : "Vérification de vos identifiants...");
     if (!twoFactorStep) {
       const challenge = await fetchBackendApi("/api/auth/2fa/request", {
         method: "POST",
@@ -53,15 +55,18 @@ function LoginPageContent() {
       }).then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => ({})) }));
       if (!challenge.ok) {
         setLoading(false);
+        setLoadingMessage("");
         setError(challenge.data.error || "Email ou mot de passe incorrect.");
         return;
       }
       if (challenge.data.requiresTwoFactor) {
         setTwoFactorStep(true);
         setLoading(false);
+        setLoadingMessage("");
         return;
       }
     }
+    setLoadingMessage("Ouverture de votre session sécurisée...");
     const res = await signIn("credentials", {
       email,
       password,
@@ -69,12 +74,15 @@ function LoginPageContent() {
       remember: rememberMe,
       redirect: false,
     });
-    setLoading(false);
     if (res?.error) {
+      setLoading(false);
+      setLoadingMessage("");
       setTwoFactorCode("");
       setError("Email ou mot de passe incorrect.");
       return;
     }
+
+    setLoadingMessage("Chargement de votre espace personnel...");
 
     try {
       const accountResponse = await fetchBackendApi("/api/account");
@@ -203,6 +211,18 @@ function LoginPageContent() {
               </Link>
 
               {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+              {loading && (
+                <div className="rounded-xl border border-[#F1D990] bg-[#FFF9E8] px-3 py-3" role="status" aria-live="polite">
+                  <style>{`@keyframes login-progress-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(280%); } }`}</style>
+                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-navy800">
+                    <Loader2 size={14} className="animate-spin text-gold600" />
+                    <span>{loadingMessage}</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[#F3E8BF]">
+                    <div className="h-full w-2/5 rounded-full bg-gold600" style={{ animation: "login-progress-slide 1.1s ease-in-out infinite" }} />
+                  </div>
+                </div>
+              )}
               {params.get("registered") && (
                 <p className="text-xs font-medium text-navy700">
                   Compte créé avec succès, connectez-vous.

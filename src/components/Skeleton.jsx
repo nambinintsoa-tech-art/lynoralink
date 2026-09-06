@@ -155,6 +155,16 @@ const STYLE_CSS = `
   .lynora-skeleton-menu { width: 100% !important; }
   .lynora-skeleton-menu > * { width: 100% !important; height: 44px !important; border-radius: 10px !important; }
 }
+@media (max-width: 700px) {
+  .lynora-settings-skeleton-layout,
+  .lynora-dashboard-skeleton-content,
+  .lynora-admin-skeleton { grid-template-columns: minmax(0, 1fr) !important; }
+  .lynora-dashboard-skeleton-kpis,
+  .lynora-admin-skeleton-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .lynora-settings-skeleton,
+  .lynora-dashboard-skeleton,
+  .lynora-admin-skeleton { padding-inline: 12px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .lyn-shimmer, .lyn-pulse { animation: none; background: ${C.base}; }
   .lyn-media-fade { animation: none; }
@@ -599,33 +609,6 @@ export function RightSidebarSkeleton() {
     </div>
   );
 }
-export function MainFeedSkeleton() {
-  return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0,1fr) 320px", gap: 32, alignItems: "start", paddingTop: 28 }} className="lynora-grid lynora-feed-container lynora-skeleton-feed-grid">
-      {/* Placeholder gauche */}
-      <div className="lynora-sidebar-placeholder" />
-
-      {/* Colonne centrale */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-        <ComposerSkeleton />
-        <FeedSkeleton count={3} />
-      </div>
-
-      {/* Placeholder droite */}
-      <div className="lynora-sidebar-placeholder" />
-
-      {/* Sidebars sticky en squelette */}
-      <div style={{ position: "fixed", top: "calc(var(--lynora-header-offset) + 28px)", left: "calc((100vw - min(1200px, 100vw)) / 2)", width: 300, zIndex: 10 }} className="lynora-sticky-sidebar lynora-fixed-sidebar">
-        <LeftSidebarSkeleton />
-      </div>
-
-      <div style={{ position: "fixed", top: "calc(var(--lynora-header-offset) + 28px)", right: "calc((100vw - min(1200px, 100vw)) / 2)", width: 320, zIndex: 10 }} className="lynora-sticky-sidebar lynora-fixed-sidebar">
-        <RightSidebarSkeleton />
-      </div>
-    </div>
-  );
-}
-
 export function NetworkSkeleton() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -748,14 +731,14 @@ export function ProfileSkeleton() {
   );
 }
 
-export function MessagesSkeleton() {
+export function MessagesSkeleton({ rows = 4 }) {
   return (
     <Frame style={{ padding: 16 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ padding: "6px 0 10px" }}>
           <Skeleton width="40%" height={16} />
         </div>
-        {Array.from({ length: 4 }).map((_, index) => (
+        {Array.from({ length: rows }).map((_, index) => (
           <div key={index} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: index > 0 ? `1px solid ${C.line}` : "none" }}>
             <SkeletonAvatar size={40} radius={12} />
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -836,6 +819,158 @@ export function SubscriptionSkeleton() {
   );
 }
 
+export function StorySkeleton({ count = 5 }) {
+  return (
+    <div style={{ display: "flex", gap: 12, overflow: "hidden", padding: 4 }}>
+      {Array.from({ length: count }).map((_, index) => (
+        <div key={index} style={{ flex: "0 0 120px", display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+          <SkeletonAvatar size={72} radius={999} />
+          <Skeleton width="78%" height={11} radius={5} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function MessageSkeleton({ rows = 5 }) {
+  return <MessagesSkeleton rows={rows} />;
+}
+
+export function GroupSkeleton({ detail = false }) {
+  return detail ? <GroupDetailSkeleton /> : <GroupsGridSkeleton />;
+}
+
+export function CompanyPageSkeleton() {
+  return <CompanySkeleton />;
+}
+
+export function CompanyPagesGridSkeleton({ count = 6 }) {
+  return (
+    <div style={{ maxWidth: 1080, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Skeleton width="28%" height={12} radius={5} />
+        <Skeleton width="42%" height={26} radius={7} />
+      </div>
+      <div style={{ display: "flex", gap: 8, overflow: "hidden" }}>
+        {Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} width={92} height={36} radius={999} />)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+        {Array.from({ length: count }).map((_, index) => (
+          <Frame key={index} style={{ padding: 0, overflow: "hidden" }}>
+            <Skeleton width="100%" height={92} radius="16px 16px 0 0" />
+            <div style={{ padding: "0 14px 14px", marginTop: -24 }}>
+              <SkeletonAvatar size={54} radius={999} style={{ border: `4px solid ${C.white}`, marginBottom: 12 }} />
+              <Skeleton width="76%" height={15} radius={5} />
+              <Skeleton width="48%" height={10} radius={4} style={{ marginTop: 8 }} />
+              <SkeletonText lines={2} lastLineWidth="74%" lineHeight={10} style={{ marginTop: 14 }} />
+              <Skeleton width="100%" height={34} radius={8} style={{ marginTop: 14 }} />
+            </div>
+          </Frame>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function CompanyPagePostsSkeleton({ count = 2 }) {
+  return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{Array.from({ length: count }).map((_, index) => <SkeletonPostCard key={index} media="image" />)}</div>;
+}
+
+export function ReelSkeleton() {
+  return (
+    <Frame style={{ maxWidth: 520, minHeight: 620, margin: "0 auto", overflow: "hidden", position: "relative", background: C.navy900 }}>
+      <SkeletonVideo ratio="9/16" radius={0} style={{ height: "100%", minHeight: 620, background: "#102A40" }} />
+      <div style={{ position: "absolute", left: 18, right: 64, bottom: 20, display: "flex", flexDirection: "column", gap: 9 }}>
+        <Skeleton width="42%" height={14} radius={5} style={{ background: "rgba(255,255,255,.25)" }} />
+        <Skeleton width="88%" height={11} radius={5} style={{ background: "rgba(255,255,255,.2)" }} />
+        <Skeleton width="68%" height={11} radius={5} style={{ background: "rgba(255,255,255,.2)" }} />
+      </div>
+      <div style={{ position: "absolute", right: 16, bottom: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+        {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} width={38} height={38} radius={999} style={{ background: "rgba(255,255,255,.24)" }} />)}
+      </div>
+    </Frame>
+  );
+}
+
+export function ReelCommentsSkeleton({ count = 4 }) {
+  return <CommentSkeleton count={count} />;
+}
+
+export function SettingsSkeleton() {
+  return (
+    <div className="lynora-settings-skeleton" style={{ maxWidth: 920, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+      <Frame style={{ padding: 20 }}>
+        <Skeleton width="30%" height={24} radius={7} style={{ marginBottom: 8 }} />
+        <Skeleton width="58%" height={12} radius={5} />
+      </Frame>
+      <div className="lynora-settings-skeleton-layout" style={{ display: "grid", gridTemplateColumns: "220px minmax(0, 1fr)", gap: 16 }}>
+        <Frame style={{ padding: 12 }}>
+          {Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} width="100%" height={38} radius={9} style={{ marginBottom: index === 5 ? 0 : 8 }} />)}
+        </Frame>
+        <Frame style={{ padding: 20 }}>
+          <Skeleton width="42%" height={18} radius={6} style={{ marginBottom: 18 }} />
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: index === 4 ? 0 : 16 }}>
+              <Skeleton width={`${28 + (index % 3) * 12}%`} height={11} radius={5} />
+              <Skeleton width="100%" height={40} radius={9} />
+            </div>
+          ))}
+        </Frame>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardSkeleton() {
+  return (
+    <div className="lynora-dashboard-skeleton" style={{ maxWidth: 1280, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="lynora-dashboard-skeleton-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
+        {Array.from({ length: 4 }).map((_, index) => <Frame key={index} style={{ padding: 16 }}><Skeleton width="52%" height={11} radius={5} /><Skeleton width="64%" height={26} radius={7} style={{ marginTop: 12 }} /><Skeleton width="42%" height={10} radius={5} style={{ marginTop: 8 }} /></Frame>)}
+      </div>
+      <div className="lynora-dashboard-skeleton-content" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(280px, .6fr)", gap: 16 }}>
+        <Frame style={{ padding: 18, minHeight: 300 }}><Skeleton width="32%" height={18} radius={6} style={{ marginBottom: 22 }} /><Skeleton width="100%" height={210} radius={10} /></Frame>
+        <Frame style={{ padding: 18 }}><Skeleton width="48%" height={18} radius={6} style={{ marginBottom: 20 }} /><SkeletonText lines={7} lastLineWidth="64%" lineHeight={12} /></Frame>
+      </div>
+    </div>
+  );
+}
+
+export function AdminSkeleton() {
+  return (
+    <div className="lynora-admin-skeleton" style={{ maxWidth: 1400, margin: "0 auto", display: "grid", gridTemplateColumns: "240px minmax(0, 1fr)", gap: 18 }}>
+      <Frame style={{ padding: 12 }}>
+        <Skeleton width="70%" height={22} radius={7} style={{ margin: "4px 0 20px" }} />
+        {Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} width="100%" height={38} radius={9} style={{ marginBottom: 8 }} />)}
+      </Frame>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="lynora-admin-skeleton-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>{Array.from({ length: 4 }).map((_, index) => <Frame key={index} style={{ padding: 16 }}><Skeleton width="56%" height={11} /><Skeleton width="62%" height={24} radius={7} style={{ marginTop: 12 }} /></Frame>)}</div>
+        <Frame style={{ padding: 18, minHeight: 360 }}><Skeleton width="34%" height={20} radius={6} style={{ marginBottom: 20 }} /><Skeleton width="100%" height={270} radius={10} /></Frame>
+      </div>
+    </div>
+  );
+}
+
+export function CommentarySkeleton({ count = 3, withMedia = false }) {
+  return <CommentSkeleton count={count} withMedia={withMedia} />;
+}
+
+export function PageSkeleton({ page = "feed", ...props }) {
+  const normalizedPage = String(page).toLowerCase();
+  if (normalizedPage === "story" || normalizedPage === "stories") return <StorySkeleton {...props} />;
+  if (normalizedPage === "message" || normalizedPage === "messages") return <MessageSkeleton {...props} />;
+  if (normalizedPage === "groupe" || normalizedPage === "group" || normalizedPage === "groups") return <GroupSkeleton {...props} />;
+  if (normalizedPage === "réseau" || normalizedPage === "reseau" || normalizedPage === "network") return <NetworkSkeleton {...props} />;
+  if (normalizedPage === "company" || normalizedPage === "companypage") return <CompanyPageSkeleton {...props} />;
+  if (normalizedPage === "profile") return <ProfileSkeleton {...props} />;
+  if (normalizedPage === "settings") return <SettingsSkeleton {...props} />;
+  if (normalizedPage === "admin") return <AdminSkeleton {...props} />;
+  if (normalizedPage === "dashboard") return <DashboardSkeleton {...props} />;
+  if (normalizedPage === "comment" || normalizedPage === "commentaire" || normalizedPage === "comments") return <CommentarySkeleton {...props} />;
+  if (normalizedPage === "notification" || normalizedPage === "notifications") return <NotificationsSkeleton {...props} />;
+  if (normalizedPage === "abonnement" || normalizedPage === "subscription") return <SubscriptionSkeleton {...props} />;
+  return <FeedSkeleton {...props} />;
+}
+
 export function CommentSkeleton({ count = 3, withMedia = false }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -895,99 +1030,6 @@ export function CommentSkeleton({ count = 3, withMedia = false }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-export function CreateGroupModalSkeleton() {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,51,82,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
-      <div style={{ background: C.white, borderRadius: 16, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", padding: 22, display: "flex", flexDirection: "column", gap: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Skeleton width="60%" height={20} radius={8} />
-            <Skeleton width="90%" height={12} radius={6} />
-          </div>
-          <Skeleton width={32} height={32} radius={8} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Skeleton width="30%" height={12} radius={5} style={{ marginBottom: 6 }} />
-          <Skeleton width="100%" height={38} radius={8} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Skeleton width="25%" height={12} radius={5} style={{ marginBottom: 6 }} />
-          <Skeleton width="100%" height={80} radius={8} />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Skeleton width="40%" height={12} radius={5} style={{ marginBottom: 6 }} />
-            <Skeleton width="100%" height={38} radius={8} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Skeleton width="50%" height={12} radius={5} style={{ marginBottom: 6 }} />
-            <Skeleton width="100%" height={38} radius={8} />
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Skeleton width="35%" height={12} radius={5} style={{ marginBottom: 6 }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10 }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} width="100%" height={78} radius={16} />
-            ))}
-          </div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
-          <Skeleton width={90} height={38} radius={12} />
-          <Skeleton width={120} height={38} radius={12} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function GroupWorkspaceSkeleton() {
-  return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px 60px", display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <Skeleton width={90} height={90} radius={16} />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-          <Skeleton width="60%" height={22} radius={8} />
-          <Skeleton width="90%" height={12} radius={6} />
-          <Skeleton width="70%" height={11} radius={5} />
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 6, borderBottom: `1px solid ${C.line}`, overflowX: "auto" }}>
-        {["Tableau de bord", "Publications", "Membres", "Analytique", "Calendrier", "Documents", "Médias", "Notifications", "Paramètres"].map((tab, i) => (
-          <Skeleton key={tab} width={i === 0 ? 110 : 100} height={36} radius={8} style={{ marginBottom: -1 }} />
-        ))}
-      </div>
-      <Frame style={{ padding: 20, minHeight: 300 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Skeleton width="40%" height={18} radius={6} style={{ marginBottom: 8 }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Skeleton width="60%" height={14} radius={5} />
-                <Skeleton width="100%" height={32} radius={8} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Frame>
-      <Frame style={{ padding: 20 }}>
-        <Skeleton width="35%" height={16} radius={6} style={{ marginBottom: 12 }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: i > 0 ? "12px 0" : "0", borderTop: i > 0 ? `1px solid ${C.line}` : "none" }}>
-              <Skeleton width={40} height={40} radius={10} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
-                <Skeleton width="70%" height={13} radius={5} />
-                <Skeleton width="50%" height={11} radius={5} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Frame>
     </div>
   );
 }
@@ -1145,26 +1187,6 @@ export function GroupsGridSkeleton({ count = 6 }) {
   );
 }
 
-export function DropdownMenuSkeleton() {
-  return (
-    <div style={{ width: 240, background: C.white, borderRadius: 14, boxShadow: "0 16px 40px rgba(15,51,82,0.3)", border: `1px solid ${C.line}`, overflow: "hidden", padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: `1px solid ${C.line}` }}>
-        <Skeleton width={40} height={40} radius={999} />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
-          <Skeleton width="80%" height={13} radius={5} />
-          <Skeleton width="60%" height={11} radius={5} />
-        </div>
-      </div>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8 }}>
-          <Skeleton width={18} height={18} radius={5} />
-          <Skeleton width="70%" height={13} radius={5} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default Skeleton;
 
 /* ------------------------------------------------------------------ */
@@ -1178,7 +1200,8 @@ export default Skeleton;
 //   LeftSidebarSkeleton, RightSidebarSkeleton, ComposerSkeleton,
 //   NetworkSkeleton, NotificationsSkeleton, MessagesSkeleton,
 //   CompanySkeleton, ProfileSkeleton, SubscriptionSkeleton,
-//   CreateGroupModalSkeleton, GroupWorkspaceSkeleton, DropdownMenuSkeleton,
+//   StorySkeleton, SettingsSkeleton, AdminSkeleton, DashboardSkeleton,
+//   CommentarySkeleton, PageSkeleton,
 // } from "./Skeleton";
 //
 // // Squelette générique

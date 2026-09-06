@@ -56,6 +56,7 @@ import {
   ProfileSkeleton,
   CompanySkeleton,
   SubscriptionSkeleton,
+  CompanyPagesGridSkeleton,
 } from "./Skeleton";
 
 /* ------------------------------------------------------------------ */
@@ -2106,7 +2107,7 @@ function MessagesPage({ conversations, activeId, onSelect, onChange, onSend, onO
         onNewConversation={onNewConversation}
         onOpenProfile={onOpenProfile}
         onOpenChatSettings={onOpenChatSettings}
-        onSend={(conversationId, text, attachments) => onSend?.(conversationId, text, attachments)}
+        onSend={(conversationId, text, attachments, replyTo) => onSend?.(conversationId, text, attachments, replyTo)}
         autoOpen={true}
         directConversation={directConversation}
         showFab={false}
@@ -2806,6 +2807,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [companyLoading, setCompanyLoading] = useState(true);
   const [companyData, setCompanyData] = useState(null);
   const [publicCompanyPages, setPublicCompanyPages] = useState([]);
+  const [companyPagesLoading, setCompanyPagesLoading] = useState(false);
   const [sponsoredAds, setSponsoredAds] = useState([]);
   const [followedPageIds, setFollowedPageIds] = useState([]);
   const [connectedSuggestionIds, setConnectedSuggestionIds] = useState([]);
@@ -3339,12 +3341,14 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   useEffect(() => {
     if (view !== "feed" && view !== "company") return;
     let active = true;
+    if (view === "company") setCompanyPagesLoading(true);
     fetchBackendApi("/api/company/pages", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (active && Array.isArray(data?.pages)) setPublicCompanyPages(data.pages);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (active && view === "company") setCompanyPagesLoading(false); });
     const refreshFeedOnEntry = async () => {
       try {
         const response = await fetchBackendApi("/api/posts?feedOnly=true&limit=50", { cache: "no-store" });
@@ -3779,7 +3783,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (!res.ok) return;
         const data = await res.json();
         if (!active || !data) return;
-        const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        const suggestions = Array.isArray(data.suggestions) ? data.suggestions : (Array.isArray(data.users) ? data.users : []);
         setNetworkSuggestions(suggestions);
       } catch (error) {
         // Preserve the last valid list during a transient network failure.
@@ -4469,7 +4473,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     navigate(result?.view || "feed");
   }, [router]);
 
-  const sendMessage = async (id, text, attachments = []) => {
+  const sendMessage = async (id, text, attachments = [], replyTo = null) => {
     const trimmed = (text || "").trim();
     if (!trimmed && attachments.length === 0) return;
 
@@ -4484,6 +4488,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       text: trimmed || (attachments.length > 1 ? "Fichiers envoyés" : "Fichier envoyé"),
       time: "À l'instant",
       attachments,
+      replyTo: replyTo ? { ...replyTo, from: replyTo.from || "them" } : null,
       pending: true,
     };
     setConversations((cs) => cs.map((c) => (
@@ -4496,7 +4501,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       const res = await fetchBackendApi("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, attachments }),
+        body: JSON.stringify({ ...payload, attachments, replyTo: replyTo ? { id: replyTo.id } : null }),
       });
 
       if (res.ok) {
@@ -4505,7 +4510,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           setConversations((cs) =>
             cs.map((c) =>
               c.id === id || c.otherUserId === id
-                ? { ...c, messages: c.messages.map((message) => message.id === temporaryId ? { id: data.message.id, from: "me", text: data.message.text, time: data.message.time, attachments: data.message.attachments || attachments } : message) }
+                ? { ...c, messages: c.messages.map((message) => message.id === temporaryId ? { id: data.message.id, from: "me", text: data.message.text, time: data.message.time, attachments: data.message.attachments || attachments, replyTo: data.message.replyTo || null } : message) }
                 : c
             )
           );
@@ -6562,6 +6567,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             <>
               {companyTab !== "mine" || !companyLoading ? (
                 <div style={{ padding: 0 }}>
+                  {companyPagesLoading ? <CompanyPagesGridSkeleton count={6} /> : (
                   <CompanyPagesGrid
                     companyTab={companyTab}
                     onNavigate={navigate}
@@ -6620,6 +6626,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     canCreatePage={true}
                     onUpgrade={() => {}}
                   />
+                  )}
                 </div>
               ) : companyLoading ? (
                 <div aria-busy="true" style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 20px 60px" }}>

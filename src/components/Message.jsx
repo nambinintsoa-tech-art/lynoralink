@@ -566,7 +566,12 @@ function GroupAvatarStack({ members = [], size = 36, onOpenProfile }) {
 function ToolbarBtn({ icon: Icon, onClick, title, danger }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick?.(event);
+      }}
       title={title}
       style={{ width: 25, height: 25, borderRadius: "50%", border: "none", background: "transparent", color: danger ? C.danger : C.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
       onMouseEnter={(e) => (e.currentTarget.style.background = danger ? C.danger50 : C.navy50)}
@@ -605,10 +610,39 @@ function DateSeparator({ label }) {
   );
 }
 
+function ParentMessagePreview({ replyTo, isMine = false, compact = false }) {
+  if (!replyTo) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        marginBottom: compact ? 0 : 7,
+        padding: compact ? "3px 0 3px 9px" : "5px 0 5px 9px",
+        borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.55)" : C.navy700}`,
+        background: "transparent",
+        minWidth: 0,
+      }}
+    >
+      <span style={{ color: isMine ? "rgba(255,255,255,0.86)" : C.navy800, fontSize: compact ? 10 : 10.5, fontWeight: 700 }}>
+        {replyTo.from === "me" ? "Vous" : replyTo.author || "Message parent"}
+      </span>
+      <span style={{ color: isMine ? "rgba(255,255,255,0.72)" : C.muted, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {replyTo.deletedForEveryone ? "Message supprimé" : replyTo.text || "Pièce jointe"}
+      </span>
+    </div>
+  );
+}
+
 function IconBtn({ icon: Icon, onClick, title, size = 16, active }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        onClick?.(event);
+      }}
       title={title}
       style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 9, border: "none", background: active ? C.navy50 : "transparent", color: active ? C.navy800 : C.muted, cursor: "pointer", flexShrink: 0 }}
       onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)}
@@ -2289,7 +2323,7 @@ export function ChatModal({
     const hasContent = text.length > 0 || attachments.length > 0;
     if (!hasContent) return;
 
-    onSend?.(conv.id, text || (attachments.length > 1 ? "Fichiers envoyés" : "Fichier envoyé"), attachments.map(({ id, ...rest }) => rest));
+    onSend?.(conv.id, text || (attachments.length > 1 ? "Fichiers envoyés" : "Fichier envoyé"), attachments.map(({ id, ...rest }) => rest), replyingTo);
     setDraft("");
     setAttachments([]);
     setReplyingTo(null);
@@ -2600,16 +2634,7 @@ export function ChatModal({
                       maxWidth: "100%",
                     }}
                   >
-                    {m.replyTo && !m.deletedForEveryone && (
-                      <div style={{ borderLeft: `3px solid ${isMe ? "rgba(19,36,51,0.35)" : C.navy700}`, paddingLeft: 8, marginBottom: 6 }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: isMe ? "rgba(255,255,255,0.86)" : C.navy800 }}>
-                          {m.replyTo.from === "me" ? "Vous" : conv.name.split(" ")[0]}
-                        </div>
-                        <div style={{ fontSize: 11, color: isMe ? "rgba(255,255,255,0.7)" : C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {m.replyTo.text}
-                        </div>
-                      </div>
-                    )}
+                    {m.replyTo && <ParentMessagePreview replyTo={{ ...m.replyTo, author: m.replyTo.from === "me" ? "Vous" : conv.name }} isMine={isMe} />}
 
                     {m.attachments?.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: m.text ? 8 : 0 }}>
@@ -2695,17 +2720,12 @@ export function ChatModal({
         {/* Zone de saisie */}
         <div className="lynora-message-composer" style={{ borderTop: `1px solid ${C.line}`, position: "relative", zIndex: 4, flexShrink: 0, background: C.white }}>
           {replyingTo && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 12px 0", padding: "7px 10px", borderRadius: 10, background: C.navy50, borderLeft: `3px solid ${C.gold600}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 12px 0", padding: "7px 10px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent" }}>
               <CornerUpLeft size={13} color={C.navy700} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: C.navy800 }}>
-                  Réponse à {replyingTo.from === "me" ? "vous-même" : conv.name.split(" ")[0]}
-                </div>
-                <div style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {replyingTo.deletedForEveryone ? "Message supprimé" : replyingTo.text}
-                </div>
+                <ParentMessagePreview replyTo={{ ...replyingTo, author: replyingTo.from === "me" ? "Vous" : conv.name }} compact />
               </div>
-              <button onClick={() => setReplyingTo(null)} style={{ border: "none", background: "transparent", color: C.mutedLight, cursor: "pointer", display: "flex", flexShrink: 0 }}>
+              <button type="button" onClick={() => setReplyingTo(null)} style={{ border: "none", background: "transparent", color: C.mutedLight, cursor: "pointer", display: "flex", flexShrink: 0 }}>
                 <X size={14} />
               </button>
             </div>

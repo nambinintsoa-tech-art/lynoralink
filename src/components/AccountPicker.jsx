@@ -907,9 +907,10 @@ export default function AccountPicker({
 }) {
   const [selectedId, setSelectedId] = useState(accounts[0]?.id ?? null);
   const [stylesLoaded, setStylesLoaded] = useState(false);
-  const [rememberMeEnabled, setRememberMeEnabled] = useState(true);
+  const [rememberMeEnabled, setRememberMeEnabled] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [pendingAccountId, setPendingAccountId] = useState(null);
+  const [pendingAccountEmail, setPendingAccountEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -965,9 +966,18 @@ export default function AccountPicker({
     }
   };
 
+  const getAccountEmail = (id) => {
+    const account = resolvedAccounts.find((item) => item.id === id);
+    if (account?.email) return account.email;
+    if (account?.id === resolvedAccounts[0]?.id) return currentUserEmail;
+    return "";
+  };
+
   const handleSelect = (id, shouldContinue = false) => {
-    if (shouldContinue && !rememberMeEnabled && currentUserEmail) {
+    const accountEmail = getAccountEmail(id);
+    if (shouldContinue && !rememberMeEnabled && accountEmail) {
       setPendingAccountId(id);
+      setPendingAccountEmail(accountEmail);
       setPassword("");
       setPasswordError("");
       setPasswordModalOpen(true);
@@ -983,7 +993,8 @@ export default function AccountPicker({
   };
 
   const handlePasswordConfirm = async () => {
-    if (!currentUserEmail || !password.trim()) {
+    const accountEmail = pendingAccountEmail || currentUserEmail;
+    if (!accountEmail || !password.trim()) {
       setPasswordError("Entrez votre mot de passe pour continuer.");
       return;
     }
@@ -991,7 +1002,7 @@ export default function AccountPicker({
     setPasswordLoading(true);
     setPasswordError("");
     const res = await signIn("credentials", {
-      email: currentUserEmail,
+      email: accountEmail,
       password,
       redirect: false,
     });
@@ -1113,7 +1124,7 @@ export default function AccountPicker({
 
               <button
                 type="button"
-                onClick={() => window.location.assign(`/reset-password?email=${encodeURIComponent(currentUserEmail)}`)}
+                onClick={() => window.location.assign(`/reset-password?email=${encodeURIComponent(pendingAccountEmail || currentUserEmail)}`)}
                 style={{ alignSelf: "flex-end", border: "none", background: "transparent", padding: 0, fontSize: 12.5, fontWeight: 600, color: BRAND.navy, cursor: "pointer" }}
               >
                 Mot de passe oublié ?
@@ -1122,7 +1133,7 @@ export default function AccountPicker({
               {passwordError ? <p style={{ margin: 0, fontSize: 12.5, color: "#D14343" }}>{passwordError}</p> : null}
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => { setPasswordModalOpen(false); setPassword(""); setPasswordError(""); }} style={{ border: `1px solid ${BRAND.hairline}`, borderRadius: 999, background: "#F8FAFC", color: BRAND.slate, padding: "10px 14px", fontWeight: 600, cursor: "pointer" }}>
+                <button type="button" onClick={() => { setPasswordModalOpen(false); setPendingAccountEmail(""); setPassword(""); setPasswordError(""); }} style={{ border: `1px solid ${BRAND.hairline}`, borderRadius: 999, background: "#F8FAFC", color: BRAND.slate, padding: "10px 14px", fontWeight: 600, cursor: "pointer" }}>
                   Annuler
                 </button>
                 <button type="button" onClick={handlePasswordConfirm} disabled={passwordLoading} style={{ border: "none", borderRadius: 999, background: goldGradient, color: BRAND.ink, padding: "10px 14px", fontWeight: 700, cursor: passwordLoading ? "wait" : "pointer", opacity: passwordLoading ? 0.8 : 1 }}>

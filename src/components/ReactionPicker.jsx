@@ -47,7 +47,11 @@ export default function ReactionPicker({
               <button
                 key={reaction.key}
                 type="button"
-                onClick={() => onSelect?.(reaction.key)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSelect?.(reaction.key);
+                }}
                 aria-label={reaction.label}
                 onMouseEnter={() => setHoveredKey(reaction.key)}
                 onMouseLeave={() => setHoveredKey(null)}

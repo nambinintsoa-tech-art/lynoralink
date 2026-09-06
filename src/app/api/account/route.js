@@ -22,6 +22,7 @@ export async function GET() {
 
   const primaryAccount = {
     id: user.id,
+    email: user.email || "",
     name: user.name || user.email || "Compte principal",
     handle: user.email ? `@${user.email.split("@")[0]}` : "@compte",
     online: true,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccountPicker from "@/components/AccountPicker";
-import AuthRedirectTransition from "@/components/AuthRedirectTransition";
+import AuthNavigationTransition from "@/components/AuthNavigationTransition";
 import SplashScreen from "@/components/SplashScreen";
 
 const STARTUP_SPLASH_KEY = "lynoralink_startup_splash_seen";
@@ -51,6 +51,7 @@ export default function HomePage() {
 
     const primaryAccount = {
       id: session.user.id || "primary",
+      email: session.user.email || "",
       name: session.user.name || session.user.email || "Utilisateur",
       handle: session.user.email ? `@${session.user.email.split("@")[0]}` : "@compte",
       online: true,
@@ -124,16 +125,6 @@ export default function HomePage() {
     );
   }
 
-  if (authTransition) {
-    return (
-      <AuthRedirectTransition
-        mode={authTransition}
-        duration={900}
-        onComplete={() => router.push(authTransition === "login" ? "/login" : "/register")}
-      />
-    );
-  }
-
   return (
     <>
       <AccountPicker
@@ -146,6 +137,13 @@ export default function HomePage() {
         onRegister={() => setAuthTransition("register")}
         onSignOut={() => signOut({ callbackUrl: "/" })}
       />
+      {authTransition && (
+        <AuthNavigationTransition
+          mode={authTransition}
+          duration={700}
+          onComplete={() => router.push(authTransition === "login" ? "/login" : "/register")}
+        />
+      )}
     </>
   );
 }

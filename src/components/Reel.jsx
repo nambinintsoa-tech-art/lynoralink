@@ -17,7 +17,7 @@ import EnterpriseBadge from "@/components/EnterpriseBadge";
 import PremiumBadge from "@/components/PremiumBadge";
 import ProfileHoverPreview from "@/components/ProfileHoverPreview";
 import { ShareModal } from "@/components/PostViewerPreview";
-import { CommentSkeleton } from "@/components/Skeleton";
+import { ReelCommentsSkeleton, ReelSkeleton } from "@/components/Skeleton";
 import { normalizeReelPayload } from "@/lib/reels";
 import { backendApiUrl, fetchBackendApi } from "@/lib/backend-api";
 
@@ -1762,7 +1762,7 @@ export default function Reel({ reels: reelsProp, onClose, onOpenComments, onOpen
             <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
               {commentsLoading && activeReelComments.length === 0 ? (
                 <div style={{ width: "100%", minHeight: 260, padding: "16px 0 8px" }} role="status" aria-label="Chargement des commentaires">
-                  <CommentSkeleton count={4} />
+                  <ReelCommentsSkeleton count={4} />
                 </div>
               ) : visibleComments.map((comment) => (
                 <div key={comment.id} style={{ borderBottom: `1px solid ${LI_BORDER}` }}>
@@ -1881,20 +1881,7 @@ export default function Reel({ reels: reelsProp, onClose, onOpenComments, onOpen
 
       <div className="reel-stage-wrap">
         {loading && reels.length === 0 ? (
-          <div className="reel-loading-card" aria-hidden="true">
-            <div className="reel-skeleton-top" />
-            <div className="reel-skeleton-bottom">
-              <div className="reel-skeleton-avatar" />
-              <div className="reel-skeleton-lines">
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-            <div className="reel-skeleton-actions">
-              <span /><span /><span /><span />
-            </div>
-          </div>
+          <ReelSkeleton />
         ) : (
           <>
             {/* Desktop side nav arrows */}
@@ -2089,75 +2076,6 @@ const REEL_STYLES = `
         }
         .reel-feed:active { cursor: grabbing; }
         .reel-feed::-webkit-scrollbar { display: none; }
-
-        .reel-loading-card {
-          position: relative;
-          width: var(--reel-w);
-          height: var(--reel-h);
-          max-width: 100%;
-          overflow: hidden;
-          border: 1px solid rgba(255,255,255,.12);
-          border-radius: 24px;
-          background: linear-gradient(145deg, #1b2941 0%, #101a2d 58%, #0b1222 100%);
-          box-shadow: 0 28px 70px rgba(0,0,0,.48), 0 0 0 6px rgba(255,255,255,.025);
-        }
-        .reel-loading-card::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.09) 50%, transparent 70%);
-          transform: translateX(-100%);
-          animation: reel-skeleton-shimmer 1.4s ease-in-out infinite;
-        }
-        @keyframes reel-skeleton-shimmer { to { transform: translateX(100%); } }
-        .reel-skeleton-top {
-          position: absolute;
-          top: 18px;
-          right: 14px;
-          width: 74px;
-          height: 34px;
-          border-radius: 999px;
-          background: rgba(255,255,255,.1);
-        }
-        .reel-skeleton-bottom {
-          position: absolute;
-          left: 16px;
-          right: 72px;
-          bottom: 22px;
-          display: flex;
-          align-items: center;
-          gap: 9px;
-        }
-        .reel-skeleton-avatar {
-          width: 38px;
-          height: 38px;
-          flex-shrink: 0;
-          border-radius: 50%;
-          background: rgba(255,255,255,.15);
-        }
-        .reel-skeleton-lines { display: grid; gap: 7px; width: 100%; }
-        .reel-skeleton-lines span {
-          display: block;
-          height: 9px;
-          width: 72%;
-          border-radius: 999px;
-          background: rgba(255,255,255,.14);
-        }
-        .reel-skeleton-lines span:nth-child(2) { width: 92%; }
-        .reel-skeleton-lines span:nth-child(3) { width: 58%; }
-        .reel-skeleton-actions {
-          position: absolute;
-          right: 16px;
-          bottom: 26px;
-          display: grid;
-          gap: 12px;
-        }
-        .reel-skeleton-actions span {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          background: rgba(255,255,255,.12);
-        }
 
         .reel-slide-wrap {
           width: 100%;
@@ -2599,11 +2517,6 @@ const REEL_STYLES = `
             border-radius: 18px;
             box-shadow: 0 16px 40px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.08);
             margin: 0 auto;
-          }
-          .reel-loading-card {
-            max-height: 100%;
-            border-radius: 18px;
-            box-shadow: 0 16px 40px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.08);
           }
           .reel-close-desktop { display: none; }
           .reel-top-controls {

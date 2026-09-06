@@ -9,6 +9,12 @@ function parseAttachments(value) {
   try { return value ? JSON.parse(value) : []; } catch { return []; }
 }
 
+function parseMessageMedia(value) {
+  const parsed = parseAttachments(value);
+  if (Array.isArray(parsed)) return { attachments: parsed, replyTo: null };
+  return { attachments: Array.isArray(parsed?.attachments) ? parsed.attachments : [], replyTo: parsed?.replyTo || null };
+}
+
 function formatTime(value) {
   return new Date(value).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
@@ -47,17 +53,28 @@ export async function registerMessageRoutes(app) {
       const name = conversation.isGroup
         ? conversation.groupName || conversation.members.map((member) => member.user.name).filter(Boolean).join(", ") || "Groupe"
         : page?.name || page?.displayName || other?.name || "Utilisateur";
-      const messages = conversation.messages.map((message) => ({
-        id: message.id,
-        from: message.senderId === userId ? "me" : "them",
-        text: message.text,
-        attachments: parseAttachments(message.mediaData),
-        time: formatTime(message.createdAt),
-        read: Boolean(message.readAt),
-        reactions: message.reactions.map((reaction) => ({ emoji: reaction.reaction, from: reaction.userId === userId ? "me" : "them" })),
-        deletedForEveryone: message.deletedForEveryone,
-        createdAt: message.createdAt,
-      }));
+      const messages = conversation.messages.map((message) => {
+        const media = parseMessageMedia(message.mediaData);
+        const replyTo = media.replyTo ? {
+          id: media.replyTo.id,
+          text: media.replyTo.text || "",
+          from: media.replyTo.senderId === userId ? "me" : "them",
+          time: media.replyTo.createdAt ? formatTime(media.replyTo.createdAt) : "",
+          deletedForEveryone: Boolean(media.replyTo.deletedForEveryone),
+        } : null;
+        return {
+          id: message.id,
+          from: message.senderId === userId ? "me" : "them",
+          text: message.text,
+          attachments: media.attachments,
+          replyTo,
+          time: formatTime(message.createdAt),
+          read: Boolean(message.readAt),
+          reactions: message.reactions.map((reaction) => ({ emoji: reaction.reaction, from: reaction.userId === userId ? "me" : "them" })),
+          deletedForEveryone: message.deletedForEveryone,
+          createdAt: message.createdAt,
+        };
+      });
       const lastMessage = messages[messages.length - 1];
       return {
         id: conversation.id,
@@ -102,9 +119,17 @@ export async function registerMessageRoutes(app) {
     if (!conversation) return reply.code(404).send({ error: "Conversation introuvable" });
     if (body.createOnly && !text) return reply.send({ ok: true, conversationId: conversation.id });
     if (!text && !attachments.length) return reply.code(400).send({ error: "Le message est vide." });
-    const message = await prisma.message.create({ data: { conversationId: conversation.id, senderId: userId, text, mediaData: attachments.length ? JSON.stringify(attachments) : null } });
+    let replyTo = null;
+    if (body.replyTo?.id) {
+      replyTo = await prisma.message.findFirst({
+        where: { id: String(body.replyTo.id), conversationId: conversation.id },
+        select: { id: true, text: true, senderId: true, createdAt: true, deletedForEveryone: true },
+      });
+    }
+    const mediaData = attachments.length || replyTo ? JSON.stringify({ attachments, replyTo }) : null;
+    const message = await prisma.message.create({ data: { conversationId: conversation.id, senderId: userId, text, mediaData } });
     await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
-    return reply.code(201).send({ ok: true, conversationId: conversation.id, message: { id: message.id, from: "me", text: message.text, attachments, time: formatTime(message.createdAt), createdAt: message.createdAt } });
+    return reply.code(201).send({ ok: true, conversationId: conversation.id, message: { id: message.id, from: "me", text: message.text, attachments, replyTo: replyTo ? { id: replyTo.id, text: replyTo.text || "", from: replyTo.senderId === userId ? "me" : "them", time: formatTime(replyTo.createdAt), deletedForEveryone: replyTo.deletedForEveryone } : null, time: formatTime(message.createdAt), createdAt: message.createdAt } });
   });
 
   app.patch("/v1/messages", async (request, reply) => {

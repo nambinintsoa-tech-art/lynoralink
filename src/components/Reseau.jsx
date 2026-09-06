@@ -365,7 +365,8 @@ export default function Reseau({
       const res = await fetchBackendApi("/api/users");
       if (!res.ok) return;
       const data = await res.json();
-      if (Array.isArray(data.suggestions)) setSuggestions(data.suggestions);
+      const nextSuggestions = Array.isArray(data.suggestions) ? data.suggestions : data.users;
+      if (Array.isArray(nextSuggestions)) setSuggestions(nextSuggestions);
     } catch (error) {
       // ignore refresh failures
     }
@@ -481,7 +482,7 @@ export default function Reseau({
 
   useEffect(() => {
     if (sessionStatus !== "authenticated") return undefined;
-    if (connectionsProp || invitationsProp) return undefined;
+    if ((connectionsProp?.length || 0) > 0 || (invitationsProp?.length || 0) > 0) return undefined;
     let mounted = true;
     fetchBackendApi("/api/connections")
       .then((r) => r.json())
@@ -506,7 +507,8 @@ export default function Reseau({
       .then((r) => r.json())
       .then((data) => {
         if (!mounted || !data) return;
-        if (Array.isArray(data.suggestions)) setSuggestions(data.suggestions);
+        const nextSuggestions = Array.isArray(data.suggestions) ? data.suggestions : data.users;
+        if (Array.isArray(nextSuggestions)) setSuggestions(nextSuggestions);
       })
       .catch(() => setSuggestions([]));
     return () => { mounted = false; };
