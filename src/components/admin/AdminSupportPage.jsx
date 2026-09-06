@@ -6,7 +6,7 @@ import LegalHelpSupport from "../LegalHelpSupport";
 import { CGU_SECTIONS, FAQ_ITEMS } from "../LegalHelpSupport";
 import AdminContentEditor from "./AdminContentEditor";
 
-const adminApi = (path, options = {}) => fetch(path, { credentials: "include", ...options });
+const adminApi = (path, options = {}) => fetch(`/api/backend${path.replace(/^\/v1/, "")}`, { credentials: "include", ...options });
 
 const SUPPORT_CATEGORIES = ["Question générale", "Problème technique", "Compte & sécurité", "Facturation", "Signaler un contenu"];
 

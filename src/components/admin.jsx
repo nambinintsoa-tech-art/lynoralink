@@ -80,7 +80,7 @@ function saveAdminCache(name, data) {
 const goldGrad = `linear-gradient(135deg, ${C.gold400} 0%, ${C.gold600} 100%)`;
 const navyGrad = `linear-gradient(160deg, ${C.navy800} 0%, ${C.navy900} 100%)`;
 const APP_NAME = "LynoraLink";
-const adminApi = (path, options = {}) => fetch(path, { credentials: "include", ...options });
+const adminApi = (path, options = {}) => fetch(`/api/backend${path.replace(/^\/v1/, "")}`, { credentials: "include", ...options });
 
 /* ================================================================== */
 /*  DONNEES ADMIN - Les données viennent maintenant de l'API          */
