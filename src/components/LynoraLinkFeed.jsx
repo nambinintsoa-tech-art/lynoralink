@@ -3706,7 +3706,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     };
 
     const fetchMessages = async () => {
-      if (document.hidden) return; // Skip polling when tab is inactive
+      if (document.hidden || messagesModalOpen) return; // Keep the open chat stable while it manages its own interactions.
       try {
         const res = await fetchBackendApi(`/api/messages?userId=${encodeURIComponent(session.user.id)}`, {
           credentials: "include",
@@ -3847,7 +3847,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     loadRelations();
     setMessagesLoading(true);
     fetchMessages().finally(() => setMessagesLoading(false));
-    const messagesInterval = setInterval(fetchMessages, 8000); // Increased from 3s to 8s
+    const messagesInterval = setInterval(fetchMessages, 30000);
     fetchSuggestions();
     fetchCompanyPages();
     fetchFollowedPages();
@@ -3855,7 +3855,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     fetchSponsoredAds();
     const adsInterval = setInterval(() => {
       if (!document.hidden) fetchSponsoredAds();
-    }, 8000);
+    }, 30000);
     const relationsInterval = setInterval(() => {
       if (document.hidden) return; // Skip polling when tab is inactive
       loadRelations();
@@ -3872,7 +3872,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       window.removeEventListener("lynoralink:ads-updated", handleAdsUpdated);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [session?.user?.id, fetchRelations, view]);
+  }, [session?.user?.id, fetchRelations, view, messagesModalOpen]);
 
   useEffect(() => {
     if (!openPostOverride?.isSponsored) return;
