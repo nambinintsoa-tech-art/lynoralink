@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { getToken } from "next-auth/jwt";
 
 function parseCookies(header = "") {
@@ -19,6 +20,12 @@ export async function getSessionUserId(request) {
   }
 
   const rawRequest = request.raw;
+  const forwardedUserId = rawRequest.headers["x-lynora-user-id"];
+  const forwardedSignature = rawRequest.headers["x-lynora-user-signature"];
+  if (forwardedUserId && forwardedSignature) {
+    const expectedSignature = crypto.createHmac("sha256", process.env.NEXTAUTH_SECRET).update(forwardedUserId).digest("hex");
+    if (forwardedSignature.length === expectedSignature.length && crypto.timingSafeEqual(Buffer.from(forwardedSignature), Buffer.from(expectedSignature))) return forwardedUserId;
+  }
   const token = await getToken({
     req: {
       headers: rawRequest.headers,
