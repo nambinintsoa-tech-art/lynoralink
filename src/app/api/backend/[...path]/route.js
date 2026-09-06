@@ -1,14 +1,15 @@
 import crypto from "node:crypto";
-import { getToken } from "next-auth/jwt";
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const backendUrl = () => (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4001").replace(/\/$/, "");
 
 async function getAuthenticatedUserId(request) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  return token?.id || token?.sub || null;
+  const session = await getServerSession(authOptions);
+  return session?.user?.id || null;
 }
 
 export async function handler(request, { params }) {
