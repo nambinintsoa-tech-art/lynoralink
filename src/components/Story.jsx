@@ -6,8 +6,8 @@ import { useSession } from "next-auth/react";
 import {
   Plus, X, Type, Image as ImageIcon, Upload, ChevronLeft, ChevronRight,
   Heart, Send, MoreHorizontal, Trash2, Eye, Flag, UserMinus, Loader2,
-  Volume2, VolumeX, Camera, Check, Users, Lock, Reply, SmilePlus,
-  ChevronUp, Sparkles, Zap, Clock, Share2, Bookmark, Copy, Play, Pause,
+  Volume2, VolumeX, Camera, Check, Users, Lock, SmilePlus,
+  ChevronUp, Sparkles, Zap, Share2, Bookmark, Copy, Play, Pause,
 } from "lucide-react";
 import ReactionPicker from "./ReactionPicker";
 import { SkeletonStoryRail } from "./StorySkeleton";
@@ -66,12 +66,6 @@ const glassPanel = {
   backdropFilter: "blur(18px) saturate(1.4)",
   WebkitBackdropFilter: "blur(18px) saturate(1.4)",
   border: "1px solid rgba(255,255,255,0.14)",
-};
-const glassPanelStrong = {
-  background: "rgba(255,255,255,0.16)",
-  backdropFilter: "blur(24px) saturate(1.6)",
-  WebkitBackdropFilter: "blur(24px) saturate(1.6)",
-  border: "1px solid rgba(255,255,255,0.18)",
 };
 
 const STORY_DURATION = 15000;
@@ -728,6 +722,17 @@ function ReactionBadge({ reactions = {} }) {
 /* ------------------------------------------------------------------ *
  *  Viewer plein ecran                                                 *
  * ------------------------------------------------------------------ */
+/* ---- Design tokens "Facebook" pour le viewer ---- */
+const FB = {
+  blue: "#1877F2",      // bleu Facebook (bouton envoyer)
+  darkBg: "#18191A",    // fond sombre autour de la story
+  ink: "#050505",       // texte principal (menu, sheet)
+  mutedFb: "#65676B",   // texte secondaire
+  divider: "#CED0D4",   // poignee du bottom sheet
+  line: "#E4E6EB",      // traits de separation
+  danger: "#E41E3F",    // rouge Facebook (supprimer / signaler)
+};
+
 function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSeen, onReply, onReact, onDelete, reactions: reactionsMap }) {
   const [groupIndex, setGroupIndex] = useState(startGroupIndex);
   const [itemIndex, setItemIndex] = useState(0);
@@ -741,6 +746,7 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
   const [muted, setMuted] = useState(true);
   const [hearts, setHearts] = useState([]);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [reactionPickerPosition, setReactionPickerPosition] = useState(null);
   const [slideDirection, setSlideDirection] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -753,6 +759,7 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
   const touchStartY = useRef(0);
   const replyInputRef = useRef(null);
   const reactionBtnRef = useRef(null);
+  const reactionPickerRef = useRef(null);
   const longPressTimer = useRef(null);
   const reactionHoverTimer = useRef(null);
 
@@ -774,7 +781,7 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
   useEffect(() => {
     if (!showReactionPicker) return;
     const handleClick = (e) => {
-      if (reactionBtnRef.current && !reactionBtnRef.current.contains(e.target)) {
+      if (reactionBtnRef.current && !reactionBtnRef.current.contains(e.target) && !reactionPickerRef.current?.contains(e.target)) {
         setShowReactionPicker(false);
       }
     };
@@ -931,18 +938,38 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
     }
   };
   const handleReactionClick = () => {
+    const rect = reactionBtnRef.current?.getBoundingClientRect();
+    if (rect) setReactionPickerPosition({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 10 });
     if (!showReactionPicker && !longPressTimer.current) {
       setShowReactionPicker((prev) => !prev);
     }
   };
   const openReactionPicker = () => {
     if (reactionHoverTimer.current) clearTimeout(reactionHoverTimer.current);
+    const rect = reactionBtnRef.current?.getBoundingClientRect();
+    if (rect) setReactionPickerPosition({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 10 });
     setShowReactionPicker(true);
   };
   const closeReactionPicker = () => {
     if (reactionHoverTimer.current) clearTimeout(reactionHoverTimer.current);
     reactionHoverTimer.current = setTimeout(() => setShowReactionPicker(false), 220);
   };
+
+  const reactionPickerPortal = showReactionPicker && reactionPickerPosition && typeof document !== "undefined"
+    ? createPortal(
+      <div
+        ref={reactionPickerRef}
+        className="story-reaction-pop"
+        onMouseEnter={openReactionPicker}
+        onMouseLeave={closeReactionPicker}
+        style={{ position: "fixed", left: reactionPickerPosition.left, bottom: reactionPickerPosition.bottom, transform: "translateX(-50%)", zIndex: 2147483647 }}
+        data-no-pause
+      >
+        <ReactionPicker reactions={STORY_REACTIONS} onSelect={handleReactionSelect} size={44} imgSize={30} />
+      </div>,
+      document.body
+    )
+    : null;
 
   const slideTransform = isAnimating
     ? `translateX(${slideDirection * 30}px)`
@@ -960,428 +987,447 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
       className="story-viewer-backdrop"
       style={{
         position: "fixed", inset: 0, zIndex: 1400,
-        background: "rgba(0,0,0,0.92)",
+        background: FB.darkBg,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Scene : fleches de navigation + carte centrale, comme facebook.com */}
       <div
-        style={{
-          position: "relative", width: "100%", height: "100%", maxWidth: 480, paddingTop: "env(safe-area-inset-top)", boxSizing: "border-box",
-          background: item.type === "text" ? item.bg : "#000",
-          isolation: "isolate",
-          transform: slideTransform,
-          transition: isAnimating ? "transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease" : "none",
-          opacity: isAnimating ? 0.85 : 1,
-        }}
-        onMouseDown={(e) => {
-          if (e.target.closest('input, textarea, button, [data-no-pause]')) return;
-          setHoldPaused(true);
-        }}
-        onMouseUp={() => setHoldPaused(false)}
-        onMouseLeave={() => setHoldPaused(false)}
-        onTouchStart={(e) => {
-          if (e.target.closest('input, textarea, button, [data-no-pause]')) return;
-          setHoldPaused(true);
-        }}
-        onTouchEnd={() => setHoldPaused(false)}
-        onDoubleClick={handleDoubleClick}
+        className="story-viewer-stage"
+        style={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}
       >
-        {/* Media */}
-        {item.type === "image" && (
-          <img src={item.mediaUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }} />
-        )}
-        {item.type === "video" && (
-          <video
-            ref={videoRef} src={item.mediaUrl} muted={muted} autoPlay playsInline
-            style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }}
-          />
-        )}
-        {item.type === "text" && (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 36, position: "relative" }}>
-            <div style={{ position: "absolute", inset: 0, opacity: 0.03, pointerEvents: "none", backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-            <span style={{
-              color: C.white, fontFamily: "'Sora', sans-serif", fontWeight: 700,
-              fontSize: item.fontSize || 24, textAlign: "center", lineHeight: 1.4,
-              textShadow: "0 2px 16px rgba(0,0,0,0.35)", position: "relative", maxWidth: "85%",
-            }}>
-              {item.text}
-            </span>
-          </div>
-        )}
-        {(item.type === "image" || item.type === "video") && item.text && (
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 110, textAlign: "center", padding: "0 20px" }}>
-            <span style={{
-              background: "rgba(0,0,0,0.4)", color: C.white, fontSize: 13.5, fontWeight: 600,
-              padding: "7px 14px", borderRadius: 12, display: "inline-block", lineHeight: 1.4,
-              backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-            }}>
-              {item.text}
-            </span>
-          </div>
-        )}
-
-        {/* Floating hearts */}
-        {hearts.map((h) => (
-          <Heart
-            key={h.id} size={36}
-            className="story-heart-burst"
-            style={{ position: "absolute", left: h.x - 18, top: h.y - 18, color: "#FF5C7A", fill: "#FF5C7A", pointerEvents: "none" }}
-          />
-        ))}
-
-        {/* Pause indicator */}
-        {paused && (
-          <div className="story-pause-indicator" style={{
-            position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-            width: 56, height: 56, borderRadius: "50%",
-            background: "rgba(0,0,0,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            pointerEvents: "none", zIndex: 10,
-          }}>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <div style={{ width: 5, height: 20, borderRadius: 3, background: "rgba(255,255,255,0.9)" }} />
-              <div style={{ width: 5, height: 20, borderRadius: 3, background: "rgba(255,255,255,0.9)" }} />
-            </div>
-          </div>
-        )}
-
-        {/* Gradient overlays */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 130, background: "linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0))", pointerEvents: "none", zIndex: 2 }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 100, background: "linear-gradient(0deg, rgba(0,0,0,0.5), rgba(0,0,0,0))", pointerEvents: "none", zIndex: 1 }} />
-
-        {/* Progress bars */}
-        <div style={{ position: "absolute", top: 14, left: 14, right: 14, display: "flex", gap: 4, zIndex: 8 }}>
-          {group.items.map((it, i) => (
-            <div
-              key={it.id}
-              style={{
-                flex: 1, height: 3.5, borderRadius: 999, background: "rgba(255,255,255,0.25)",
-                overflow: "hidden", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%", borderRadius: 999,
-                  background: i < itemIndex
-                    ? C.white
-                    : i === itemIndex
-                      ? `linear-gradient(90deg, ${C.white} 0%, rgba(255,255,255,0.85) 100%)`
-                      : "transparent",
-                  width: i < itemIndex ? "100%" : i === itemIndex ? `${progress}%` : "0%",
-                  transition: i === itemIndex && !isVideo ? "none" : "width 0.15s linear",
-                  boxShadow: i === itemIndex ? "0 0 8px rgba(255,255,255,0.4)" : "none",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Header */}
-        <div style={{ position: "absolute", top: 26, left: 14, right: 14, display: "flex", alignItems: "center", gap: 10, zIndex: 8 }}>
-          <Avatar initials={group.user.initials} size={32} imgUrl={group.user.image || null} showOnline={!isOwn} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: C.white, textShadow: "0 1px 4px rgba(0,0,0,0.5)", letterSpacing: "-0.005em" }}>
-              {isOwn ? "Votre story" : group.user.name}
-            </div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
-              <Clock size={9} style={{ opacity: 0.7 }} /> {timeAgo(item.createdAt)}
-            </div>
-          </div>
-
-          {/* Pause / lecture — disponible pour tous les types de story */}
-          <button
-            onClick={() => setManualPaused((p) => !p)}
-            aria-label={manualPaused ? "Reprendre la story" : "Mettre la story en pause"}
-            className="story-icon-btn"
-            style={{ ...iconBtnStyle, ...glassPanel, color: C.white }} data-no-pause
-          >
-            {manualPaused ? <Play size={14} /> : <Pause size={14} />}
-          </button>
-
-          {isVideo && (
-            <button
-              onClick={() => setMuted((m) => !m)}
-              aria-label={muted ? "Activer le son" : "Couper le son"}
-              className="story-icon-btn"
-              style={{ ...iconBtnStyle, ...glassPanel, color: C.white }} data-no-pause
-            >
-              {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-            </button>
-          )}
-
-          {/* Reactions badge */}
-          {Object.keys(itemReactions).length > 0 && <ReactionBadge reactions={itemReactions} />}
-
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowMenu((m) => !m)} className="story-icon-btn"
-              style={{ ...iconBtnStyle, ...glassPanel, color: C.white }} data-no-pause
-            >
-              <MoreHorizontal size={15} />
-            </button>
-            {showMenu && (
-              <div className="story-menu-pop" style={{
-                position: "absolute", top: 42, right: 0, background: C.white, borderRadius: 16,
-                boxShadow: shadow.lg, overflow: "hidden", width: 210, zIndex: 20,
-                border: `1px solid ${C.lineSoft}`,
-              }}>
-                <div style={{ padding: "6px 0" }}>
-                  {!isOwn && (
-                    <>
-                      <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
-                        <Bookmark size={14} /> Enregistrer
-                      </button>
-                      <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
-                        <Share2 size={14} /> Partager
-                      </button>
-                      <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
-                        <Copy size={14} /> Copier le lien
-                      </button>
-                      <div style={{ height: 1, background: C.lineSoft, margin: "4px 12px" }} />
-                    </>
-                  )}
-                  {isOwn ? (
-                    <button onClick={() => { onDelete?.(group.id, item.id); setShowMenu(false); }} className="story-menu-item" style={{ ...menuItemStyle, color: C.danger }}>
-                      <Trash2 size={14} /> Supprimer la story
-                    </button>
-                  ) : (
-                    <>
-                      <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
-                        <Flag size={14} /> Signaler
-                      </button>
-                      <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
-                        <UserMinus size={14} /> Ne plus suivre
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={onClose} className="story-icon-btn"
-            style={{ ...iconBtnStyle, ...glassPanel, color: C.white }} data-no-pause
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Touch zones prev/next */}
-        <button
-          aria-label="Story precedente" onClick={goPrev}
-          style={{ position: "absolute", left: 0, top: 65, bottom: 75, width: "32%", background: "transparent", border: "none", cursor: "pointer", zIndex: 5 }}
-        />
-        <button
-          aria-label="Story suivante" onClick={() => goNext(1)}
-          style={{ position: "absolute", right: 0, top: 65, bottom: 75, width: "32%", background: "transparent", border: "none", cursor: "pointer", zIndex: 5 }}
-        />
-        {itemIndex > 0 || groupIndex > 0 ? (
+        {/* Fleche precedente — HORS de la carte (desktop) */}
+        {(itemIndex > 0 || groupIndex > 0) && (
           <button
             type="button"
             aria-label="Story precedente"
             onClick={goPrev}
+            className="story-fb-arrow"
             data-no-pause
-            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 38, height: 38, border: "1px solid rgba(255,255,255,0.28)", borderRadius: "50%", background: "rgba(0,0,0,0.42)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 101, boxShadow: shadow.sm }}
+            style={{
+              width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+              background: "#242526", color: "#FFFFFF", border: "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
+            }}
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={24} strokeWidth={2.2} />
           </button>
-        ) : null}
-        {itemIndex < group.items.length - 1 || groupIndex < groups.length - 1 ? (
-          <button
-            type="button"
-            aria-label="Story suivante"
-            onClick={() => goNext(1)}
-            data-no-pause
-            style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 38, height: 38, border: "1px solid rgba(255,255,255,0.28)", borderRadius: "50%", background: "rgba(0,0,0,0.42)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 101, boxShadow: shadow.sm }}
-          >
-            <ChevronRight size={20} />
-          </button>
-        ) : null}
+        )}
 
-        {/* Action bar (bottom) */}
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, minHeight: 88, padding: "18px 14px max(20px, env(safe-area-inset-bottom))", display: "flex", flexDirection: "column", gap: 10, zIndex: 100, pointerEvents: "auto", background: "linear-gradient(0deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24) 72%, transparent)" }} data-no-pause>
-          {isOwn ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}>
-              <button
-                onClick={() => setShowViewers((v) => !v)} className="story-icon-btn"
-                style={{
-                  display: "flex", alignItems: "center", gap: 7, ...glassPanelStrong, borderRadius: 999,
-                  padding: "10px 16px", color: C.white, cursor: "pointer", alignSelf: "flex-start", width: "auto", height: "auto",
-                }}
-                data-no-pause
-              >
-                <Eye size={14} />
-                <AnimatedNumber value={item.views?.length || 0} />
-                <span style={{ fontSize: 12.5, fontWeight: 700 }}>vue{(item.views?.length || 0) > 1 ? "s" : ""}</span>
-              </button>
-              <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 80, ...glassPanelStrong, borderRadius: 999, padding: "10px 14px", gap: 8 }}>
-                <Reply size={14} style={{ color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
-                <input
-                  ref={replyInputRef}
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") sendReply(); }}
-                  placeholder="Repondre a votre story..."
-                  data-no-pause
-                  style={{ flex: 1, minWidth: 0, width: 0, background: "transparent", border: "none", outline: "none", color: C.white, fontSize: 13, fontFamily: "'Inter', sans-serif" }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={sendReply}
-                disabled={!reply.trim()}
-                className="story-send-btn"
-                style={{ ...sendBtnStyle, opacity: reply.trim() ? 1 : 0.45 }}
-                data-no-pause
-                aria-label="Envoyer la reponse"
-              >
-                <Send size={15} />
-              </button>
-              {/* Reaction summary for own story */}
-              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-                {Object.keys(itemReactions).length > 0 && <ReactionBadge reactions={itemReactions} />}
-                <span style={{ color: "rgba(255,255,255,0.72)", fontSize: 12 }}>Votre story</span>
+        {/* Carte verticale 9:16 a coins arrondis — le canvas de la story */}
+        <div
+          className="story-viewer-card"
+          style={{
+            position: "relative", height: "min(92vh, 780px)", aspectRatio: "9 / 16",
+            maxWidth: "100%", borderRadius: 8, overflow: "hidden", boxSizing: "border-box",
+            background: item.type === "text" ? item.bg : "#000000",
+            isolation: "isolate", boxShadow: "0 12px 36px rgba(0,0,0,0.5)",
+            transform: slideTransform,
+            transition: isAnimating ? "transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease" : "none",
+            opacity: isAnimating ? 0.85 : 1,
+          }}
+          onMouseDown={(e) => {
+            if (e.target.closest('input, textarea, button, [data-no-pause]')) return;
+            setHoldPaused(true);
+          }}
+          onMouseUp={() => setHoldPaused(false)}
+          onMouseLeave={() => setHoldPaused(false)}
+          onTouchStart={(e) => {
+            if (e.target.closest('input, textarea, button, [data-no-pause]')) return;
+            setHoldPaused(true);
+          }}
+          onTouchEnd={() => setHoldPaused(false)}
+          onDoubleClick={handleDoubleClick}
+        >
+          {/* Media */}
+          {item.type === "image" && (
+            <img src={item.mediaUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000", display: "block" }} />
+          )}
+          {item.type === "video" && (
+            <video
+              ref={videoRef} src={item.mediaUrl} muted={muted} autoPlay playsInline
+              style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000", display: "block" }}
+            />
+          )}
+          {item.type === "text" && (
+            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 36, boxSizing: "border-box" }}>
+              <span style={{
+                color: "#FFFFFF", fontFamily: "'Sora', sans-serif", fontWeight: 700,
+                fontSize: item.fontSize || 24, textAlign: "center", lineHeight: 1.4,
+                textShadow: "0 2px 16px rgba(0,0,0,0.35)", maxWidth: "85%",
+              }}>
+                {item.text}
+              </span>
+            </div>
+          )}
+
+          {/* Legende (story image / video) */}
+          {(item.type === "image" || item.type === "video") && item.text && (
+            <div style={{ position: "absolute", left: 0, right: 0, bottom: 96, textAlign: "center", padding: "0 20px", zIndex: 6 }}>
+              <span style={{
+                background: "rgba(0,0,0,0.45)", color: "#FFFFFF", fontSize: 13.5, fontWeight: 500,
+                padding: "7px 14px", borderRadius: 8, display: "inline-block", lineHeight: 1.4,
+                backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+              }}>
+                {item.text}
+              </span>
+            </div>
+          )}
+
+          {/* Coeurs flottants (double-clic) */}
+          {hearts.map((h) => (
+            <Heart
+              key={h.id} size={36}
+              className="story-heart-burst"
+              style={{ position: "absolute", left: h.x - 18, top: h.y - 18, color: "#FF5C7A", fill: "#FF5C7A", pointerEvents: "none", zIndex: 12 }}
+            />
+          ))}
+
+          {/* Indicateur de pause — deux barres, comme Facebook */}
+          {paused && (
+            <div className="story-pause-indicator" style={{
+              position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+              width: 52, height: 52, borderRadius: "50%",
+              background: "rgba(0,0,0,0.5)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              pointerEvents: "none", zIndex: 10,
+            }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ width: 5, height: 18, borderRadius: 3, background: "rgba(255,255,255,0.92)" }} />
+                <div style={{ width: 5, height: 18, borderRadius: 3, background: "rgba(255,255,255,0.92)" }} />
               </div>
             </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}>
-              <div style={{ display: "flex", alignItems: "center", flex: 1, ...glassPanelStrong, borderRadius: 999, padding: "10px 16px", gap: 8 }}>
-                <Reply size={14} style={{ color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
-                <input
-                  ref={replyInputRef}
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") sendReply(); }}
-                  onFocus={() => setShowReactionPicker(false)}
-                  placeholder={`Repondre a ${group.user.name.split(" ")[0]}...`}
-                  data-no-pause
+          )}
+
+          {/* Voiles de lisibilite haut / bas */}
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 110, background: "linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0))", pointerEvents: "none", zIndex: 2 }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 130, background: "linear-gradient(0deg, rgba(0,0,0,0.5), rgba(0,0,0,0))", pointerEvents: "none", zIndex: 1 }} />
+
+          {/* Barres de progression — fines, blanches, arrondies */}
+          <div style={{ position: "absolute", top: 10, left: 12, right: 12, display: "flex", gap: 4, zIndex: 8 }}>
+            {group.items.map((it, i) => (
+              <div
+                key={it.id}
+                style={{ flex: 1, height: 3, borderRadius: 999, background: "rgba(255,255,255,0.35)", overflow: "hidden" }}
+              >
+                <div
                   style={{
-                    flex: 1, background: "transparent", border: "none", outline: "none",
-                    color: C.white, fontSize: 13, fontFamily: "'Inter', sans-serif",
+                    height: "100%", borderRadius: 999, background: "#FFFFFF",
+                    width: i < itemIndex ? "100%" : i === itemIndex ? `${progress}%` : "0%",
+                    transition: i === itemIndex && !isVideo ? "none" : "width 0.15s linear",
                   }}
                 />
               </div>
+            ))}
+          </div>
 
-              {/* Reaction button - opens ReactionPicker */}
-              <div style={{ position: "relative" }} ref={reactionBtnRef} onMouseEnter={openReactionPicker} onMouseLeave={closeReactionPicker}>
-                <button
-                  onClick={handleReactionClick}
-                  onPointerDown={handleReactionPointerDown}
-                  onPointerUp={handleReactionPointerUp}
-                  onPointerLeave={handleReactionPointerUp}
-                  className="story-react-btn-main"
-                  style={{
-                    width: 40, height: 40, borderRadius: "50%",
-                    border: "1px solid rgba(255,255,255,0.20)",
-                    background: showReactionPicker ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.10)",
-                    backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-                    color: C.white, display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", flexShrink: 0, transition: "all 0.2s ease",
-                  }}
-                  data-no-pause
-                  aria-label="Reagir"
-                >
-                  <SmilePlus size={18} />
-                </button>
-
-                {/* ReactionPicker */}
-                {showReactionPicker && (
-                  <div
-                    className="story-reaction-pop"
-                    onMouseEnter={openReactionPicker}
-                    onMouseLeave={closeReactionPicker}
-                    style={{
-                      position: "absolute", bottom: 50, right: -10,
-                      transformOrigin: "bottom right",
-                    }}
-                    data-no-pause
-                  >
-                    <ReactionPicker
-                      reactions={STORY_REACTIONS}
-                      onSelect={handleReactionSelect}
-                      size={44}
-                      imgSize={30}
-                    />
-                  </div>
-                )}
+          {/* Header sobre : avatar + nom + heure, icones plates blanches */}
+          <div style={{ position: "absolute", top: 22, left: 12, right: 12, display: "flex", alignItems: "center", gap: 10, zIndex: 8 }}>
+            <Avatar initials={group.user.initials} size={32} imgUrl={group.user.image || null} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", letterSpacing: "-0.01em",
+                textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>
+                {isOwn ? "Votre story" : group.user.name}
               </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", fontWeight: 400, marginTop: 1 }}>
+                {timeAgo(item.createdAt)}
+              </div>
+            </div>
 
+            {/* Pause / lecture — disponible pour tous les types de story */}
+            <button
+              onClick={() => setManualPaused((p) => !p)}
+              aria-label={manualPaused ? "Reprendre la story" : "Mettre la story en pause"}
+              className="story-fb-icon-btn"
+              style={fbIconBtnStyle}
+              data-no-pause
+            >
+              {manualPaused ? <Play size={16} /> : <Pause size={16} />}
+            </button>
+
+            {isVideo && (
               <button
-                onClick={sendReply} disabled={!reply.trim()}
-                className="story-send-btn"
-                style={{ ...sendBtnStyle, opacity: reply.trim() ? 1 : 0.45 }}
+                onClick={() => setMuted((m) => !m)}
+                aria-label={muted ? "Activer le son" : "Couper le son"}
+                className="story-fb-icon-btn"
+                style={fbIconBtnStyle}
                 data-no-pause
               >
-                <Send size={15} />
+                {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
               </button>
+            )}
+
+            {/* Badge de reactions */}
+            {Object.keys(itemReactions).length > 0 && <ReactionBadge reactions={itemReactions} />}
+
+            {/* Menu contextuel — dropdown blanc plat */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowMenu((m) => !m)}
+                aria-label="Options de la story"
+                className="story-fb-icon-btn"
+                style={fbIconBtnStyle}
+                data-no-pause
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              {showMenu && (
+                <div className="story-menu-pop" style={{
+                  position: "absolute", top: 40, right: 0, background: "#FFFFFF", borderRadius: 8,
+                  boxShadow: "0 12px 28px rgba(0,0,0,0.2), 0 4px 10px rgba(0,0,0,0.1)",
+                  overflow: "hidden", width: 230, zIndex: 20,
+                }}>
+                  <div style={{ padding: "6px 0" }}>
+                    {!isOwn && (
+                      <>
+                        <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
+                          <Bookmark size={16} color={FB.mutedFb} /> Enregistrer
+                        </button>
+                        <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
+                          <Share2 size={16} color={FB.mutedFb} /> Partager
+                        </button>
+                        <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
+                          <Copy size={16} color={FB.mutedFb} /> Copier le lien
+                        </button>
+                        <div style={{ height: 1, background: FB.line, margin: "5px 12px" }} />
+                      </>
+                    )}
+                    {isOwn ? (
+                      <button onClick={() => { onDelete?.(group.id, item.id); setShowMenu(false); }} className="story-menu-item" style={{ ...menuItemStyle, color: FB.danger }}>
+                        <Trash2 size={16} /> Supprimer la story
+                      </button>
+                    ) : (
+                      <>
+                        <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
+                          <Flag size={16} color={FB.mutedFb} /> Signaler
+                        </button>
+                        <button className="story-menu-item" style={menuItemStyle} onClick={() => setShowMenu(false)}>
+                          <UserMinus size={16} color={FB.mutedFb} /> Ne plus suivre
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onClose}
+              aria-label="Fermer"
+              className="story-fb-icon-btn"
+              style={fbIconBtnStyle}
+              data-no-pause
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Zones tactiles precedente / suivante (tap + swipe) */}
+          <button
+            aria-label="Story precedente" onClick={goPrev}
+            style={{ position: "absolute", left: 0, top: 64, bottom: 72, width: "32%", background: "transparent", border: "none", cursor: "pointer", zIndex: 5 }}
+          />
+          <button
+            aria-label="Story suivante" onClick={() => goNext(1)}
+            style={{ position: "absolute", right: 0, top: 64, bottom: 72, width: "32%", background: "transparent", border: "none", cursor: "pointer", zIndex: 5 }}
+          />
+
+          {/* Barre d'action — pill de reponse + bouton reaction + envoi bleu Facebook */}
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "14px 12px max(16px, env(safe-area-inset-bottom))", display: "flex", alignItems: "center", gap: 8, zIndex: 100, pointerEvents: "auto" }} data-no-pause>
+            {isOwn ? (
+              <>
+                <button
+                  onClick={() => setShowViewers((v) => !v)}
+                  className="story-fb-chip"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 7, height: 40, padding: "0 16px",
+                    borderRadius: 999, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.2)",
+                    color: "#FFFFFF", cursor: "pointer", flexShrink: 0,
+                    backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                    fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                  }}
+                  data-no-pause
+                >
+                  <Eye size={15} />
+                  <AnimatedNumber value={item.views?.length || 0} />
+                  <span>vue{(item.views?.length || 0) > 1 ? "s" : ""}</span>
+                </button>
+                <div style={fbPillStyle}>
+                  <input
+                    ref={replyInputRef}
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") sendReply(); }}
+                    placeholder="Repondre a votre story..."
+                    className="story-fb-input"
+                    data-no-pause
+                    style={fbInputStyle}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={sendReply}
+                  disabled={!reply.trim()}
+                  className="story-send-btn"
+                  style={{ ...sendBtnStyle, opacity: reply.trim() ? 1 : 0.45 }}
+                  data-no-pause
+                  aria-label="Envoyer la reponse"
+                >
+                  <Send size={16} />
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={fbPillStyle}>
+                  <input
+                    ref={replyInputRef}
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") sendReply(); }}
+                    onFocus={() => setShowReactionPicker(false)}
+                    placeholder={`Repondre a ${group.user.name.split(" ")[0]}...`}
+                    className="story-fb-input"
+                    data-no-pause
+                    style={fbInputStyle}
+                  />
+                </div>
+
+                {/* Bouton reaction — ouvre le ReactionPicker (clic / appui long / survol) */}
+                <div style={{ position: "relative", flexShrink: 0 }} ref={reactionBtnRef} onMouseEnter={openReactionPicker} onMouseLeave={closeReactionPicker}>
+                  <button
+                    onClick={handleReactionClick}
+                    onPointerDown={handleReactionPointerDown}
+                    onPointerUp={handleReactionPointerUp}
+                    onPointerLeave={handleReactionPointerUp}
+                    className="story-react-btn-main"
+                    style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: showReactionPicker ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.45)",
+                      backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                      color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", flexShrink: 0, transition: "all 0.2s ease",
+                    }}
+                    data-no-pause
+                    aria-label="Reagir"
+                  >
+                    <SmilePlus size={18} />
+                  </button>
+
+                </div>
+
+                <button
+                  onClick={sendReply} disabled={!reply.trim()}
+                  className="story-send-btn"
+                  style={{ ...sendBtnStyle, opacity: reply.trim() ? 1 : 0.45 }}
+                  data-no-pause
+                  aria-label="Envoyer la reponse"
+                >
+                  <Send size={16} />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Panneau des spectateurs (story propre) — bottom sheet blanc */}
+          {isOwn && showViewers && (
+            <div
+              className="story-sheet"
+              style={{
+                position: "absolute", left: 0, right: 0, bottom: 0, background: "#FFFFFF",
+                borderTopLeftRadius: 12, borderTopRightRadius: 12,
+                maxHeight: "52%", overflowY: "auto", padding: "14px 16px 20px",
+                boxShadow: "0 -8px 24px rgba(0,0,0,0.25)", zIndex: 15,
+              }}
+              data-no-pause
+            >
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: FB.divider, margin: "0 auto 12px" }} />
+              <div style={{ fontSize: 15, fontWeight: 700, color: FB.ink, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <Eye size={16} color={FB.mutedFb} />
+                Vu par <AnimatedNumber value={item.views?.length || 0} /> personne{(item.views?.length || 0) > 1 ? "s" : ""}
+              </div>
+              {(item.views?.length || 0) === 0 ? (
+                <div style={{
+                  fontSize: 13.5, color: FB.mutedFb, padding: "24px 0", textAlign: "center",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                }}>
+                  <Eye size={28} style={{ opacity: 0.35 }} />
+                  <span>Personne n'a encore vu cette story.</span>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {item.views.map((v) => (
+                    <div key={v.id} style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
+                      borderRadius: 8, transition: "background 0.15s ease",
+                    }} className="story-viewer-item">
+                      <Avatar initials={v.initials} size={40} imgUrl={v.image || null} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: FB.ink }}>{v.name}</span>
+                        {v.time && <div style={{ fontSize: 12, color: FB.mutedFb, marginTop: 1 }}>{v.time}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Viewers panel (owner) */}
-        {isOwn && showViewers && (
-          <div
-            className="story-sheet"
-            style={{
-              position: "absolute", left: 0, right: 0, bottom: 0, background: C.white,
-              borderTopLeftRadius: 26, borderTopRightRadius: 26,
-              maxHeight: "48%", overflowY: "auto", padding: "14px 20px 22px",
-              boxShadow: "0 -20px 44px -14px rgba(0,0,0,0.4)",
-              borderTop: `1px solid ${C.lineSoft}`, zIndex: 15,
-            }}
-            data-no-pause
-          >
-            <div style={{ width: 36, height: 4, borderRadius: 999, background: C.line, margin: "0 auto 14px" }} />
-            <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 14, letterSpacing: "-0.005em", display: "flex", alignItems: "center", gap: 8 }}>
-              <Eye size={15} color={C.muted} />
-              Vu par <AnimatedNumber value={item.views?.length || 0} /> personne{(item.views?.length || 0) > 1 ? "s" : ""}
-            </div>
-            {(item.views?.length || 0) === 0 ? (
-              <div style={{
-                fontSize: 13, color: C.mutedLight, padding: "20px 0", textAlign: "center",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-              }}>
-                <Eye size={28} style={{ opacity: 0.3 }} />
-                <span>Personne n'a encore vu cette story.</span>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {item.views.map((v) => (
-                  <div key={v.id} style={{
-                    display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
-                    borderRadius: 14, transition: "background 0.15s ease",
-                  }} className="story-viewer-item">
-                    <Avatar initials={v.initials} size={36} imgUrl={v.image || null} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink }}>{v.name}</span>
-                      {v.time && <div style={{ fontSize: 11, color: C.mutedLight, marginTop: 1 }}>{v.time}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Fleche suivante — HORS de la carte (desktop) */}
+        <button
+          type="button"
+          aria-label="Story suivante"
+          onClick={() => goNext(1)}
+          className="story-fb-arrow"
+          data-no-pause
+          style={{
+            width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+            background: "#242526", color: "#FFFFFF", border: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
+          }}
+        >
+          <ChevronRight size={24} strokeWidth={2.2} />
+        </button>
       </div>
     </div>
   );
 
   if (typeof document === "undefined") return null;
-  return createPortal(viewerContent, document.body);
+  return <>{createPortal(viewerContent, document.body)}{reactionPickerPortal}</>;
 }
 
+/* ---- Styles "Facebook" du viewer ---- */
 const menuItemStyle = {
-  display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 15px",
-  border: "none", background: "transparent", cursor: "pointer", fontSize: 13, fontWeight: 600,
-  color: C.ink, textAlign: "left", transition: "background 0.12s ease",
+  display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "11px 14px",
+  border: "none", background: "transparent", cursor: "pointer", fontSize: 14, fontWeight: 500,
+  color: FB.ink, textAlign: "left", transition: "background 0.12s ease", fontFamily: "inherit",
+};
+const fbIconBtnStyle = {
+  width: 36, height: 36, borderRadius: "50%", border: "none", background: "transparent",
+  color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center",
+  cursor: "pointer", flexShrink: 0,
+};
+const fbPillStyle = {
+  display: "flex", alignItems: "center", flex: 1, minWidth: 0, height: 40, padding: "0 16px",
+  borderRadius: 999, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.22)",
+  backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxSizing: "border-box",
+};
+const fbInputStyle = {
+  flex: 1, minWidth: 0, width: "100%", background: "transparent", border: "none", outline: "none",
+  color: "#FFFFFF", fontSize: 13.5, fontFamily: "'Inter', sans-serif", fontWeight: 400,
 };
 const sendBtnStyle = {
-  width: 40, height: 40, borderRadius: "50%", border: "none", background: goldGrad, color: C.navy900,
+  width: 40, height: 40, borderRadius: "50%", border: "none", background: FB.blue, color: "#FFFFFF",
   display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
-  boxShadow: shadow.gold,
+  boxShadow: "0 2px 8px rgba(24,119,242,0.45)",
 };
 
 /* ------------------------------------------------------------------ *
@@ -1761,7 +1807,7 @@ export default function Story({
 
         /* Menu */
         .story-menu-item { transition: background 0.12s ease; }
-        .story-menu-item:hover { background: ${C.navy50}; }
+        .story-menu-item:hover { background: #F0F2F5; }
         .story-menu-pop { animation: story-menu-in 0.16s cubic-bezier(0.2,0.8,0.2,1); transform-origin: top right; }
         @keyframes story-menu-in { from { opacity: 0; transform: scale(0.92) translateY(-6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
@@ -1785,7 +1831,7 @@ export default function Story({
 
         /* Viewer item hover */
         .story-viewer-item { transition: background 0.15s ease; }
-        .story-viewer-item:hover { background: ${C.navy50}; }
+        .story-viewer-item:hover { background: #F0F2F5; }
 
         /* Dropzone */
         .story-dropzone { transition: all 0.2s ease; }
@@ -1831,6 +1877,30 @@ export default function Story({
         .story-modal-card { animation: story-scale-in 0.26s cubic-bezier(0.2,0.8,0.2,1); }
         .story-sheet { animation: story-sheet-in 0.24s cubic-bezier(0.2,0.8,0.2,1); }
         .story-viewer-backdrop { animation: story-fade-in 0.2s ease; }
+
+        /* Viewer facon Facebook : fleches desktop, icones plates, carte plein ecran mobile */
+        .story-fb-arrow { transition: background 0.15s ease, transform 0.12s ease; }
+        .story-fb-arrow:hover { background: #3A3B3C !important; transform: scale(1.06); }
+        .story-fb-arrow:active { transform: scale(0.94); }
+        .story-fb-icon-btn { transition: background 0.15s ease, transform 0.12s ease; }
+        .story-fb-icon-btn:hover { background: rgba(255,255,255,0.12) !important; }
+        .story-fb-icon-btn:active { transform: scale(0.92); }
+        .story-fb-chip { transition: background 0.15s ease; }
+        .story-fb-chip:hover { background: rgba(0,0,0,0.62) !important; }
+        .story-fb-input::placeholder { color: rgba(255,255,255,0.78); }
+        @media (max-width: 700px) {
+          .story-fb-arrow { display: none !important; }
+        }
+        @media (max-width: 560px) {
+          .story-viewer-stage { gap: 0 !important; }
+          .story-viewer-card {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            aspect-ratio: auto !important;
+            border-radius: 0 !important;
+          }
+        }
         @keyframes story-fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes story-scale-in { from { opacity: 0; transform: scale(0.94) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes story-sheet-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
