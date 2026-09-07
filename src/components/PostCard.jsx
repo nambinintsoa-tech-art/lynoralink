@@ -50,7 +50,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ThumbsUp, MessageCircle, Share2, Bookmark, MoreHorizontal, UserPlus,
-  Globe, Lock, Users, BookOpen, PlayCircle, Image as ImageIcon,
+  Globe, Lock, Users, BookOpen, PlayCircle, Image as ImageIcon, Play, VolumeX,
   Send, ExternalLink, X, Flag, EyeOff, Link2, Trash2, ChevronDown,
   ChevronUp, Clock, Tag, ArrowRight, CornerUpLeft, Pencil, CalendarDays,
   MapPin, Video, Download, FileText, Search, Check, Copy, Mail, Megaphone, Briefcase,
@@ -597,6 +597,209 @@ function VisibilityIcon({ v = "Public" }) {
 
 /* ── Galerie multi-médias ────────────────────────────────────────────── */
 
+
+/* ── Vignette vidéo façon Facebook ─────────────────────────────────────
+ * Présentation purement visuelle — aucune logique route/API modifiée :
+ *  • poster = première image du flux (preload="metadata", muet, sans contrôles)
+ *  • bouton lecture : cercle + triangle (blanc/marine en grand, sombre en vignette)
+ *  • badge durée en bas à droite (lu localement via onLoadedMetadata)
+ *  • clic : ouvre la visionneuse (onActivate = onOpenPost) comme Facebook ;
+ *    sans visionneuse, lecture en place avec le lecteur natif
+ *  • aperçu muet au survol (desktop, vidéo unique du fil)
+ * ──────────────────────────────────────────────────────────────────── */
+
+function formatVideoDuration(seconds) {
+  if (seconds == null || !isFinite(seconds) || seconds <= 0) return null;
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function VideoTile({
+  src,
+  label,
+  size = "md",
+  interactive = true,
+  hoverPreview = false,
+  objectFit = "cover",
+  maxHeight,
+  onActivate = null,
+  style = {},
+}) {
+  const videoRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [duration, setDuration] = useState(null);
+
+  const canOpen = interactive && typeof onActivate === "function";
+  const durationLabel = formatVideoDuration(duration);
+  const scale = size === "lg"
+    ? { bubble: 56, glyph: 26, badgeFont: 11.5, badgePad: "2px 7px", veil: true }
+    : size === "sm"
+      ? { bubble: 22, glyph: 10, badgeFont: 9.5, badgePad: "1px 5px", veil: false }
+      : { bubble: 40, glyph: 18, badgeFont: 11, badgePad: "2px 6px", veil: true };
+
+  /* Sans URL : repli dégradé marine + icône or (identique à la galerie) */
+  if (!src) {
+    return (
+      <div
+        style={{
+          background: navyGrad, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 8,
+          color: "rgba(255,255,255,0.9)", width: "100%", height: "100%", ...style,
+        }}
+      >
+        <PlayCircle size={size === "lg" ? 40 : 28} color={C.gold400} />
+        {label && (
+          <span style={{ fontSize: 12.5, fontWeight: 600, padding: "0 20px", textAlign: "center" }}>
+            {label}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  /* Repli sans visionneuse : lecteur natif en place (comme un commentaire Facebook) */
+  if (playing) {
+    return (
+      <video
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        aria-label={label || "Vidéo"}
+        style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "#000", ...style }}
+      />
+    );
+  }
+
+  const startPreview = () => {
+    const node = videoRef.current;
+    if (!node) return;
+    node.muted = true;
+    node.play().then(() => setPreviewing(true)).catch(() => setPreviewing(false));
+  };
+  const stopPreview = () => {
+    const node = videoRef.current;
+    try {
+      node?.pause();
+      /* Retour à la vignette d'origine (comportement Facebook) */
+      if (node && node.readyState >= 1) node.currentTime = 0;
+    } catch { /* lecteur absent : ignoré */ }
+    setPreviewing(false);
+  };
+  const handleActivate = (e) => {
+    e?.stopPropagation?.();
+    if (canOpen) {
+      stopPreview();
+      onActivate();
+      return;
+    }
+    if (interactive) setPlaying(true);
+  };
+
+  return (
+    <div
+      className="pc-video-stage"
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? label || "Lire la vidéo" : undefined}
+      onClick={interactive ? handleActivate : undefined}
+      onKeyDown={interactive ? (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleActivate(e); }
+      } : undefined}
+      onMouseEnter={hoverPreview && interactive ? startPreview : undefined}
+      onMouseLeave={hoverPreview && interactive ? stopPreview : undefined}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        background: "#000",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: interactive ? "pointer" : "default",
+        ...style,
+      }}
+    >
+      <video
+        ref={videoRef}
+        className="pc-video-frame"
+        src={src}
+        preload="metadata"
+        muted
+        playsInline
+        aria-hidden="true"
+        tabIndex={-1}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
+        style={{
+          width: "100%", height: "100%", maxWidth: "100%",
+          maxHeight: maxHeight ?? undefined,
+          objectFit, display: "block", pointerEvents: "none",
+        }}
+      />
+      {/* Voile léger pour la lisibilité des surcouches */}
+      {scale.veil && (
+        <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.12)", pointerEvents: "none" }} />
+      )}
+      {/* Badge « muet » pendant l'aperçu au survol (comme Facebook) */}
+      {previewing && (
+        <div
+          className="pc-video-muted"
+          aria-hidden="true"
+          style={{
+            position: "absolute", top: 10, left: 10,
+            display: "flex", alignItems: "center", gap: 4,
+            background: "rgba(0,0,0,0.65)", color: "#fff",
+            padding: "3px 8px", borderRadius: 999,
+            fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
+            pointerEvents: "none",
+          }}
+        >
+          <VolumeX size={12} /> Muet
+        </div>
+      )}
+      {/* Bouton lecture : cercle + triangle (blanc/marine en grand, sombre sinon) */}
+      {!previewing && (
+        <span
+          className="pc-video-play"
+          aria-hidden="true"
+          style={{
+            position: "absolute", top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: scale.bubble, height: scale.bubble, borderRadius: "50%",
+            background: size === "lg" ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.6)",
+            color: size === "lg" ? C.navy800 : "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: size === "lg" ? "0 2px 12px rgba(0,0,0,0.35)" : "none",
+            pointerEvents: "none",
+          }}
+        >
+          <Play size={scale.glyph} fill="currentColor" strokeWidth={0} style={{ marginLeft: size === "lg" ? 3 : 2 }} />
+        </span>
+      )}
+      {/* Badge durée (bas droite, comme Facebook) */}
+      {durationLabel && (
+        <span
+          className="pc-video-duration"
+          aria-hidden="true"
+          style={{
+            position: "absolute", right: 8, bottom: 6,
+            background: "rgba(0,0,0,0.72)", color: "#fff",
+            padding: scale.badgePad, borderRadius: 6,
+            fontSize: scale.badgeFont, fontWeight: 700, letterSpacing: 0.3,
+            fontFamily: "'Sora', sans-serif", pointerEvents: "none",
+          }}
+        >
+          {durationLabel}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function MediaGallery({ items, onOpenPost }) {
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const count = items.length;
@@ -616,7 +819,7 @@ function MediaGallery({ items, onOpenPost }) {
   if (count === 0) return null;
 
   /* Rendu d'un seul item */
-  const renderItem = (item, index, style = {}) => {
+  const renderItem = (item, index, style = {}, opts = {}) => {
     if (!item.url) {
       return (
         <div
@@ -640,12 +843,19 @@ function MediaGallery({ items, onOpenPost }) {
     }
 
     if (item.type === "video") {
+      /* Vidéo façon Facebook : vignette (première image) + bouton lecture.
+         Clic = ouvrir la visionneuse via onOpenPost (comportement Facebook) ;
+         sans visionneuse, lecture en place. Aucune logique route/API modifiée. */
       return (
-        <video
+        <VideoTile
           key={index}
           src={item.url}
-          controls
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "#000", ...style }}
+          label={item.label}
+          size={opts.size || (style.objectFit ? "lg" : "md")}
+          hoverPreview={Boolean(opts.hoverPreview)}
+          objectFit={style.objectFit || "cover"}
+          maxHeight={style.maxHeight}
+          onActivate={typeof onOpenPost === "function" ? () => onOpenPost() : null}
         />
       );
     }
@@ -702,14 +912,16 @@ function MediaGallery({ items, onOpenPost }) {
           maxWidth: "100%",
           maxHeight: SINGLE_MEDIA_MAX_HEIGHT,
           objectFit: "contain",
-        } : { minHeight: SINGLE_MEDIA_MIN_HEIGHT })}
+        } : { minHeight: SINGLE_MEDIA_MIN_HEIGHT }, {
+          hoverPreview: single?.type === "video",
+        })}
       </div>
     );
   } else if (count === 2) {
     galleryContent = (
       <div className="pc-media-gallery pc-media-gallery-multiple" style={{ ...wrapStyle, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, minHeight: 220 }}>
         {items.map((item, i) => (
-          <div key={i} className="pc-media-tile" style={{ overflow: "hidden", minHeight: 220, background: FB.mediaBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div key={i} className="pc-media-tile" style={{ overflow: "hidden", minHeight: 220, background: item?.type === "video" ? "#000" : FB.mediaBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {renderItem(item, i)}
           </div>
         ))}
@@ -729,7 +941,7 @@ function MediaGallery({ items, onOpenPost }) {
               overflow: "hidden",
               position: "relative",
               minHeight: i === 0 ? 180 : 120,
-              background: FB.mediaBg,
+              background: item?.type === "video" ? "#000" : FB.mediaBg,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1408,10 +1620,12 @@ function CommentItem({ comment, currentUser, onToggleLike, onToggleCommentReacti
                 {media.map((m, idx) => (
                   <div key={idx} style={{ borderRadius: 6, overflow: "hidden", background: C.navy50 }}>
                     {m.type === "video" ? (
-                      <video
+                      /* Vidéo de commentaire façon Facebook : vignette + lecture en place */
+                      <VideoTile
                         src={m.url}
-                        style={{ width: "100%", height: "auto", maxHeight: 120, objectFit: "cover", display: "block" }}
-                        controls
+                        label={m.label}
+                        objectFit="cover"
+                        maxHeight={120}
                       />
                     ) : (
                       <img
@@ -1902,9 +2116,12 @@ function CommentSection({ post, currentUser, onAddComment, onReplyComment, onTog
               }}
             >
               {media.type === "video" ? (
-                <video
+                <VideoTile
                   src={media.url}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  label={media.label}
+                  size="sm"
+                  interactive={false}
+                  objectFit="cover"
                 />
               ) : (
                 <img
@@ -2980,6 +3197,32 @@ export default function PostCard({
         }
         .pc-sponsored-linkrow:hover {
           background: var(--app-bg) !important;
+        }
+        /* ── Vignettes vidéo façon Facebook (design seul) ── */
+        .pc-video-stage { -webkit-tap-highlight-color: transparent; }
+        .pc-video-stage:focus-visible { outline: 3px solid rgba(238,175,35,0.5); outline-offset: -3px; }
+        .pc-video-play { transition: transform 0.16s ease, box-shadow 0.16s ease; }
+        .pc-media-gallery-single:hover .pc-video-play,
+        .pc-media-tile:hover .pc-video-play {
+          transform: translate(-50%, -50%) scale(1.08) !important;
+          box-shadow: 0 2px 16px rgba(238,175,35,0.55) !important;
+        }
+        .pc-video-muted, .pc-video-duration { font-variant-numeric: tabular-nums; }
+        /* Contre la règle mobile « border-radius: 0 » de la galerie : le bouton
+           lecture reste un cercle, les badges gardent leurs arrondis. */
+        .pc-media-gallery .pc-video-play,
+        .pc-media-tile .pc-video-play { border-radius: 50% !important; }
+        .pc-media-gallery .pc-video-duration,
+        .pc-media-tile .pc-video-duration { border-radius: 6px !important; }
+        .pc-media-gallery .pc-video-muted,
+        .pc-media-tile .pc-video-muted { border-radius: 999px !important; }
+        @media (max-width: 900px) {
+          .pc-video-stage:focus-visible { outline: none; }
+          .pc-media-gallery-single:hover .pc-video-play,
+          .pc-media-tile:hover .pc-video-play {
+            transform: translate(-50%, -50%) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
+          }
         }
         @media (max-width: 900px) {
           /* Bouton "…" d'un commentaire : visible seulement au survol sur desktop

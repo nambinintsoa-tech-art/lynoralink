@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWhatsapp, faLinkedin, faFacebook, faXTwitter } from "@fortawesome/free-brands-svg-icons";
 import {
   X, Globe, Lock, Users2, MoreHorizontal, ThumbsUp, MessageCircle, Briefcase, MapPin, Megaphone,
-  Share2, Send, Smile, ChevronDown, ChevronUp, Search, Check, Mail, ExternalLink, PlayCircle, Image as ImageIcon,
+  Share2, Send, Smile, ChevronDown, ChevronUp, Search, Check, Mail, ExternalLink, PlayCircle, Image as ImageIcon, Play, VolumeX,
   ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Bookmark, Clock, Pencil, Trash2, Flag, Link2,
   BellOff, EyeOff, Copy, Camera, ListFilter, UserPlus, FileText, Download, Info,
 } from "lucide-react";
@@ -385,6 +385,204 @@ function ReactionIcon({ reaction = LIKE_REACTION, selected = false, size = 22 })
 const VIEWER_MEDIA_MIN_HEIGHT = 360;
 const VIEWER_MEDIA_MAX_HEIGHT = 560;
 
+
+/* ── Vidéo de la visionneuse façon Facebook ────────────────────────────
+ * Rendu purement visuel — aucune logique route/API modifiée :
+ *  • poster (première image via preload="metadata") + gros bouton lecture
+ *    blanc/marine tant que la lecture n'a pas démarré ;
+ *  • au clic, bascule en lecteur natif avec contrôles + autoplay ;
+ *  • badge durée en bas à droite ; badge « muet » pendant l'aperçu au survol.
+ * ──────────────────────────────────────────────────────────────────── */
+
+function formatVideoDuration(seconds) {
+  if (seconds == null || !isFinite(seconds) || seconds <= 0) return null;
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function ViewerVideo({ src, label, style = {} }) {
+  const videoRef = useRef(null);
+  const [started, setStarted] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [duration, setDuration] = useState(null);
+  const durationLabel = formatVideoDuration(duration);
+
+  /* Repli sans URL : dégradé marine + icône or (identique à la galerie) */
+  if (!src) {
+    return (
+      <div style={{ width: "100%", height: "100%", background: navyGrad, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "rgba(255,255,255,0.9)", padding: 16, textAlign: "center" }}>
+        <PlayCircle size={40} color={C.gold400} />
+        <span style={{ fontSize: 12.5, fontWeight: 600 }}>{label || "Vidéo"}</span>
+      </div>
+    );
+  }
+
+  /* Lecteur natif après démarrage (contrôles + autoplay, comme Facebook) */
+  if (started) {
+    return (
+      <video
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        aria-label={label || "Vidéo"}
+        style={{ width: "auto", maxWidth: "100%", height: "auto", maxHeight: `min(${VIEWER_MEDIA_MAX_HEIGHT}px, 60vh)`, objectFit: "contain", display: "block", background: "#000", margin: "0 auto", ...style }}
+      />
+    );
+  }
+
+  const startPreview = () => {
+    const node = videoRef.current;
+    if (!node) return;
+    node.muted = true;
+    node.play().then(() => setPreviewing(true)).catch(() => setPreviewing(false));
+  };
+  const stopPreview = () => {
+    const node = videoRef.current;
+    try {
+      node?.pause();
+      /* Retour à la vignette d'origine (comportement Facebook) */
+      if (node && node.readyState >= 1) node.currentTime = 0;
+    } catch { /* lecteur absent : ignoré */ }
+    setPreviewing(false);
+  };
+  const handleActivate = (e) => {
+    e?.stopPropagation?.();
+    stopPreview();
+    setStarted(true);
+  };
+
+  return (
+    <div
+      className="pv-video-stage"
+      role="button"
+      tabIndex={0}
+      aria-label={label || "Lire la vidéo"}
+      onClick={handleActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleActivate(e); }
+      }}
+      onMouseEnter={startPreview}
+      onMouseLeave={stopPreview}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: `min(${VIEWER_MEDIA_MAX_HEIGHT}px, 60vh)`,
+        maxHeight: `min(${VIEWER_MEDIA_MAX_HEIGHT}px, 60vh)`,
+        background: "#000",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        ...style,
+      }}
+    >
+      <video
+        ref={videoRef}
+        className="pv-video-frame"
+        src={src}
+        preload="metadata"
+        muted
+        playsInline
+        aria-hidden="true"
+        tabIndex={-1}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
+        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", pointerEvents: "none" }}
+      />
+      {/* Voile léger pour la lisibilité des surcouches */}
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.10)", pointerEvents: "none" }} />
+      {/* Badge « muet » pendant l'aperçu au survol */}
+      {previewing && (
+        <div
+          className="pv-video-muted"
+          aria-hidden="true"
+          style={{
+            position: "absolute", top: 12, left: 12,
+            display: "flex", alignItems: "center", gap: 4,
+            background: "rgba(0,0,0,0.65)", color: "#fff",
+            padding: "3px 8px", borderRadius: 999,
+            fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
+            pointerEvents: "none",
+          }}
+        >
+          <VolumeX size={12} /> Muet
+        </div>
+      )}
+      {/* Gros bouton lecture blanc/marine (identité Lynora) */}
+      {!previewing && (
+        <span
+          className="pv-video-play"
+          aria-hidden="true"
+          style={{
+            position: "absolute", top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 64, height: 64, borderRadius: "50%",
+            background: "rgba(255,255,255,0.96)",
+            color: C.navy800,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 4px 18px rgba(0,0,0,0.4)",
+            pointerEvents: "none",
+          }}
+        >
+          <Play size={30} fill="currentColor" strokeWidth={0} style={{ marginLeft: 4 }} />
+        </span>
+      )}
+      {/* Badge durée (bas droite, comme Facebook) */}
+      {durationLabel && (
+        <span
+          className="pv-video-duration"
+          aria-hidden="true"
+          style={{
+            position: "absolute", right: 12, bottom: 10,
+            background: "rgba(0,0,0,0.72)", color: "#fff",
+            padding: "2px 7px", borderRadius: 6,
+            fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3,
+            fontFamily: "'Sora', sans-serif", pointerEvents: "none",
+          }}
+        >
+          {durationLabel}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ── Vignette vidéo de commentaire (visionneuse) — poster + lecture en place ── */
+function ViewerCommentVideo({ src, label, width = 120, height = 80 }) {
+  const [started, setStarted] = useState(false);
+  if (started) {
+    return (
+      <video
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        aria-label={label || "Vidéo du commentaire"}
+        style={{ width, height, objectFit: "cover", borderRadius: 8, display: "block", background: "#000" }}
+      />
+    );
+  }
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={label || "Lire la vidéo du commentaire"}
+      onClick={() => setStarted(true)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStarted(true); } }}
+      className="pv-comment-video"
+      style={{ position: "relative", display: "block", width, height, borderRadius: 8, overflow: "hidden", background: "#000", cursor: "pointer", flexShrink: 0 }}
+    >
+      <video src={src} preload="metadata" muted playsInline aria-hidden="true" tabIndex={-1} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} />
+      <span aria-hidden="true" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+        <Play size={10} fill="currentColor" strokeWidth={0} />
+      </span>
+    </span>
+  );
+}
+
 function MediaGallery({ items = [] }) {
   const count = items.length;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -408,7 +606,8 @@ function MediaGallery({ items = [] }) {
       background: "#000",
       margin: "0 auto",
     };
-    if (item.type === "video") return <video key={index} src={item.url} controls style={mediaStyle} />;
+    /* Vidéo : poster + bouton lecture blanc/marine (comme Facebook), puis lecteur natif */
+    if (item.type === "video") return <ViewerVideo key={index} src={item.url} label={item.label} />;
     return <img key={index} src={item.url} alt={item.label || `M\u00e9dia ${index + 1}`} style={mediaStyle} />;
   };
   return (
@@ -428,6 +627,23 @@ function MediaGallery({ items = [] }) {
           borderRadius: 0,
         }}
       >
+        {/* Compteur de médias (x/y) comme Facebook */}
+        {count > 1 && (
+          <span
+            className="pv-media-counter"
+            aria-hidden="true"
+            style={{
+              position: "absolute", top: 10, right: 12, zIndex: 4,
+              background: "rgba(0,0,0,0.65)", color: "#fff",
+              padding: "2px 9px", borderRadius: 999,
+              fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3,
+              fontFamily: "'Sora', sans-serif",
+              pointerEvents: "none",
+            }}
+          >
+            {activeIndex + 1}/{count}
+          </span>
+        )}
         {renderItem(currentItem, activeIndex)}
           {count > 1 && (
             <>
@@ -453,8 +669,22 @@ function MediaGallery({ items = [] }) {
       {count > 1 && (
         <div style={{ display: "flex", gap: 6, padding: "8px 0 0" }}>
           {items.map((item, index) => (
-            <button key={index} onClick={() => setActiveIndex(index)} style={{ flex: 1, height: 48, padding: 0, border: index === activeIndex ? `2px solid ${LINKEDIN_BLUE}` : `1px solid ${LI_BORDER}`, borderRadius: 8, overflow: "hidden", background: LI_HOVER, cursor: "pointer", opacity: index === activeIndex ? 1 : 0.7 }}>
-              {item?.url && item.type !== "video" ? <img src={item.url} alt={item.label} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center", display: "block" }} /> : <div style={{ width: "100%", height: "100%", background: navyGrad }} />}
+            <button key={index} onClick={() => setActiveIndex(index)} style={{ flex: 1, height: 48, padding: 0, border: index === activeIndex ? `2px solid ${C.navy800}` : `1px solid ${LI_BORDER}`, borderRadius: 8, overflow: "hidden", background: LI_HOVER, cursor: "pointer", opacity: index === activeIndex ? 1 : 0.7 }}>
+              {item?.url ? (
+                item.type === "video" ? (
+                  /* Vignette réelle de la vidéo (première image) + pastille lecture */
+                  <span style={{ position: "relative", display: "block", width: "100%", height: "100%", background: "#000" }}>
+                    <video src={item.url} preload="metadata" muted playsInline aria-hidden="true" tabIndex={-1} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} />
+                    <span aria-hidden="true" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                      <Play size={9} fill="currentColor" strokeWidth={0} />
+                    </span>
+                  </span>
+                ) : (
+                  <img src={item.url} alt={item.label} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center", display: "block" }} />
+                )
+              ) : (
+                <div style={{ width: "100%", height: "100%", background: navyGrad }} />
+              )}
             </button>
           ))}
         </div>
@@ -886,7 +1116,7 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
               {comment.media.map((item, index) => item?.url ? (
                 item.type === "video"
-                  ? <video key={index} src={item.url} controls style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8 }} />
+                  ? <ViewerCommentVideo key={index} src={item.url} label={item.label} />
                   : <img key={index} src={item.url} alt={item.label || "Média du commentaire"} style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8 }} />
               ) : null)}
             </div>
@@ -1353,6 +1583,17 @@ export default function PostViewerPreview({
         .post-viewer-slider-button:hover { background: rgba(8, 28, 48, 0.88); }
         .post-viewer-slider-previous { left: 12px; }
         .post-viewer-slider-next { right: 12px; }
+        /* ── Rendu vidéo façon Facebook (design seul) ── */
+        .pv-video-stage { -webkit-tap-highlight-color: transparent; }
+        .pv-video-stage:focus-visible { outline: 3px solid rgba(238,175,35,0.5); outline-offset: -3px; }
+        .pv-video-play { transition: transform 0.16s ease, box-shadow 0.16s ease; }
+        .pv-video-stage:hover .pv-video-play {
+          transform: translate(-50%, -50%) scale(1.08) !important;
+          box-shadow: 0 4px 22px rgba(238,175,35,0.55) !important;
+        }
+        .pv-video-muted, .pv-video-duration, .pv-media-counter { font-variant-numeric: tabular-nums; }
+        .pv-comment-video { -webkit-tap-highlight-color: transparent; }
+        .pv-comment-video:focus-visible { outline: 2px solid rgba(238,175,35,0.5); outline-offset: 1px; }
         @media (max-width: 900px) {
           .post-viewer-action-btn {
             flex: 1 1 0 !important;
@@ -1448,6 +1689,17 @@ export default function PostViewerPreview({
           .post-viewer-left > div:nth-child(6) { padding: 0 8px !important; }
           .post-viewer-media { min-height: 0 !important; max-height: none !important; height: auto !important; overflow: visible !important; }
           .post-viewer-media img, .post-viewer-media video { width: auto !important; max-width: 100% !important; max-height: 52dvh !important; height: auto !important; }
+          /* Vignette vidéo : conserver le remplissage du poster (comme Facebook) */
+          .post-viewer-media .pv-video-stage { height: min(52dvh, 460px) !important; max-height: min(52dvh, 460px) !important; }
+          .post-viewer-media .pv-video-stage .pv-video-frame,
+          .post-viewer-media .pv-video-stage video {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: none !important;
+            object-fit: contain !important;
+          }
+          .post-viewer-media .pv-video-stage:focus-visible { outline: none; }
+          .post-viewer-media .pv-video-stage:hover .pv-video-play { transform: translate(-50%, -50%) !important; box-shadow: 0 4px 18px rgba(0,0,0,0.4) !important; }
           .post-viewer-job-description {
             height: auto;
             max-height: none;
@@ -1889,7 +2141,14 @@ export default function PostViewerPreview({
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8, padding: "2px 2px 0" }}>
                   {attachedMedia.map((item, index) => (
                     <div key={`${item.url}-${index}`} style={{ position: "relative", padding: 3, background: LI_HOVER, border: `1px solid ${LI_BORDER}`, borderRadius: 9 }}>
-                      {item.type === "video" ? <video src={item.url} style={{ width: 52, height: 40, objectFit: "cover", borderRadius: 6 }} /> : <img src={item.url} alt={item.label || "Média joint"} style={{ width: 52, height: 40, objectFit: "cover", borderRadius: 6 }} />}
+                      {item.type === "video" ? (
+                        <span style={{ position: "relative", display: "block", width: 52, height: 40, borderRadius: 6, overflow: "hidden", background: "#000" }}>
+                          <video src={item.url} preload="metadata" muted playsInline aria-hidden="true" tabIndex={-1} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} />
+                          <span aria-hidden="true" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 16, height: 16, borderRadius: "50%", background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                            <Play size={7} fill="currentColor" strokeWidth={0} />
+                          </span>
+                        </span>
+                      ) : <img src={item.url} alt={item.label || "Média joint"} style={{ width: 52, height: 40, objectFit: "cover", borderRadius: 6 }} />}
                       <button type="button" onClick={() => setAttachedMedia((current) => current.filter((_, mediaIndex) => mediaIndex !== index))} style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, border: `2px solid ${C.white}`, borderRadius: "50%", background: C.danger, color: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }} aria-label="Retirer le média"><X size={11} /></button>
                     </div>
                   ))}
