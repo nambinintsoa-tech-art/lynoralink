@@ -72,6 +72,8 @@ function useSkeletonStylesEffect() {
     tag.id = id;
     tag.innerHTML = `
       @keyframes lyn-story-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .58; } }
+      .lynora-story-skeleton-rail { -ms-overflow-style: none; scrollbar-width: none; }
+      .lynora-story-skeleton-rail::-webkit-scrollbar { display: none; width: 0; height: 0; }
       @media (prefers-reduced-motion: reduce) {
         .lyn-story-pulse { animation: none; background: ${C.navy50}; }
       }
@@ -110,7 +112,7 @@ export function SkeletonStoryText({ width = 104, height = 140, radius = 18, clas
   useSkeletonStylesEffect();
   return (
     <div
-      className={className}
+      className={`lynora-story-skeleton-rail ${className}`.trim()}
       style={{
         width,
         height,

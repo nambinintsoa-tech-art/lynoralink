@@ -6161,7 +6161,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                       Voir tout
                                     </button>
                                   </div>
-                                  <div className="lynora-reel-preview-viewport" onPointerDown={handleReelPreviewPointerDown} onPointerUp={handleReelPreviewPointerUp} onPointerCancel={handleReelPreviewPointerCancel} style={{ position: "relative", overflow: "hidden", display: "flex", justifyContent: "flex-start", width: "100%", height: isMobileReelPreview ? 430 : 360, maxWidth: "100%", padding: isMobileReelPreview ? 8 : 0, boxSizing: "border-box", border: "1px solid rgba(15,51,82,0.12)", borderRadius: isMobileReelPreview ? 16 : 24, background: "#F7FAFD", touchAction: "pan-x", cursor: "grab" }}>
+                                  <div className="lynora-reel-preview-viewport" onPointerDown={handleReelPreviewPointerDown} onPointerUp={handleReelPreviewPointerUp} onPointerCancel={handleReelPreviewPointerCancel} style={{ position: "relative", overflow: "hidden", display: "flex", justifyContent: "flex-start", width: "100%", height: isMobileReelPreview ? 430 : 360, maxWidth: "100%", padding: isMobileReelPreview ? 8 : 0, boxSizing: "border-box", border: "1px solid rgba(15,51,82,0.12)", borderRadius: isMobileReelPreview ? 16 : 24, background: "#F7FAFD", touchAction: "pan-x pan-y", cursor: "grab" }}>
                                     {reelPreview.length > 1 && !reelPreviewLoading && (
                                       <>
                                         <button

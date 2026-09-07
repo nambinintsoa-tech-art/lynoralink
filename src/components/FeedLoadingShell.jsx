@@ -60,9 +60,7 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
                   : loadingView === "notifications" ? <main aria-hidden="true" style={{ maxWidth: 520, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><NotificationsSkeleton /></main>
                     : <div aria-hidden="true" style={{ maxWidth: 1400, width: "100%", margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0, 1fr) 320px", gap: 32, alignItems: "start", padding: "28px 20px 60px", pointerEvents: "none" }} className="lynora-grid lynora-feed-container lynora-skeleton-feed-grid">
         <aside aria-label="Chargement de la navigation latérale" style={{ minWidth: 0 }}>
-          <div className="lynora-skeleton-fixed-sidebar" style={{ position: "fixed", top: "calc(var(--lynora-header-offset, 96px) + 28px)", left: "calc((100vw - min(1400px, 100vw)) / 2 + 20px)", width: 300, maxHeight: "calc(100vh - var(--lynora-header-offset, 96px) - 28px)", overflowY: "auto", paddingRight: 8 }}>
-            <LeftSidebarSkeleton />
-          </div>
+          <LeftSidebarSkeleton />
         </aside>
         <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0, width: "100%" }}>
           <ComposerSkeleton />
@@ -70,9 +68,7 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
           <FeedSkeleton count={5} />
         </main>
         <aside aria-label="Chargement des informations latérales" style={{ minWidth: 0, width: "100%" }}>
-          <div className="lynora-skeleton-fixed-sidebar" style={{ position: "fixed", top: "calc(var(--lynora-header-offset, 96px) + 28px)", right: "calc((100vw - min(1400px, 100vw)) / 2 + 20px)", width: 320, maxHeight: "calc(100vh - var(--lynora-header-offset, 96px) - 28px)", overflowY: "auto", paddingRight: 8 }}>
-            <RightSidebarSkeleton />
-          </div>
+          <RightSidebarSkeleton />
         </aside>
       </div>}
     </div>

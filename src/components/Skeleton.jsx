@@ -56,6 +56,27 @@ const STYLE_CSS = `
     border: 1px solid ${C.line} !important;
     box-shadow: none !important;
   }
+  .lynora-skeleton-post-card {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-header {
+    padding: 10px 52px 0 12px !important;
+    margin-bottom: 14px !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-body {
+    padding: 0 12px !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-media {
+    width: 100vw !important;
+    max-width: none !important;
+    margin-left: calc(50% - 50vw) !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-actions {
+    margin: 16px 12px 0 !important;
+  }
   .lynora-skeleton-stat-row { flex-wrap: wrap !important; gap: 12px !important; }
   .lynora-skeleton-stat-row > div { min-width: calc(50% - 6px); }
   .lynora-skeleton-stat-row > div[style*="width: 1px"] { display: none; }
@@ -440,18 +461,20 @@ function FeedSkeletonFrame({ children, style = {}, className = "" }) {
 export function SkeletonPostCard({ media = "none" }) {
   // media: "none" | "image" | "video"
   return (
-    <FeedSkeletonFrame style={{ padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+    <FeedSkeletonFrame className="lynora-skeleton-post-card" style={{ padding: 16 }}>
+      <div className="lynora-skeleton-post-header" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <SkeletonAvatar size={44} radius={999} className="lynora-skeleton-avatar" />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
           <Skeleton width="35%" height={13} radius={6} />
           <Skeleton width="22%" height={10} radius={6} />
         </div>
       </div>
-      <SkeletonText lines={3} lastLineWidth="45%" style={{ marginBottom: media !== "none" ? 14 : 4 }} />
-      {media === "image" && <SkeletonImage ratio="16/9" className="lynora-skeleton-media" style={{ borderRadius: 0 }} />}
-      {media === "video" && <SkeletonVideo ratio="16/9" style={{ borderRadius: 0 }} />}
-      <div style={{ display: "flex", gap: 18, marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
+      <div className="lynora-skeleton-post-body">
+        <SkeletonText lines={3} lastLineWidth="45%" style={{ marginBottom: media !== "none" ? 14 : 4 }} />
+      </div>
+      {media === "image" && <SkeletonImage ratio="16/9" className="lynora-skeleton-media lynora-skeleton-post-media" style={{ borderRadius: 0 }} />}
+      {media === "video" && <SkeletonVideo ratio="16/9" className="lynora-skeleton-post-media" style={{ borderRadius: 0 }} />}
+      <div className="lynora-skeleton-post-actions" style={{ display: "flex", gap: 18, marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
         <Skeleton width={54} height={22} radius={8} />
         <Skeleton width={54} height={22} radius={8} />
         <Skeleton width={54} height={22} radius={8} />
