@@ -2574,7 +2574,16 @@ export function ChatModal({
   };
   useEffect(() => {
     if (!activeCall || !callSession?.id || callConnected) return undefined;
-    const timeout = setTimeout(() => endCall("missed"), 30000);
+    const timeout = setTimeout(async () => {
+      try {
+        const response = await fetchBackendApi(`/api/calls?callId=${encodeURIComponent(callSession.id)}`, { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.call?.status === "ringing") endCall("missed");
+      } catch {
+        // Keep the call alive when the status check is temporarily unavailable.
+      }
+    }, 60000);
     return () => clearTimeout(timeout);
   }, [activeCall, callSession?.id, callConnected]);
   useEffect(() => {
@@ -3400,7 +3409,7 @@ function NewConversationModal({ isOpen, onClose, onCreate, initialMode = "direct
 /*  WIDGET COMBINÉ — bulle flottante qui enchaîne les deux modales     */
 /*    <MessagingWidget />                                              */
 /* ------------------------------------------------------------------ */
-export default function MessagingWidget({ conversations: controlled, onChange, onOpenChat, onOpenProfile, onSend, onNewConversation, autoOpen = false, directConversation = false, showFab = true, onClose, activeId: controlledActiveId = null, nonBlocking = false, loading = false, mobile = false }) {
+export default function MessagingWidget({ conversations: controlled, onChange, onOpenChat, onOpenProfile, onSend, onNewConversation, autoOpen = false, directConversation = false, showFab = true, onClose, activeId: controlledActiveId, nonBlocking = false, loading = false, mobile = false }) {
   const { data: session } = useSession();
   const [internal, setInternal] = useState([]);
   const [listOpen, setListOpen] = useState(autoOpen && !directConversation);
