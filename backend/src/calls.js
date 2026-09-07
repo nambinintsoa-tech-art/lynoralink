@@ -68,7 +68,14 @@ export async function registerCallRoutes(app) {
     const userId = await getSessionUserId(request);
     if (!userId) return reply.code(401).send({ error: "Non authentifié" });
     const liveKitUrl = getLiveKitUrl();
-    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !liveKitUrl) return reply.code(503).send({ error: "Configuration LiveKit incomplète" });
+    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !liveKitUrl) {
+      request.log.warn({
+        hasApiKey: Boolean(process.env.LIVEKIT_API_KEY),
+        hasApiSecret: Boolean(process.env.LIVEKIT_API_SECRET),
+        hasUrl: Boolean(liveKitUrl),
+      }, "LiveKit configuration incomplete");
+      return reply.code(503).send({ error: "Configuration LiveKit incomplète" });
+    }
     const call = await authorizedCall(request.body?.callId, userId);
     if (!call || !["ringing", "connected"].includes(call.status)) return reply.code(404).send({ error: "Appel introuvable" });
     const token = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, { identity: userId, name: userId, ttl: "2h" });
