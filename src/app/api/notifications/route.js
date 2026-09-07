@@ -83,9 +83,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id && !req.body) {
-    // body validation below handles the case of system-triggered notifications from authenticated clients
-  }
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   try {
     const body = await req.json();
@@ -94,6 +92,22 @@ export async function POST(req) {
 
     if (!targetUserId) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (targetUserId !== session.user.id) {
+      const targetMeta = meta && typeof meta === "object" ? meta : {};
+      const groupId = typeof targetMeta.groupId === "string" ? targetMeta.groupId : null;
+      const requester = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
+      let canNotifyTarget = requester?.role === "admin";
+      if (!canNotifyTarget && groupId) {
+        const group = await prisma.group.findUnique({ where: { id: groupId }, select: { ownerId: true, members: true } });
+        let members = [];
+        try { members = group?.members ? JSON.parse(group.members) : []; } catch { members = []; }
+        const requesterMember = members.find((member) => member?.id === session.user.id);
+        const targetIsModerator = group?.ownerId === targetUserId || members.some((member) => member?.id === targetUserId && ["admin", "moderator"].includes(member?.role));
+        canNotifyTarget = Boolean(group && (group.ownerId === session.user.id || ["admin", "moderator"].includes(requesterMember?.role)) && targetIsModerator);
+      }
+      if (!canNotifyTarget) return NextResponse.json({ error: "Action non autorisée" }, { status: 403 });
     }
 
     const resolvedActor = (actor || "LynoraLink") === "Assistant IA" || (actor || "LynoraLink") === "IA" ? "LynoraLink" : (actor || "LynoraLink");
@@ -129,11 +143,13 @@ export async function POST(req) {
 
 export async function PATCH(req) {
   const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   try {
     const body = await req.json();
     const { id, userId, read, markAllRead, type } = body || {};
     const targetUserId = userId || session?.user?.id;
+    if (targetUserId !== session.user.id) return NextResponse.json({ error: "Accès interdit" }, { status: 403 });
 
     if (markAllRead && targetUserId) {
       const filter = type ? { userId: targetUserId, type } : { userId: targetUserId };
@@ -172,9 +188,14 @@ export async function PATCH(req) {
 }
 
 export async function DELETE(req) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
+  const notification = await prisma.notification.findUnique({ where: { id }, select: { userId: true } });
+  if (!notification) return NextResponse.json({ error: "Notification introuvable" }, { status: 404 });
+  if (notification.userId !== session.user.id) return NextResponse.json({ error: "Accès interdit" }, { status: 403 });
   await prisma.notification.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

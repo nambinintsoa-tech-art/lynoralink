@@ -3600,7 +3600,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
         isOpen={!!active && !listOpen}
         conversation={active}
         callOnly={Boolean(incomingCall)}
-        initialIncomingCall={incomingCall?.conversationId === active?.id ? incomingCall.call : null}
+        initialIncomingCall={incomingCall && incomingCall.conversationId === active?.id ? incomingCall.call : null}
         onIncomingCallHandled={() => setIncomingCall(null)}
         onClose={() => {
           setIncomingCall(null);

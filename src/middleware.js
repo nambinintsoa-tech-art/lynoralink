@@ -11,8 +11,7 @@ export default function middleware(req) {
 
   try {
     const url = req.nextUrl?.pathname || req.url || "<unknown>";
-    const referer = req.headers.get?.("referer") || req.headers.get?.("referrer") || "";
-    console.log(`[middleware] incoming request: ${url}  referer: ${referer}`);
+    if (process.env.NODE_ENV !== "production") console.log(`[middleware] incoming request: ${url}`);
   } catch (e) {
     // ignore logging errors
   }

@@ -19,7 +19,6 @@ export async function GET() {
     const expired = s.expires ? new Date(s.expires) < now : false;
     return {
       id: s.id,
-      sessionToken: s.sessionToken,
       expires: s.expires,
       expired,
       device: s.sessionToken ? "Session active" : "Appareil inconnu",

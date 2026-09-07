@@ -112,7 +112,7 @@ export async function GET(req) {
     user: {
       id: user.id,
       name: user.name,
-      email: user.email,
+      ...(targetUserId === session.user.id ? { email: user.email } : {}),
       image: user.image || null,
       avatarUrl: user.image || null,
       photoUrl: user.image || null,

@@ -2906,6 +2906,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
                 userId: adminId,
                 actor: authorName,
                 type: "article",
+                  meta: { groupId: group.id },
                 title: "Publication en attente",
                 text: `${authorName} a publié un contenu dans ${group.name} et attend votre approbation.`,
                 avatarUrl: currentMemberAvatar || session?.user?.image || null,
