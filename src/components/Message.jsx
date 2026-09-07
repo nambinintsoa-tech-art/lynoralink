@@ -653,7 +653,7 @@ function IconBtn({ icon: Icon, onClick, title, size = 16, active }) {
   );
 }
 
-function Backdrop({ onClose, children, maxWidth = 420, maxHeight = 600, nonBlocking = false, mobile = false }) {
+function Backdrop({ onClose, children, maxWidth = 420, maxHeight = 600, nonBlocking = false, mobile = false, fullScreen = false }) {
   if (nonBlocking && !mobile) {
     return (
       <div
@@ -692,12 +692,12 @@ function Backdrop({ onClose, children, maxWidth = 420, maxHeight = 600, nonBlock
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: mobile ? "none" : (nonBlocking ? "100%" : maxWidth),
-          height: mobile ? "100dvh" : (nonBlocking ? "100%" : `min(${maxHeight}px, 90vh)`),
-          maxHeight: mobile ? "100dvh" : (nonBlocking ? "100%" : "90vh"),
-          background: C.white,
-          borderRadius: mobile ? 0 : (nonBlocking ? 0 : 20),
-          boxShadow: nonBlocking ? "none" : "0 24px 80px rgba(15,51,82,0.35)",
+          maxWidth: fullScreen || mobile ? "none" : (nonBlocking ? "100%" : maxWidth),
+          height: fullScreen || mobile ? "100dvh" : (nonBlocking ? "100%" : `min(${maxHeight}px, 90vh)`),
+          maxHeight: fullScreen || mobile ? "100dvh" : (nonBlocking ? "100%" : "90vh"),
+          background: fullScreen ? "transparent" : C.white,
+          borderRadius: fullScreen || mobile ? 0 : (nonBlocking ? 0 : 20),
+          boxShadow: fullScreen || nonBlocking ? "none" : "0 24px 80px rgba(15,51,82,0.35)",
           overflow: "hidden",
           overflowX: "hidden",
           boxSizing: "border-box",
@@ -1585,21 +1585,26 @@ function InlineConfirm({ title, message, confirmLabel, onCancel, onConfirm }) {
 function MiniCallBar({ mode, status, elapsed, onMaximize, onEnd }) {
   const ModeIcon = mode === "video" ? Video : Phone;
   return (
-    <div
-      style={{ display: "flex", alignItems: "center", gap: 10, margin: "10px 14px 0", padding: "8px 10px 8px 14px", borderRadius: 999, background: navyGrad, color: C.white, boxShadow: "0 8px 20px rgba(15,51,82,0.3)" }}
+    <button
+      onClick={onMaximize}
+      className="lynora-call-pill"
+      style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 14px 0", padding: "9px 14px", borderRadius: 999, border: "none", background: C.success, color: C.white, boxShadow: "0 8px 20px rgba(46,158,91,0.35)", cursor: "pointer", width: "calc(100% - 28px)", textAlign: "left" }}
     >
-      <span className="lynora-call-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: status === "connected" ? C.success : C.gold400, flexShrink: 0 }} />
+      <span className="lynora-call-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: C.white, flexShrink: 0 }} />
       <ModeIcon size={14} />
-      <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>
-        {mode === "video" ? "Appel vidéo" : "Appel vocal"} · {status === "connected" ? formatDuration(elapsed) : "Connexion…"}
+      <span style={{ fontSize: 12.5, fontWeight: 700, flex: 1 }}>
+        {status === "connected" ? formatDuration(elapsed) : "Connexion…"} · Toucher pour revenir à l'appel
       </span>
-      <button onClick={onMaximize} title="Agrandir" style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.16)", color: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Maximize2 size={13} />
-      </button>
-      <button onClick={onEnd} title="Raccrocher" style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: C.danger, color: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <PhoneOff size={13} />
-      </button>
-    </div>
+      <span
+        role="button"
+        tabIndex={-1}
+        onClick={(e) => { e.stopPropagation(); onEnd(); }}
+        title="Raccrocher"
+        style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(0,0,0,0.18)", color: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+      >
+        <PhoneOff size={12} />
+      </span>
+    </button>
   );
 }
 
@@ -1785,35 +1790,81 @@ function CallOverlay({ mode, conversation, status, elapsed, minimized, onMinimiz
   );
 }
 
-function LiveKitTrack({ track }) {
+function LiveKitTrack({ track, muted }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current || !track) return undefined;
     const element = track.attach(ref.current);
     return () => track.detach(element);
   }, [track]);
+  useEffect(() => { if (ref.current && track?.kind === "audio") ref.current.muted = !!muted; }, [muted, track]);
   return track.kind === "audio"
     ? <audio ref={ref} autoPlay />
     : <video ref={ref} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
 }
 
-function LiveKitParticipantTile({ participant, mode }) {
+function LiveKitParticipantTile({ participant, mode, fullBleed }) {
   const videoTrack = participant.videoTrack;
   return (
-    <div style={{ position: "relative", minHeight: mode === "video" ? 180 : 116, borderRadius: 16, overflow: "hidden", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {mode === "video" && videoTrack ? <LiveKitTrack track={videoTrack} /> : <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}><Avatar initials={getInitials(participant.name)} imageUrl={participant.image} size={mode === "video" ? 76 : 58} /><span style={{ color: C.white, fontSize: 12, fontWeight: 700, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{participant.name}</span></div>}
-      {mode === "video" && videoTrack && <span style={{ position: "absolute", left: 10, bottom: 9, padding: "4px 8px", borderRadius: 999, background: "rgba(0,0,0,.55)", color: C.white, fontSize: 11, fontWeight: 700, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{participant.name}</span>}
-      {participant.isLocal && <span style={{ position: "absolute", right: 9, top: 9, padding: "3px 6px", borderRadius: 999, background: "rgba(246,211,116,.92)", color: C.navy900, fontSize: 9.5, fontWeight: 800 }}>Vous</span>}
+    <div
+      style={{
+        position: "relative",
+        minHeight: fullBleed ? "100%" : mode === "video" ? 180 : 116,
+        height: fullBleed ? "100%" : undefined,
+        borderRadius: fullBleed ? 0 : 16,
+        overflow: "hidden",
+        background: fullBleed ? "#081B2C" : "rgba(255,255,255,.1)",
+        border: fullBleed ? "none" : "1px solid rgba(255,255,255,.16)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {mode === "video" && videoTrack ? <LiveKitTrack track={videoTrack} /> : <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}><Avatar initials={getInitials(participant.name)} imageUrl={participant.image} size={fullBleed ? 112 : mode === "video" ? 76 : 58} /><span style={{ color: C.white, fontSize: 13, fontWeight: 700, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{participant.name}</span></div>}
+      {mode === "video" && videoTrack && !fullBleed && <span style={{ position: "absolute", left: 10, bottom: 9, padding: "4px 8px", borderRadius: 999, background: "rgba(0,0,0,.55)", color: C.white, fontSize: 11, fontWeight: 700, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{participant.name}</span>}
+      {participant.isLocal && !fullBleed && <span style={{ position: "absolute", right: 9, top: 9, padding: "3px 6px", borderRadius: 999, background: "rgba(246,211,116,.92)", color: C.navy900, fontSize: 9.5, fontWeight: 800 }}>Vous</span>}
     </div>
   );
 }
 
-function LiveKitCallOverlay({ mode, conversation, minimized, onMinimize, onEnd, callSession, onConnected }) {
+/* PiP local — coin haut-droit façon Messenger, avec petit drag vertical simple */
+function LocalSelfPip({ track, initials, image, cameraOn }) {
+  return (
+    <div
+      className="lynora-call-pip"
+      style={{
+        position: "absolute",
+        top: 78,
+        right: 14,
+        width: 96,
+        height: 140,
+        borderRadius: 14,
+        overflow: "hidden",
+        background: "#0B2A44",
+        border: "2px solid rgba(255,255,255,.85)",
+        boxShadow: "0 10px 24px rgba(0,0,0,.4)",
+        zIndex: 40,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {cameraOn && track ? (
+        <LiveKitTrack track={track} />
+      ) : (
+        <Avatar initials={initials} imageUrl={image} size={44} />
+      )}
+    </div>
+  );
+}
+
+function LiveKitCallOverlay({ mode, conversation, status, elapsed, minimized, onMinimize, onEnd, callSession, onConnected }) {
   const roomRef = useRef(null);
   const [participants, setParticipants] = useState([]);
   const [tracks, setTracks] = useState([]);
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(mode === "video");
+  const [speakerOn, setSpeakerOn] = useState(true);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
@@ -1895,33 +1946,95 @@ function LiveKitCallOverlay({ mode, conversation, minimized, onMinimize, onEnd, 
 
   const toggleMute = async () => { const next = !muted; setMuted(next); await roomRef.current?.localParticipant.setMicrophoneEnabled(!next); };
   const toggleCamera = async () => { const next = !cameraOn; setCameraOn(next); await roomRef.current?.localParticipant.setCameraEnabled(next); };
-  const controlStyle = (danger = false, active = false) => ({
-    width: 54,
-    height: 54,
+  const toggleSpeaker = () => setSpeakerOn((v) => !v);
+  const controlStyle = (danger = false, active = false, big = false) => ({
+    width: big ? 64 : 52,
+    height: big ? 64 : 52,
     padding: 0,
     border: "none",
     borderRadius: "50%",
-    background: danger ? C.danger : active ? C.white : "rgba(255,255,255,.14)",
-    color: danger || !active ? C.white : C.navy900,
+    background: danger ? C.danger : active ? C.white : "rgba(255,255,255,.18)",
+    color: danger ? C.white : active ? C.navy900 : C.white,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
     flexShrink: 0,
-    boxShadow: danger ? "0 8px 20px rgba(194,68,68,.35)" : "0 6px 16px rgba(0,0,0,.14)",
+    boxShadow: danger ? "0 10px 24px rgba(194,68,68,.4)" : "0 6px 16px rgba(0,0,0,.18)",
   });
   if (minimized) return null;
+
+  const remoteParticipants = participants.filter((p) => !p.isLocal);
+  const localParticipant = participants.find((p) => p.isLocal);
+  const isOneToOne = remoteParticipants.length <= 1;
+  const remotePeer = remoteParticipants[0];
+  const statusLabel = status === "connected" ? formatDuration(elapsed) : connected ? "Connecté" : "Connexion…";
+
   return (
-    <div className="lynora-call-overlay" style={{ position: "absolute", inset: 0, zIndex: 90, background: callGrad, color: C.white, display: "flex", flexDirection: "column" }}>
-      <div className="lynora-call-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px" }}><button onClick={onMinimize} title="Réduire" style={{ width: 34, height: 34, padding: 0, border: 0, borderRadius: 9, background: "rgba(255,255,255,.12)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Minimize2 size={15} /></button><span style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".04em" }}>{mode === "video" ? "APPEL VIDÉO" : "APPEL VOCAL"}</span><span style={{ width: 34 }} /></div>
-      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", gap: 12, padding: 16, minHeight: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${mode === "video" ? 180 : 130}px, 1fr))`, gap: 10, alignContent: "center", flex: 1, overflowY: "auto" }}>
-          {participants.length > 0 ? participants.map((participant) => <LiveKitParticipantTile key={participant.identity} participant={participant} mode={mode} />) : <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}><Avatar initials={conversation.initials} imageUrl={conversation.image} size={108} /><strong>{conversation.name}</strong><span style={{ fontSize: 12, opacity: .75 }}>{connected ? "Connecté" : "Connexion…"}</span>{error && <span style={{ color: C.gold400, fontSize: 11 }}>{error}</span>}</div>}
-        </div>
-        {tracks.filter(({ track }) => track.kind === "audio").map(({ sid, track }) => <LiveKitTrack key={sid} track={track} />)}
+    <div className="lynora-call-overlay" style={{ position: "absolute", inset: 0, zIndex: 90, background: "#081B2C", color: C.white, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* ------ Zone vidéo/avatar plein écran, façon Messenger ------ */}
+      <div style={{ position: "absolute", inset: 0 }}>
+        {isOneToOne ? (
+          remotePeer ? (
+            <LiveKitParticipantTile participant={remotePeer} mode={mode} fullBleed />
+          ) : (
+            <div style={{ position: "absolute", inset: 0, background: callGrad, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+              <Avatar initials={conversation.initials} imageUrl={conversation.image} size={124} />
+              <strong style={{ fontSize: 18, fontFamily: "'Sora', sans-serif" }}>{conversation.name}</strong>
+              <span style={{ fontSize: 13, opacity: .8 }}>{statusLabel}</span>
+              {error && <span style={{ color: C.gold400, fontSize: 11.5 }}>{error}</span>}
+            </div>
+          )
+        ) : (
+          <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${mode === "video" ? 200 : 150}px, 1fr))`, gap: 2, background: "#000" }}>
+            {participants.map((participant) => (
+              <LiveKitParticipantTile key={participant.identity} participant={participant} mode={mode} fullBleed />
+            ))}
+          </div>
+        )}
       </div>
-        <div className="lynora-call-controls" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "22px 16px 30px" }}><button onClick={toggleMute} title={muted ? "Réactiver le micro" : "Couper le micro"} style={controlStyle(false, muted)}>{muted ? <MicOff size={20} /> : <Mic size={20} />}</button>{mode === "video" && <button onClick={toggleCamera} title={cameraOn ? "Couper la caméra" : "Réactiver la caméra"} style={controlStyle(false, !cameraOn)}>{cameraOn ? <Video size={20} /> : <VideoOff size={20} />}</button>}<button onClick={onEnd} title="Raccrocher" style={controlStyle(true)}><PhoneOff size={20} /></button></div>
-      {participantToast && <div style={{ position: "absolute", left: "50%", bottom: 90, transform: "translateX(-50%)", padding: "8px 16px", borderRadius: 999, background: "rgba(0,0,0,.72)", color: C.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", zIndex: 50 }}>{participantToast}</div>}
+
+      {/* PiP caméra locale (uniquement en 1:1 vidéo) */}
+      {isOneToOne && mode === "video" && localParticipant && (
+        <LocalSelfPip track={localParticipant.videoTrack} initials="Vous" image={null} cameraOn={cameraOn} />
+      )}
+
+      {/* ------ Bandeau haut — dégradé, nom + durée, façon Messenger ------ */}
+      <div
+        className="lynora-call-header"
+        style={{
+          position: "absolute", top: 0, left: 0, right: 0, zIndex: 45,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 14px", background: "linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 100%)",
+        }}
+      >
+        <button onClick={onMinimize} title="Réduire" style={{ width: 36, height: 36, padding: 0, border: 0, borderRadius: "50%", background: "rgba(255,255,255,.16)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <Minimize2 size={16} />
+        </button>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Sora', sans-serif" }}>{isOneToOne ? conversation.name : (mode === "video" ? "Appel vidéo de groupe" : "Appel vocal de groupe")}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, opacity: .82 }}>{statusLabel}</span>
+        </div>
+        <span style={{ width: 36 }} />
+      </div>
+
+      {/* ------ Bandeau bas — contrôles ronds, façon Messenger ------ */}
+      <div
+        className="lynora-call-controls"
+        style={{
+          position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 45,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
+          padding: "26px 16px 30px", background: "linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 100%)",
+        }}
+      >
+        <button onClick={toggleMute} title={muted ? "Réactiver le micro" : "Couper le micro"} style={controlStyle(false, muted)}>{muted ? <MicOff size={20} /> : <Mic size={20} />}</button>
+        <button onClick={toggleSpeaker} title={speakerOn ? "Désactiver le haut-parleur" : "Activer le haut-parleur"} style={controlStyle(false, !speakerOn)}>{speakerOn ? <Volume2 size={20} /> : <VolumeX size={20} />}</button>
+        {mode === "video" && <button onClick={toggleCamera} title={cameraOn ? "Couper la caméra" : "Réactiver la caméra"} style={controlStyle(false, !cameraOn)}>{cameraOn ? <Video size={20} /> : <VideoOff size={20} />}</button>}
+        <button onClick={onEnd} title="Raccrocher" style={controlStyle(true, false, true)}><PhoneOff size={24} /></button>
+      </div>
+
+      {tracks.filter(({ track }) => track.kind === "audio").map(({ sid, track }) => <LiveKitTrack key={sid} track={track} muted={!speakerOn} />)}
+      {participantToast && <div style={{ position: "absolute", left: "50%", bottom: 110, transform: "translateX(-50%)", padding: "8px 16px", borderRadius: 999, background: "rgba(0,0,0,.72)", color: C.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", zIndex: 50 }}>{participantToast}</div>}
     </div>
   );
 }
@@ -2094,7 +2207,7 @@ function TransferMessageModal({ message, onClose, onTransferred, mobile = false 
 export function ChatModal({
   isOpen, conversation, onClose, onBack, onSend, onChange, onDeleted, onOpenProfile,
   onBlocked, onAddParticipants, onLeaveGroup,
-  nonBlocking = false, loading = false, mobile = false,
+  nonBlocking = false, loading = false, mobile = false, callOnly = false, initialIncomingCall = null, onIncomingCallHandled,
 }) {
   const [draft, setDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -2130,6 +2243,10 @@ export function ChatModal({
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const markCallConnected = useCallback(() => setCallConnected(true), []);
   useCallTone(Boolean(incomingCall || (activeCall && callStatus === "ringing")), Boolean(incomingCall));
+
+  useEffect(() => {
+    if (initialIncomingCall?.id) setIncomingCall(initialIncomingCall);
+  }, [initialIncomingCall?.id]);
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
@@ -2406,6 +2523,7 @@ export function ChatModal({
   };
   const answerIncomingCall = () => {
     if (!incomingCall) return;
+    onIncomingCallHandled?.();
     setCallSession(incomingCall);
     setIncomingCall(null);
     setCallConnected(false);
@@ -2413,6 +2531,7 @@ export function ChatModal({
   };
   const rejectIncomingCall = async () => {
     const call = incomingCall;
+    onIncomingCallHandled?.();
     setIncomingCall(null);
     if (!call?.id) return;
     dismissedCallIdsRef.current.add(call.id);
@@ -2506,8 +2625,8 @@ export function ChatModal({
   };
 
   return (
-    <Backdrop onClose={onClose} maxWidth={440} maxHeight={640} nonBlocking={nonBlocking} mobile={mobile}>
-      <div className="lynora-message-shell" style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", minWidth: 0, overflowX: "hidden" }}>
+    <Backdrop onClose={onClose} maxWidth={440} maxHeight={640} nonBlocking={nonBlocking} mobile={mobile} fullScreen={callOnly}>
+      <div className={`lynora-message-shell${callOnly ? " lynora-call-only" : ""}`} style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", minWidth: 0, overflowX: "hidden" }}>
         {loading ? <ChatSkeleton /> : <>
         {/* En-tête */}
         <div className="lynora-message-chat-header" style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderBottom: `1px solid ${C.line}`, minWidth: 0, minHeight: 61, flexShrink: 0, overflow: "visible", background: C.white }}>
@@ -2856,23 +2975,57 @@ export function ChatModal({
         )}
 
         {incomingCall && (
-          <div style={{ position: "absolute", inset: 0, zIndex: 85, background: "rgba(15,51,82,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div style={{ width: "100%", maxWidth: 300, background: C.white, borderRadius: 18, padding: 22, textAlign: "center", boxShadow: "0 20px 60px rgba(15,51,82,0.35)" }}>
-              <div style={{ width: 62, height: 62, margin: "0 auto 12px", borderRadius: "50%", background: navyGrad, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Avatar initials={conv.initials} imageUrl={conv.image} size={62} />
+          <div
+            className="lynora-incoming-call"
+            style={{
+              position: "absolute", inset: 0, zIndex: 95, background: callGrad, color: C.white,
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
+              padding: "48px 24px 40px", textAlign: "center", overflow: "hidden",
+            }}
+          >
+            {/* halo flou en fond, façon avatar plein écran Messenger */}
+            {conv.image && (
+              <div
+                style={{
+                  position: "absolute", inset: -20, backgroundImage: `url(${conv.image})`, backgroundSize: "cover",
+                  backgroundPosition: "center", filter: "blur(38px) brightness(0.55)", transform: "scale(1.15)", zIndex: 0,
+                }}
+              />
+            )}
+            <div style={{ position: "relative", zIndex: 1, marginTop: 30 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", opacity: .8, textTransform: "uppercase" }}>
+                {incomingCall.type === "video" ? "Appel vidéo entrant" : "Appel vocal entrant"}
               </div>
-              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700, color: C.ink }}>{conv.name}</div>
-              <div style={{ marginTop: 5, fontSize: 12.5, color: C.muted }}>{incomingCall.type === "video" ? "Appel vidéo entrant" : "Appel vocal entrant"}</div>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button onClick={rejectIncomingCall} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", borderRadius: 999, border: "none", background: C.danger, color: C.white, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                  <PhoneOff size={14} /> Refuser
-                </button>
-                <button onClick={answerIncomingCall} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", borderRadius: 999, border: "none", background: C.success, color: C.white, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                  {incomingCall.type === "video" ? <Video size={14} /> : <Phone size={14} />} Répondre
-                </button>
-              </div>
+              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 10 }}>{conv.name}</div>
             </div>
 
+            <div className="lynora-incoming-avatar" style={{ position: "relative", zIndex: 1, borderRadius: "50%", animation: "lynoraIncomingPulse 1.6s ease-out infinite" }}>
+              <Avatar initials={conv.initials} imageUrl={conv.image} size={132} />
+            </div>
+            <style>{`@keyframes lynoraIncomingPulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.35);} 70% { box-shadow: 0 0 0 26px rgba(255,255,255,0);} 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0);} }`}</style>
+
+            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 56, width: "100%", maxWidth: 320 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <button
+                  onClick={rejectIncomingCall}
+                  title="Refuser"
+                  style={{ width: 66, height: 66, borderRadius: "50%", border: "none", background: C.danger, color: C.white, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 10px 26px rgba(194,68,68,.45)" }}
+                >
+                  <PhoneOff size={26} />
+                </button>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: .85 }}>Refuser</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <button
+                  onClick={answerIncomingCall}
+                  title="Répondre"
+                  style={{ width: 66, height: 66, borderRadius: "50%", border: "none", background: C.success, color: C.white, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 10px 26px rgba(46,158,91,.45)" }}
+                >
+                  {incomingCall.type === "video" ? <Video size={26} /> : <Phone size={26} />}
+                </button>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: .85 }}>Répondre</span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -3254,6 +3407,7 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [newConversationMode, setNewConversationMode] = useState("direct");
   const [activeId, setActiveId] = useState(controlledActiveId);
+  const [incomingCall, setIncomingCall] = useState(null);
   const [widgetToast, setWidgetToast] = useState(null);
   const [autoOpenNewMessages, setAutoOpenNewMessages] = useState(false);
   const knownIncomingMessageIdsRef = useRef(null);
@@ -3307,7 +3461,8 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
         try {
           const response = await fetchBackendApi(`/api/calls?conversationId=${encodeURIComponent(conversation.id)}`, { cache: "no-store" });
           const data = await response.json();
-          if (!cancelled && data.call && !data.call.isCaller) {
+          if (!cancelled && data.call?.status === "ringing" && !data.call.isCaller) {
+            setIncomingCall((current) => current || { conversationId: conversation.id, call: data.call });
             setActiveId(conversation.id);
             setListOpen(false);
             return;
@@ -3444,7 +3599,11 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
       <ChatModal
         isOpen={!!active && !listOpen}
         conversation={active}
+        callOnly={Boolean(incomingCall)}
+        initialIncomingCall={incomingCall?.conversationId === active?.id ? incomingCall.call : null}
+        onIncomingCallHandled={() => setIncomingCall(null)}
         onClose={() => {
+          setIncomingCall(null);
           setActiveId(null);
           setListOpen(false);
           onClose?.();

@@ -521,6 +521,10 @@ html[data-device-preview] header {
   overflow: hidden;
 }
 
+.lynora-call-only > *:not(.lynora-incoming-call):not(.lynora-call-overlay) {
+  display: none !important;
+}
+
 .lynora-conversation-settings-menu {
   max-width: calc(100vw - 24px);
   box-sizing: border-box;

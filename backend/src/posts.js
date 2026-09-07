@@ -75,7 +75,7 @@ export async function registerPostRoutes(app) {
     const connectedAuthorIds = connectedAuthors.map((connection) =>
       connection.userAId === userId ? connection.userBId : connection.userAId,
     );
-    const visibilityRules = [{ visibility: { in: ["public", "Public", "PUBLIC"] } }, { visibility: null }];
+    const visibilityRules = [{ visibility: { in: ["public", "Public", "PUBLIC"] } }];
     if (userId) {
       visibilityRules.push({ authorId: userId });
       if (connectedAuthorIds.length) {

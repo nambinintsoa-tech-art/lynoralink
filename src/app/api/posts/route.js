@@ -64,7 +64,7 @@ export async function GET(req) {
         select: { userAId: true, userBId: true },
       })).map((connection) => connection.userAId === session.user.id ? connection.userBId : connection.userAId)
     : [];
-  const visibilityRules = [{ visibility: { in: ["public", "Public", "PUBLIC"] } }, { visibility: null }];
+  const visibilityRules = [{ visibility: { in: ["public", "Public", "PUBLIC"] } }];
   if (session?.user?.id) {
     visibilityRules.push(
       { authorId: session.user.id },
