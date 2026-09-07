@@ -428,7 +428,7 @@ function ViewerVideo({ src, label, style = {} }) {
         autoPlay
         playsInline
         aria-label={label || "Vidéo"}
-        style={{ width: "auto", maxWidth: "100%", height: "auto", maxHeight: `min(${VIEWER_MEDIA_MAX_HEIGHT}px, 60vh)`, objectFit: "contain", display: "block", background: "#000", margin: "0 auto", ...style }}
+        style={{ width: "100%", maxWidth: "100%", height: "100%", maxHeight: "none", objectFit: "cover", display: "block", background: "#000", margin: "0 auto", ...style }}
       />
     );
   }
@@ -490,17 +490,17 @@ function ViewerVideo({ src, label, style = {} }) {
         aria-hidden="true"
         tabIndex={-1}
         onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
-        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", pointerEvents: "none" }}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }}
       />
       {/* Voile léger pour la lisibilité des surcouches */}
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.10)", pointerEvents: "none" }} />
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.12)", pointerEvents: "none" }} />
       {/* Badge « muet » pendant l'aperçu au survol */}
       {previewing && (
         <div
           className="pv-video-muted"
           aria-hidden="true"
           style={{
-            position: "absolute", top: 12, left: 12,
+            position: "absolute", top: 10, left: 10,
             display: "flex", alignItems: "center", gap: 4,
             background: "rgba(0,0,0,0.65)", color: "#fff",
             padding: "3px 8px", borderRadius: 999,
@@ -519,7 +519,7 @@ function ViewerVideo({ src, label, style = {} }) {
           style={{
             position: "absolute", top: "50%", left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 64, height: 64, borderRadius: "50%",
+            width: 56, height: 56, borderRadius: "50%",
             background: "rgba(255,255,255,0.96)",
             color: C.navy800,
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -527,7 +527,7 @@ function ViewerVideo({ src, label, style = {} }) {
             pointerEvents: "none",
           }}
         >
-          <Play size={30} fill="currentColor" strokeWidth={0} style={{ marginLeft: 4 }} />
+          <Play size={26} fill="currentColor" strokeWidth={0} style={{ marginLeft: 3 }} />
         </span>
       )}
       {/* Badge durée (bas droite, comme Facebook) */}
@@ -536,7 +536,7 @@ function ViewerVideo({ src, label, style = {} }) {
           className="pv-video-duration"
           aria-hidden="true"
           style={{
-            position: "absolute", right: 12, bottom: 10,
+            position: "absolute", right: 10, bottom: 10,
             background: "rgba(0,0,0,0.72)", color: "#fff",
             padding: "2px 7px", borderRadius: 6,
             fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3,
@@ -1688,7 +1688,7 @@ export default function PostViewerPreview({
           .post-viewer-left > div:nth-child(4) { padding: 10px 16px !important; }
           .post-viewer-left > div:nth-child(6) { padding: 0 8px !important; }
           .post-viewer-media { min-height: 0 !important; max-height: none !important; height: auto !important; overflow: visible !important; }
-          .post-viewer-media img, .post-viewer-media video { width: auto !important; max-width: 100% !important; max-height: 52dvh !important; height: auto !important; }
+          .post-viewer-media img, .post-viewer-media video { width: 100% !important; max-width: 100% !important; max-height: 52dvh !important; height: 100% !important; object-fit: cover !important; }
           /* Vignette vidéo : conserver le remplissage du poster (comme Facebook) */
           .post-viewer-media .pv-video-stage { height: min(52dvh, 460px) !important; max-height: min(52dvh, 460px) !important; }
           .post-viewer-media .pv-video-stage .pv-video-frame,
@@ -1696,7 +1696,7 @@ export default function PostViewerPreview({
             width: 100% !important;
             height: 100% !important;
             max-height: none !important;
-            object-fit: contain !important;
+            object-fit: cover !important;
           }
           .post-viewer-media .pv-video-stage:focus-visible { outline: none; }
           .post-viewer-media .pv-video-stage:hover .pv-video-play { transform: translate(-50%, -50%) !important; box-shadow: 0 4px 18px rgba(0,0,0,0.4) !important; }

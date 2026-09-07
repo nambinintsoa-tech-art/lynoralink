@@ -881,7 +881,7 @@ export function CompanyPagePostsSkeleton({ count = 2 }) {
 
 export function ReelSkeleton() {
   return (
-    <Frame className="lynora-reel-skeleton" style={{ maxWidth: 520, minHeight: 620, margin: "0 auto", overflow: "hidden", position: "relative", background: C.navy900 }}>
+    <Frame className="lynora-reel-skeleton" style={{ maxWidth: 520, minHeight: 620, margin: "0 auto", overflow: "hidden", position: "relative", background: C.navy900, border: "none", boxSizing: "border-box" }}>
       <SkeletonVideo ratio="9/16" radius={0} style={{ height: "100%", minHeight: 620, background: "#102A40" }} />
       <div style={{ position: "absolute", left: 18, right: 64, bottom: 20, display: "flex", flexDirection: "column", gap: 9 }}>
         <Skeleton width="42%" height={14} radius={5} style={{ background: "rgba(255,255,255,.25)" }} />

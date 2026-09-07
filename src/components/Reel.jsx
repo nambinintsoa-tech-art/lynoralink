@@ -1976,6 +1976,7 @@ const REEL_STYLES = `
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          overflow-x: clip;
           position: relative;
         }
         .reel-loading,
@@ -2062,14 +2063,17 @@ const REEL_STYLES = `
           width: var(--reel-w);
           height: var(--reel-h);
           max-width: 100%;
+          box-sizing: border-box;
           margin: 0 auto;
           border: 1px solid rgba(255,255,255,.12);
           border-radius: 24px;
           overflow-y: auto;
+          overflow-x: hidden;
           scroll-snap-type: y mandatory;
           touch-action: pan-y;
           overscroll-behavior-y: contain;
           scrollbar-width: none;
+          scrollbar-color: transparent transparent;
           box-shadow: 0 28px 70px rgba(0,0,0,.48), 0 0 0 6px rgba(255,255,255,.025);
           position: relative;
           cursor: grab;
@@ -2515,7 +2519,8 @@ const REEL_STYLES = `
             max-width: 100%;
             max-height: 100%;
             border-radius: 18px;
-            box-shadow: 0 16px 40px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.08);
+            border: 0;
+            box-shadow: 0 16px 40px rgba(0,0,0,.42);
             margin: 0 auto;
           }
           .reel-close-desktop { display: none; }

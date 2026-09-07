@@ -200,6 +200,7 @@ export default function Reseau({
   pageProfile = null,
   onConnectionsChange,
   onInvitationsChange,
+  onInvitationAccepted,
   onMessageUser,
   onConnectSuggestion,
   onCancelConnectionRequest,
@@ -393,6 +394,7 @@ export default function Reseau({
         showToast(`Vous êtes maintenant en relation avec ${inv.name}`, Check);
         await refreshConnections();
         await refreshSuggestions();
+        await onInvitationAccepted?.(inv);
       }
     } catch (error) {
       setAcceptedInvitationIds((current) => current.filter((invitationId) => invitationId !== id));

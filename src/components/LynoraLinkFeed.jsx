@@ -1694,7 +1694,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
                 <div style={{ fontSize: 12, color: C.mutedLight, lineHeight: 1.5 }}>Aucune page à suivre pour le moment.</div>
               ) : displayPageSuggestions.map((page) => {
                 const isOwnPage = page.isOwn;
-                const isFollowed = !isOwnPage && followedPageIds.includes(page.id);
+                const isFollowed = !isOwnPage && followedPageIds.some((pageId) => String(pageId) === String(page.id));
                 return (
                   <div key={page.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <Avatar initials={page.initials || page.name.slice(0, 2).toUpperCase()} size={40} imgUrl={page.image} />
@@ -4758,6 +4758,12 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const followPage = async (id) => {
     if (!id) return;
 
+    const wasFollowed = followedPageIds.some((pageId) => String(pageId) === String(id));
+    const nextFollowed = !wasFollowed;
+    setFollowedPageIds((current) => nextFollowed
+      ? [...new Set([...current, id])]
+      : current.filter((pageId) => String(pageId) !== String(id)));
+
     try {
       const response = await fetchBackendApi("/api/company/follow", {
         method: "POST",
@@ -4772,6 +4778,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         : current.filter((pageId) => String(pageId) !== String(id)));
       setSidebarToast({ message: data.followed ? "Page suivie" : "Désabonnement effectué", icon: Check });
     } catch (error) {
+      setFollowedPageIds((current) => wasFollowed
+        ? [...new Set([...current, id])]
+        : current.filter((pageId) => String(pageId) !== String(id)));
       setSidebarToast({ message: "Action impossible", icon: X });
     }
   };
@@ -6394,6 +6403,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   pendingRequestIds={pendingSuggestionIds}
                   onConnectionsChange={setConnections}
                   onInvitationsChange={setInvitations}
+                  onInvitationAccepted={async () => {
+                    triggerRealtimeSync("all");
+                    await fetchRelations();
+                  }}
                   onConnectSuggestion={activeAccount === "personal" ? connectSuggestion : undefined}
                   onCancelConnectionRequest={activeAccount === "personal" ? cancelConnectionRequest : undefined}
                   onTabChange={(nextTab) => {
