@@ -25,7 +25,7 @@ services:
       - key: LIVEKIT_API_SECRET
         sync: false
       - key: NEXT_PUBLIC_LIVEKIT_URL
-        sync: false
+        value: wss://lynoralink-zq81w6x1.livekit.cloud
       - key: APP_URL
         sync: false
       - key: ADMIN_EMAIL
