@@ -6403,7 +6403,12 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   pendingRequestIds={pendingSuggestionIds}
                   onConnectionsChange={setConnections}
                   onInvitationsChange={setInvitations}
-                  onInvitationAccepted={async () => {
+                  onInvitationAccepted={async (invitation) => {
+                    const acceptedUserId = invitation?.userId;
+                    if (acceptedUserId) {
+                      setNetworkSuggestions((current) => current.filter((suggestion) => String(suggestion.id) !== String(acceptedUserId)));
+                      setConnectedSuggestionIds((current) => current.includes(acceptedUserId) ? current : [...current, acceptedUserId]);
+                    }
                     triggerRealtimeSync("all");
                     await fetchRelations();
                   }}
