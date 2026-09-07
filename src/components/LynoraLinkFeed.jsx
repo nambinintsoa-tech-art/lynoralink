@@ -4083,7 +4083,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [messagesModalOpen, notificationsModalOpen, overlayOriginView]);
 
   useEffect(() => {
-    const handleCallEnded = () => closeOverlay("messages");
+    const handleCallEnded = (event) => {
+      if (event.detail?.reason === "rejected") closeOverlay("messages");
+    };
     window.addEventListener("lynoralink:call-ended", handleCallEnded);
     return () => window.removeEventListener("lynoralink:call-ended", handleCallEnded);
   }, [overlayOriginView]);

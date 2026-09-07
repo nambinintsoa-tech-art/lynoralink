@@ -2558,8 +2558,6 @@ export function ChatModal({
     const groupCall = Boolean(conv.isGroup);
     setCallToast(reason === "rejected" ? "Appel refusé" : reason === "missed" ? "Appel manqué" : groupCall ? "Vous avez quitté l’appel" : "Appel terminé");
     setTimeout(() => setCallToast(null), 2800);
-    window.dispatchEvent(new CustomEvent("lynoralink:call-ended", { detail: { callId: currentCall?.id, reason } }));
-    onClose?.();
     setCallMinimized(false);
     if (remote || !mode || !currentCall?.id) return;
     try {
