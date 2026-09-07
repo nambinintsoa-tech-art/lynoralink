@@ -2727,7 +2727,7 @@ export function ChatModal({
                     if (msgMenuId === m.id) setMsgMenuId(null);
                   }}
                 >
-                {!isMe && <Avatar initials={conv.initials} imageUrl={conv.image} size={24} online={conv.online} onClick={() => setInfoOpen(true)} />}
+                {!isMe && <Avatar initials={m.authorInitials || conv.initials} imageUrl={m.authorImage || conv.image} size={24} online={conv.online} onClick={() => setInfoOpen(true)} />}
 
                 <div style={{ position: "relative", maxWidth: "74%", display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
                   {/* Barre d'actions au survol : réagir / répondre / plus d'options */}
@@ -3490,10 +3490,11 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   }, [autoOpen, directConversation]);
 
   useEffect(() => {
+    if (incomingCall) return;
     if (controlledActiveId !== undefined && controlledActiveId !== activeId) {
       setActiveId(controlledActiveId);
     }
-  }, [controlledActiveId, activeId]);
+  }, [controlledActiveId, activeId, incomingCall]);
 
   const setConversations = (updater) => {
     const next = typeof updater === "function" ? updater(conversations) : updater;

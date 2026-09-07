@@ -156,7 +156,7 @@ async function sendOpeningPageGreeting(conversation, pageId, recipientId) {
   const greetingReply = await generateAutoReply(page, "");
   const greeting = await prisma.message.create({
     data: { conversationId: conversation.id, senderId: pageId, text: greetingReply.text, mediaData: greetingReply.attachments.length ? JSON.stringify(greetingReply.attachments) : null },
-    include: { sender: { select: { id: true, name: true } } },
+    include: { sender: { select: { id: true, name: true, image: true } } },
   });
   await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
   await createNotification({
@@ -199,7 +199,7 @@ export async function GET(req) {
       messages: {
         where: { deletions: { none: { userId } } },
         orderBy: { createdAt: "asc" },
-        include: { sender: { select: { id: true, name: true } }, reactions: { select: { userId: true, reaction: true } } },
+        include: { sender: { select: { id: true, name: true, image: true } }, reactions: { select: { userId: true, reaction: true } } },
       },
       calls: { orderBy: { createdAt: "asc" } },
       members: {
@@ -270,6 +270,8 @@ export async function GET(req) {
     const page = conversation.pageId ? pagesById.get(conversation.pageId) : null;
     const displayName = page?.name || otherUser?.name || "Utilisateur";
     const displayImage = page?.logoUrl || page?.avatarUrl || page?.image || otherUser?.image || null;
+    const pageName = page?.name || "Page entreprise";
+    const pageImage = page?.logoUrl || page?.avatarUrl || page?.image || null;
     const groupMembers = conversation.members || [];
     const groupName = conversation.groupName || groupMembers.map((member) => member.user.name).filter(Boolean).join(", ");
     const callMessages = conversation.calls.map((call) => ({
@@ -287,6 +289,9 @@ export async function GET(req) {
       ...conversation.messages.map((message) => ({
         id: message.id,
         from: message.senderId === userId ? "me" : "them",
+        author: message.senderId === conversation.pageId ? pageName : message.sender?.name || "Utilisateur",
+        authorImage: message.senderId === conversation.pageId ? pageImage : message.sender?.image || null,
+        authorInitials: initials(message.senderId === conversation.pageId ? pageName : message.sender?.name || "Utilisateur"),
         text: message.text,
         attachments: (() => {
           try { return message.mediaData ? JSON.parse(message.mediaData) : []; } catch { return []; }
@@ -512,6 +517,15 @@ export async function POST(req) {
     data: { updatedAt: new Date() },
   });
 
+  let senderPageName = null;
+  if (conversation.pageId === session.user.id) {
+    const pageSetting = await prisma.userSetting.findUnique({
+      where: { userId_key: { userId: session.user.id, key: "companyPage" } },
+      select: { value: true },
+    });
+    try { senderPageName = JSON.parse(pageSetting?.value || "{}").name || null; } catch {}
+  }
+
   const recipientIds = conversation.isGroup
     ? (await prisma.conversationMember.findMany({
         where: { conversationId: conversation.id, userId: { not: session.user.id } },
@@ -526,9 +540,9 @@ export async function POST(req) {
       userId,
       senderId: session.user.id,
       type: "message",
-      actor: message.sender?.name || "Un membre",
+      actor: senderPageName || message.sender?.name || "Un membre",
       text: previewEnabled ? message.text : "Vous avez reçu un nouveau message.",
-      title: `Nouveau message de ${message.sender?.name || "un membre"}`,
+      title: `Nouveau message de ${senderPageName || message.sender?.name || "un membre"}`,
       url: "/feed?view=messages",
       meta: { kind: "message", conversationId: conversation.id },
     });

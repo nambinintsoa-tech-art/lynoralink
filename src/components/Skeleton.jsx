@@ -154,6 +154,7 @@ const STYLE_CSS = `
 }
 @media (max-width: 560px) {
   .lynora-skeleton-feed-grid { padding: 8px 12px 12px !important; }
+  .lynora-skeleton-feed-grid > main { width: 100% !important; max-width: none !important; }
   .lynora-feed-skeleton-wrapper { width: 100%; max-width: none; margin: 0; }
   .lynora-feed-skeleton-card,
   .lynora-feed-skeleton-card > *,
@@ -161,6 +162,15 @@ const STYLE_CSS = `
   .lynora-feed-skeleton-card .lynora-skeleton-cover,
   .lynora-feed-skeleton-card .lynora-skeleton-avatar {
     border-radius: 12px !important;
+  }
+  .lynora-skeleton-post-card {
+    width: 100vw !important;
+    max-width: none !important;
+    margin-left: calc(50% - 50vw) !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-header {
+    padding-left: 12px !important;
+    padding-right: 52px !important;
   }
   .lynora-group-detail-skeleton { padding: 8px 10px 20px !important; }
   .lynora-group-detail-skeleton .lynora-skeleton-detail-toolbar { flex-direction: column !important; align-items: stretch !important; }
