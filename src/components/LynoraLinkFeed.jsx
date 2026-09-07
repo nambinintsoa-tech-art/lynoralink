@@ -5917,7 +5917,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 <LeftSidebarSkeleton />
               </aside>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+              <div className="lynora-skeleton-feed-main" style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
                 <ComposerSkeleton />
                 <SkeletonStoryRail />
                 <FeedSkeleton count={5} />

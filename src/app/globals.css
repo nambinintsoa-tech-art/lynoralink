@@ -1240,6 +1240,15 @@ html[data-device-preview] .lynora-feed-page {
   }
 }
 
+@media (max-width: 560px) {
+  .lynora-skeleton-feed-main {
+    width: 100vw !important;
+    max-width: none !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+  }
+}
+
 h1,
 h2,
 h3,

@@ -62,7 +62,7 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
         <aside aria-label="Chargement de la navigation latérale" style={{ minWidth: 0 }}>
           <LeftSidebarSkeleton />
         </aside>
-        <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0, width: "100%" }}>
+        <main className="lynora-skeleton-feed-main" style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0, width: "100%" }}>
           <ComposerSkeleton />
           <SkeletonStoryRail />
           <FeedSkeleton count={5} />

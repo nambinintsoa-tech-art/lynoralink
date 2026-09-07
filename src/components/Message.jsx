@@ -3490,8 +3490,8 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
   }, [autoOpen, directConversation]);
 
   useEffect(() => {
-    if (incomingCall) return;
-    if (controlledActiveId !== undefined && controlledActiveId !== activeId) {
+    if (incomingCall || controlledActiveId == null) return;
+    if (controlledActiveId !== activeId) {
       setActiveId(controlledActiveId);
     }
   }, [controlledActiveId, activeId, incomingCall]);
