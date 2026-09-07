@@ -3,7 +3,7 @@ import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
 
 function getLiveKitUrl() {
-  const value = process.env.NEXT_PUBLIC_LIVEKIT_URL?.trim();
+  const value = (process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://lynoralink-zq81w6x1.livekit.cloud").trim();
   if (!value) return "";
   return value.replace(/\/$/, "").replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://");
 }
