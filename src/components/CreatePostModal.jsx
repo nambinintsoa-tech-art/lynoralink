@@ -872,10 +872,11 @@ function VisibilityPicker({ value, onChange, variant = "chip", locked = false })
           type="button"
           onClick={() => !locked && setOpen((v) => !v)}
           disabled={locked}
-          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: C.navy800, background: "transparent", border: "none", cursor: locked ? "default" : "pointer", padding: 0, marginTop: 2, borderRadius: "8px" }}
+          className="cpm-chip"
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: C.ink, background: C.navy50, border: `1px solid ${C.navy100}`, cursor: locked ? "default" : "pointer", padding: "3px 8px 3px 7px", marginTop: 3, borderRadius: 6 }}
         >
-          <current.icon size={13} /> {current.label}
-          <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }} />
+          <current.icon size={12} /> {current.label}
+          {!locked && <ChevronDown size={11} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }} />}
         </button>
         {open && !locked && (
           <div className="cpm-fade" style={{ position: "absolute", top: 30, left: 0, background: C.white, border: `1px solid ${C.line}`, borderRadius: "12px", boxShadow: "0 12px 32px rgba(15,51,82,0.18)", zIndex: 20, minWidth: 230, overflow: "hidden" }}>
@@ -1894,7 +1895,7 @@ export default function CreatePostModal({
         className="cpm-panel"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: isArticle ? 720 : 640, maxHeight: "90vh", background: C.white, borderRadius: 22,
+          width: "100%", maxWidth: isArticle ? 720 : 552, maxHeight: "90vh", background: C.white, borderRadius: 12,
           display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 32px 80px rgba(15,51,82,0.42), 0 2px 0 rgba(255,255,255,0.6) inset",
           position: "relative", fontFamily: "'Inter', sans-serif", border: `1px solid rgba(15,51,82,0.06)`,
         }}
@@ -2050,8 +2051,8 @@ export default function CreatePostModal({
           {/* ---------------------------------------------------------- */}
           {/* SECTION UTILISATEUR                                          */}
           {/* ---------------------------------------------------------- */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 24px 14px" }}>
-            <Avatar initials={currentUser.avatar} size={56} imgUrl={currentUser.avatarUrl} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px 8px" }}>
+            <Avatar initials={currentUser.avatar} size={40} imgUrl={currentUser.avatarUrl} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontFamily: "'Sora', sans-serif", lineHeight: 1.3 }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>{currentUser.name}</span>
@@ -2281,6 +2282,7 @@ export default function CreatePostModal({
               <div style={{ position: "relative" }}>
                 <textarea
                   ref={textareaRef}
+                  autoFocus
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onPaste={onPaste}
@@ -2291,29 +2293,29 @@ export default function CreatePostModal({
                         ? `Décrivez le VisuelFocus à partager avec ${group.name}…`
                         : "Décrivez votre VisuelFocus…"
                       : group
-                        ? `Partagez une actualité avec les membres de ${group.name}…`
-                        : "Exprimez vos idées, partagez vos projets ou vos inspirations…"
+                        ? `Quoi de neuf, à partager avec ${group.name} ?`
+                        : `Quoi de neuf, ${(currentUser.name || "").split(" ")[0] || currentUser.name} ?`
                   }
-                  rows={isReel ? 3 : 4}
+                  rows={isReel ? 3 : 3}
                   style={{
                     width: "100%",
-                    border: `1.5px solid ${C.line}`,
-                    borderRadius: 14,
+                    minHeight: media.length > 0 || isReel ? 60 : 110,
+                    border: "none",
+                    borderRadius: 0,
                     outline: "none",
                     resize: "none",
-                    fontSize: 15,
+                    fontSize: media.length > 0 ? 17 : 22,
+                    fontWeight: media.length > 0 ? 400 : 500,
                     color: C.ink,
                     fontFamily: "'Inter', sans-serif",
-                    lineHeight: 1.7,
-                    padding: "16px 18px",
-                    background: C.navy50,
-                    boxShadow: "inset 0 1px 0 rgba(15,51,82,0.02)",
-                    transition: "border-color 180ms ease, box-shadow 180ms ease",
+                    lineHeight: 1.4,
+                    padding: "4px 0 8px",
+                    background: "transparent",
+                    boxShadow: "none",
+                    transition: "font-size 120ms ease",
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = C.navy700; e.target.style.boxShadow = `0 0 0 3px ${C.navy100}`; }}
-                  onBlur={(e) => { e.target.style.borderColor = C.line; e.target.style.boxShadow = "inset 0 1px 0 rgba(15,51,82,0.02)"; }}
                 />
-                <div style={{ position: "absolute", bottom: 12, right: 14 }}>
+                <div style={{ position: "absolute", bottom: 8, right: 6 }}>
                   <EmojiPicker onSelect={insertEmoji} />
                 </div>
               </div>
@@ -2339,36 +2341,45 @@ export default function CreatePostModal({
           )}
 
           {/* ---------------------------------------------------------- */}
-          {/* BARRE DES OPTIONS MÉDIAS                                    */}
+          {/* "AJOUTER À VOTRE PUBLICATION" — boîte façon Facebook        */}
           {/* ---------------------------------------------------------- */}
           {!isArticle && !isReel && (
-            <div style={{ padding: "10px 20px 14px", borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: C.navy50 }}>
-              <div className="cpm-media-options" style={{ display: "flex", alignItems: "stretch", justifyContent: "center", gap: 6, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
-                {MEDIA_BAR_OPTIONS.map((option) => {
-                  return (
+            <div style={{ padding: "8px 24px 16px" }}>
+              <div
+                className="cpm-media-options"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+                  padding: "10px 12px 10px 16px", borderRadius: 12, border: `1px solid ${C.line}`, background: C.white,
+                }}
+              >
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink, whiteSpace: "nowrap" }}>
+                  Ajouter à votre publication
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
+                  {MEDIA_BAR_OPTIONS.map((option) => (
                     <button
                       key={option.id}
                       type="button"
                       onClick={() => handleMediaBarClick(option)}
+                      title={option.label}
                       className="cpm-media-opt"
                       style={{
-                        display: "flex", alignItems: "center", gap: 7, padding: "7px 11px 7px 8px", borderRadius: 10,
-                        border: `1px solid ${option.color}45`, background: `${option.color}0D`, cursor: "pointer", color: C.ink, fontWeight: 700, fontSize: 12.5, whiteSpace: "nowrap", flex: "0 0 auto",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 34, height: 34, borderRadius: "50%", border: "none",
+                        background: "transparent", cursor: "pointer", color: option.color, flexShrink: 0,
                       }}
                     >
-                      <span
-                        className="cpm-media-opt-icon"
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 8,
-                          background: `${option.color}1A`, color: option.color, flexShrink: 0,
-                        }}
-                      >
-                        <FontAwesomeIcon icon={option.icon} style={{ fontSize: 16 }} />
-                      </span>
-                      <span>{option.label}</span>
+                      <FontAwesomeIcon icon={option.icon} style={{ fontSize: 17 }} />
                     </button>
-                  );
-                })}
+                  ))}
+                  <span style={{ width: 1, height: 22, background: C.line, margin: "0 2px" }} />
+                  <span title="Humeur" style={{ display: "flex" }}>
+                    <MoodPicker value={mood} onChange={setMood} placement="top" />
+                  </span>
+                  <span title="Identifier des personnes" style={{ display: "flex" }}>
+                    <IdentifierPicker value={identifiedUsers} onChange={setIdentifiedUsers} />
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -2575,15 +2586,9 @@ export default function CreatePostModal({
         {/* ================================================================== */}
         {/* PIED DE MODALE                                                    */}
         {/* ================================================================== */}
-        <div className="cpm-footer" style={{ padding: "14px 24px", borderTop: `1px solid ${C.line}`, boxShadow: "0 -8px 20px rgba(15,51,82,0.04)", position: "relative", zIndex: 2, background: C.white }}>
-          <div className="cpm-footer-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%" }}>
-            {/* --- Côté gauche : Humeur + Identifier --- */}
-            <div className="cpm-footer-tools" style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0, overflow: "visible" }}>
-              <MoodPicker value={mood} onChange={setMood} placement="top" />
-              <IdentifierPicker value={identifiedUsers} onChange={setIdentifiedUsers} />
-            </div>
-
-            {/* --- Côté droit : Bouton Publier --- */}
+        <div className="cpm-footer" style={{ padding: "14px 24px", borderTop: `1px solid ${C.line}`, position: "relative", zIndex: 2, background: C.white }}>
+          <div className="cpm-footer-row" style={{ width: "100%" }}>
+            {/* --- Bouton Publier, pleine largeur, façon Facebook --- */}
             <button
               type="button"
               disabled={!canPublish || submitting}
@@ -2591,21 +2596,19 @@ export default function CreatePostModal({
               onClick={handlePublish}
               className="cpm-publish cpm-footer-publish"
               style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "10px 26px", borderRadius: 999, border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%",
+                padding: "11px 26px", borderRadius: 8, border: "none",
                 background: canPublish && !submitting ? navyGrad : C.line, color: canPublish && !submitting ? C.white : C.mutedLight,
                 fontWeight: 700, fontSize: 15, fontFamily: "'Sora', sans-serif", cursor: canPublish && !submitting ? "pointer" : "not-allowed",
-                boxShadow: canPublish && !submitting ? "0 8px 20px rgba(15,51,82,0.3)" : "none",
-                whiteSpace: "nowrap", flexShrink: 0,
               }}
             >
               {submitting && <Loader2 size={15} className="cpm-spinner" />}
-              {!submitting && canPublish && <Send size={14} />}
               {submitting ? (isEditing ? "Enregistrement…" : "Publication…") : (isEditing ? "Enregistrer" : "Publier")}
             </button>
           </div>
 
           {!canPublish && publishDisabledReason && (
-            <div style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.4 }}>
+            <div style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.4, textAlign: "center" }}>
               {publishDisabledReason}
             </div>
           )}
