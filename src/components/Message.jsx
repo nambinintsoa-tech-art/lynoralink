@@ -2921,7 +2921,7 @@ export function ChatModal({
                     const data = await response.json().catch(() => ({}));
                     throw new Error(data.error || "block failed");
                   }
-                  onBlocked?.(conv.id, `${conv.name} a été bloqué pendant 7 jours.`);
+                  onBlocked?.(conv.id, `${conv.name} a été bloqué jusqu'à ce que vous le débloquiez.`);
                 } catch {
                   showActionToast("Le blocage n'a pas pu être enregistré. Vérifiez votre connexion puis réessayez.");
                 }

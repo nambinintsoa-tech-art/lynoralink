@@ -9,6 +9,7 @@
     "backend:dev": "npm --prefix backend run dev",
     "backend:start": "npm --prefix backend run start",
     "migration:check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-backend-migration.ps1",
+    "test:security": "node --test tests/security-regression.test.mjs",
     "tunnel": "npx ngrok http 3000",
     "build": "prisma generate && next build",
     "start": "node scripts/start-next.js",

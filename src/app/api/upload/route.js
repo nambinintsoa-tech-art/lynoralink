@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { v2 as cloudinary } from "cloudinary";
+
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "video/mp4", "video/quicktime", "video/webm",
+  "application/pdf", "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+]);
 
 const getPreset = (type) => {
   if (type === "video") return process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET || "";
@@ -34,6 +45,8 @@ cloudinary.config({
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     const formData = await req.formData();
     const file = formData.get("file");
     const type = formData.get("type") || (file?.type?.startsWith("video") ? "video" : "image");
@@ -41,6 +54,12 @@ export async function POST(req) {
 
     if (!file || typeof file === "string") {
       return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 });
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ error: "Fichier trop volumineux. Taille maximale: 25 Mo." }, { status: 413 });
+    }
+    if (file.type && !ALLOWED_UPLOAD_TYPES.has(file.type)) {
+      return NextResponse.json({ error: "Type de fichier non autorisé." }, { status: 415 });
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
@@ -105,8 +124,6 @@ export async function POST(req) {
       const httpCode = error?.http_code || 502;
       return NextResponse.json({
         error: "Cloudinary a refusé l'upload. Vérifiez le cloud name et le preset.",
-        cloudinaryError: error?.message,
-        httpCode,
       }, { status: httpCode === 401 || httpCode === 403 ? httpCode : 502 });
     }
 
@@ -120,7 +137,6 @@ export async function POST(req) {
     console.error("Upload failed", error);
     return NextResponse.json({
       error: "Échec de l'upload Cloudinary",
-      details: error?.message,
     }, { status: 502 });
   }
 }

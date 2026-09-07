@@ -48,7 +48,7 @@ export async function GET(req) {
   const connectedIds = new Set();
   const pendingIds = new Set();
   const retainedPendingSuggestionIds = new Set();
-  const removedIds = new Set(removedRows.filter((row) => row.createdAt.getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000).map((row) => row.targetId));
+  const removedIds = new Set(removedRows.map((row) => row.targetId));
   const pendingSuggestionCutoff = Date.now() - 24 * 60 * 60 * 1000;
 
   for (const r of rows) {
