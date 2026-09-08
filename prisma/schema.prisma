@@ -193,6 +193,7 @@ model Post {
   companyPage     User?       @relation("CompanyPosts", fields: [companyPageId], references: [id])
   shares          PostShare[]
   savedPosts      SavedPost[]
+  updatedAt       DateTime    @updatedAt
 }
 
 model Comment {

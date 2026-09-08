@@ -3621,7 +3621,7 @@ export default function PostCard({
               </>
             )}
             <div className="pc-header-meta" style={{ fontSize: 13, color: FB.textSecondary, marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", visibility: "visible", height: "auto", overflow: "hidden" }}>
-              <RelativeTime date={post.time || post.createdAt} />
+              <RelativeTime date={post.updatedAt || post.time || post.createdAt} />
               <span>·</span>
               <VisibilityIcon v={post.visibility} />
               {post.isArticle && (
@@ -3775,7 +3775,7 @@ export default function PostCard({
           }}
           onClose={() => setEditOpen(false)}
           onPublish={async (payload) => {
-            await onEditPost?.(post.id, payload.text.trim(), payload.visibility);
+            await onEditPost?.(post.id, payload.text.trim(), payload.visibility, payload.media);
             setEditOpen(false);
           }}
         />

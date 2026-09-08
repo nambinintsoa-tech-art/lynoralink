@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useInsertionEffect, useRef, useState, useCallback } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -81,25 +81,37 @@ const STYLE_CSS = `
   .lynora-skeleton-stat-row > div { min-width: calc(50% - 6px); }
   .lynora-skeleton-stat-row > div[style*="width: 1px"] { display: none; }
   .lynora-profile-skeleton > div:first-child { border-radius: 0 !important; }
-  .lynora-profile-skeleton .lynora-profile-banner { height: 140px !important; }
-  .lynora-profile-skeleton .lynora-profile-body { padding: 0 16px 18px !important; margin-top: -38px !important; }
+  .lynora-profile-skeleton .lynora-profile-banner { height: 120px !important; }
+  .lynora-profile-skeleton .lynora-profile-body { padding: 0 16px !important; margin-top: 0 !important; }
   .lynora-profile-skeleton .lynora-profile-identity { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
   .lynora-profile-skeleton .lynora-profile-avatar { width: 88px !important; height: 88px !important; }
   .lynora-profile-skeleton .lynora-profile-stats { flex-wrap: wrap !important; gap: 12px !important; }
   .lynora-profile-skeleton .lynora-profile-stats > div { flex: 1 1 calc(50% - 6px); min-width: 0; }
   .lynora-profile-loading-main { padding: 0 0 24px !important; }
   .lynora-profile-skeleton { gap: 16px !important; }
-  .lynora-profile-skeleton > div:first-child { width: 100% !important; border-radius: 0 !important; }
-  .lynora-profile-skeleton .lynora-profile-banner { height: 140px !important; }
+  .lynora-profile-skeleton { width: 100vw !important; margin-left: calc(50% - 50vw) !important; }
+  .lynora-profile-skeleton > div:first-child { width: 100% !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+  .lynora-profile-skeleton .lynora-profile-banner { height: 120px !important; }
   .lynora-profile-skeleton .lynora-profile-body { padding: 0 16px !important; }
   .lynora-profile-skeleton .lynora-profile-avatar { width: 100px !important; height: 100px !important; top: -40px !important; left: 16px !important; }
   .lynora-profile-skeleton .lynora-profile-identity { min-height: 0 !important; padding-top: 64px !important; padding-bottom: 18px !important; align-items: stretch !important; gap: 18px !important; }
   .lynora-profile-skeleton .lynora-profile-identity > div:first-child { width: 100% !important; }
-  .lynora-profile-skeleton .lynora-profile-actions { width: 100% !important; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lynora-profile-skeleton .lynora-profile-actions { width: 100% !important; display: flex !important; flex-wrap: wrap !important; justify-content: flex-start !important; gap: 8px !important; }
+  .lynora-profile-skeleton .lynora-profile-actions > div { flex: 0 0 auto; }
   .lynora-profile-skeleton .lynora-profile-tabs { gap: 12px !important; padding: 14px 0 !important; overflow: hidden !important; }
   .lynora-profile-skeleton .lynora-profile-main-grid { display: block !important; margin-top: 0 !important; }
   .lynora-profile-skeleton .lynora-profile-sidebar { display: none !important; }
   .lynora-profile-skeleton .lynora-profile-main-grid > div { width: 100% !important; }
+  .lynora-profile-skeleton .lynora-profile-post-skeleton {
+    width: 100vw !important;
+    max-width: none !important;
+    margin-left: calc(50% - 50vw) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .lynora-profile-skeleton .lynora-profile-post-skeleton > * { border-radius: 0 !important; }
+  .lynora-profile-skeleton .lynora-profile-post-skeleton > div:last-child { width: 100vw !important; max-width: none !important; }
   .lynora-company-skeleton { gap: 16px !important; }
   .lynora-company-skeleton > div:first-child { border-radius: 0 !important; }
   .lynora-company-skeleton .lynora-company-hero { height: 145px !important; }
@@ -153,24 +165,61 @@ const STYLE_CSS = `
   .lynora-skeleton-group-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
 }
 @media (max-width: 560px) {
-  .lynora-skeleton-feed-grid { padding: 8px 12px 12px !important; }
+  .lyn-shimmer,
+  .lyn-pulse {
+    background: linear-gradient(105deg, #E4E6EB 20%, #F5F6F7 45%, #E4E6EB 70%) !important;
+    background-size: 240% 100%;
+    animation: lyn-shimmer 1.7s ease-in-out infinite;
+  }
+  .lynora-skeleton-feed-shell { background: #F0F2F5 !important; }
+  .lynora-skeleton-feed-grid { padding: 0 0 20px !important; gap: 8px !important; }
   .lynora-skeleton-feed-grid > main { width: 100% !important; max-width: none !important; }
-  .lynora-feed-skeleton-wrapper { width: 100%; max-width: none; margin: 0; }
-  .lynora-feed-skeleton-card,
-  .lynora-feed-skeleton-card > *,
-  .lynora-feed-skeleton-card .lynora-skeleton-media,
-  .lynora-feed-skeleton-card .lynora-skeleton-cover,
-  .lynora-feed-skeleton-card .lynora-skeleton-avatar {
-    border-radius: 12px !important;
+  .lynora-feed-skeleton-wrapper {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    gap: 8px !important;
   }
   .lynora-skeleton-post-card {
     width: 100vw !important;
     max-width: none !important;
     margin-left: calc(50% - 50vw) !important;
+    padding: 12px 12px 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
   .lynora-skeleton-post-card .lynora-skeleton-post-header {
-    padding-left: 12px !important;
-    padding-right: 52px !important;
+    padding: 0 !important;
+    margin-bottom: 14px !important;
+    gap: 10px !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-body {
+    padding: 0 !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-media {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 2px -12px 0 !important;
+    width: calc(100% + 24px) !important;
+    border-radius: 0 !important;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-actions {
+    margin: 12px 0 0 !important;
+    padding-top: 10px !important;
+    gap: 8px !important;
+    justify-content: space-between;
+  }
+  .lynora-skeleton-post-card .lynora-skeleton-post-actions > div {
+    flex: 0 1 58px;
+  }
+  .lynora-feed-skeleton-card:not(.lynora-skeleton-post-card) {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .lynora-feed-skeleton-card,
+  .lynora-feed-skeleton-card > * {
+    border-radius: 0 !important;
   }
   .lynora-group-detail-skeleton { padding: 8px 10px 20px !important; }
   .lynora-group-detail-skeleton .lynora-skeleton-detail-toolbar { flex-direction: column !important; align-items: stretch !important; }
@@ -206,7 +255,7 @@ const STYLE_CSS = `
 `;
 
 function useSkeletonStyles() {
-  useEffect(() => {
+  useInsertionEffect(() => {
     if (typeof document === "undefined") return;
     if (document.getElementById(STYLE_ID)) return;
     const tag = document.createElement("style");
@@ -727,40 +776,43 @@ export function NotificationsSkeleton() {
 export function ProfileSkeleton() {
   return (
     <div className="lynora-profile-skeleton" style={{ width: "100%", minHeight: 0, display: "flex", flexDirection: "column", gap: 24 }}>
-      <Frame style={{ padding: 0, overflow: "hidden" }}>
-        <div className="lynora-profile-banner" style={{ height: 180, background: `linear-gradient(135deg, ${C.navy100}, ${C.baseHi})`, position: "relative" }} />
-        <div className="lynora-profile-body" style={{ padding: "0 32px 0", position: "relative" }}>
+      <Frame style={{ padding: 0, overflow: "visible", borderRadius: 0, boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
+        <div className="lynora-profile-banner" style={{ height: 180, background: `linear-gradient(135deg, ${C.navy100}, ${C.baseHi})`, position: "relative", borderBottom: `1px solid ${C.line}` }} />
+        <div className="lynora-profile-body" style={{ padding: "0 32px", position: "relative" }}>
           <Skeleton className="lynora-profile-avatar" width={152} height={152} radius={76} style={{ position: "absolute", top: -68, left: 32, border: `4px solid ${C.white}`, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }} />
-          <div className="lynora-profile-identity" style={{ minHeight: 208, paddingTop: 80, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
-            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-              <Skeleton width="38%" height={28} radius={7} />
+          <div className="lynora-profile-identity" style={{ minHeight: 246, paddingTop: 80, paddingBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+            <div className="lynora-profile-info" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+              <Skeleton width="38%" height={30} radius={7} />
               <Skeleton width="55%" height={18} radius={5} />
               <Skeleton width="30%" height={14} radius={5} />
-              <Skeleton width="24%" height={14} radius={5} />
+              <Skeleton width="42%" height={14} radius={5} />
+              <Skeleton width="118px" height={30} radius={8} style={{ marginTop: 4 }} />
             </div>
             <div className="lynora-profile-actions" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <Skeleton width={132} height={40} radius={20} />
-              <Skeleton width={104} height={40} radius={20} />
+              <Skeleton width={132} height={42} radius={24} />
+              <Skeleton width={104} height={42} radius={24} />
+              <Skeleton width={42} height={42} radius={21} />
             </div>
           </div>
           <div className="lynora-profile-tabs" style={{ display: "flex", gap: 20, paddingTop: 18, borderTop: `1px solid ${C.line}` }}>
-            {[90, 82, 92, 78, 70].map((width, index) => <Skeleton key={index} width={width} height={16} radius={5} />)}
+            {[92, 76, 88, 72, 52, 66].map((width, index) => <Skeleton key={index} width={width} height={16} radius={5} />)}
           </div>
         </div>
       </Frame>
       <div className="lynora-profile-main-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-          <Frame style={{ padding: 16 }}>
-            <Skeleton width="32%" height={18} radius={6} style={{ marginBottom: 16 }} />
-            <SkeletonText lines={4} lastLineWidth="72%" lineHeight={13} />
+          <Frame className="lynora-profile-post-skeleton" style={{ padding: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}><SkeletonAvatar size={40} radius={999} /><div style={{ flex: 1 }}><Skeleton width="32%" height={13} radius={5} style={{ marginBottom: 7 }} /><Skeleton width="22%" height={10} radius={5} /></div></div>
+            <SkeletonText lines={3} lastLineWidth="64%" lineHeight={12} />
+            <Skeleton width="100%" height={220} radius={10} style={{ marginTop: 14 }} />
           </Frame>
-          <Frame style={{ padding: 16 }}>
-            <Skeleton width="42%" height={18} radius={6} style={{ marginBottom: 16 }} />
-            <SkeletonText lines={5} lastLineWidth="58%" lineHeight={13} />
+          <Frame className="lynora-profile-about-skeleton" style={{ padding: 16 }}>
+            <Skeleton width="34%" height={18} radius={6} style={{ marginBottom: 16 }} />
+            <SkeletonText lines={4} lastLineWidth="72%" lineHeight={13} />
           </Frame>
         </div>
         <aside className="lynora-profile-sidebar" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {["32%", "44%", "38%"].map((width, index) => <Frame key={index} style={{ padding: 16 }}><Skeleton width={width} height={18} radius={6} style={{ marginBottom: 16 }} /><SkeletonText lines={index === 1 ? 4 : 3} lastLineWidth="68%" lineHeight={12} /></Frame>)}
+          {["Infos", "Relations", "Médias"].map((label, index) => <Frame key={label} className={`lynora-profile-sidebar-${index}`} style={{ padding: 16 }}><Skeleton width={index === 0 ? "42%" : "36%"} height={18} radius={6} style={{ marginBottom: 16 }} /><SkeletonText lines={index === 1 ? 4 : 3} lastLineWidth="68%" lineHeight={12} /></Frame>)}
         </aside>
       </div>
     </div>

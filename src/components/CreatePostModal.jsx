@@ -15,7 +15,7 @@ import PremiumBadge from "./PremiumBadge";
 import { fetchBackendApi } from "@/lib/backend-api";
 import Emojipicker from "./Emojipicker";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faNewspaper, faPhotoFilm, faVideo, faWandSparkles } from "@fortawesome/free-solid-svg-icons";
+import { faNewspaper, faPhotoFilm, faVideo, faWandSparkles, faFaceSmile, faUserPlus } from "@fortawesome/free-solid-svg-icons";
 
 /* ------------------------------------------------------------------ */
 /*  TOKENS — identiques à la palette LynoraLink (badge navy + L doré) */
@@ -1012,25 +1012,30 @@ function MoodPicker({ value, onChange, placement = "bottom" }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="cpm-chip"
-          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navy900, background: C.navy50, border: `1px solid ${C.navy100}`, borderRadius: 10, padding: "7px 9px 7px 11px", cursor: "pointer", whiteSpace: "nowrap" }}
+          className="cpm-media-opt"
+          title={`Humeur : se sent ${value.label}`}
+          aria-label={`Humeur : se sent ${value.label}`}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", border: "none", background: C.gold600, cursor: "pointer", color: C.navy900, flexShrink: 0, boxShadow: "0 4px 12px rgba(15,51,82,0.16)", position: "relative" }}
         >
-          <span style={{ fontSize: 13 }}>{value.emoji}</span> se sent {value.label}
+          <span style={{ fontSize: 17, lineHeight: 1 }}>{value.emoji}</span>
           <span
             onClick={(e) => { e.stopPropagation(); onChange(null); }}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 999, background: "rgba(15,51,82,0.1)", marginLeft: 2, cursor: "pointer" }}
+            aria-label="Retirer l'humeur"
+            style={{ position: "absolute", top: -4, right: -4, display: "flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 999, background: C.navy900, color: C.white, cursor: "pointer" }}
           >
-            <X size={10} />
+            <X size={9} />
           </span>
         </button>
       ) : (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="cpm-chip"
-          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navy900, background: C.navy50, border: `1px solid ${C.navy100}`, borderRadius: 10, padding: "7px 12px", cursor: "pointer", whiteSpace: "nowrap" }}
+          className="cpm-media-opt"
+          title="Humeur"
+          aria-label="Ajouter une humeur"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", border: "none", background: C.gold600, cursor: "pointer", color: C.navy900, flexShrink: 0, boxShadow: "0 4px 12px rgba(15,51,82,0.16)" }}
         >
-          <Smile size={15} color={C.gold600} /> Humeur
+          <FontAwesomeIcon icon={faFaceSmile} style={{ fontSize: 17 }} />
         </button>
       )}
 
@@ -1114,11 +1119,13 @@ function IdentifierPicker({ value = [], onChange }) {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="cpm-chip"
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navy900, background: value.length ? C.navy100 : C.navy50, border: `1px solid ${C.navy100}`, borderRadius: 10, padding: "7px 12px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+        className="cpm-media-opt"
+        title={value.length ? `${value.length} personne${value.length > 1 ? "s" : ""} identifiée${value.length > 1 ? "s" : ""}` : "Identifier des personnes"}
+        aria-label={value.length ? `${value.length} personne${value.length > 1 ? "s" : ""} identifiée${value.length > 1 ? "s" : ""}` : "Identifier des personnes"}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", border: "none", background: value.length ? C.navy800 : C.navy700, cursor: "pointer", color: C.white, flexShrink: 0, boxShadow: "0 4px 12px rgba(15,51,82,0.16)", position: "relative" }}
       >
-        <UserPlus size={14} />
-        {value.length ? `${value.length} identifié${value.length > 1 ? "s" : ""}` : "Identifier"}
+        <FontAwesomeIcon icon={faUserPlus} style={{ fontSize: 17 }} />
+        {value.length > 0 && <span style={{ position: "absolute", top: -4, right: -4, minWidth: 16, height: 16, padding: "0 3px", borderRadius: 999, background: C.gold600, color: C.navy900, fontSize: 9, fontWeight: 800, lineHeight: "16px" }}>{value.length}</span>}
       </button>
 
       {open && (
@@ -2330,8 +2337,8 @@ export default function CreatePostModal({
                         ? `Décrivez le VisuelFocus à partager avec ${group.name}…`
                         : "Décrivez votre VisuelFocus…"
                       : group
-                        ? `Quoi de neuf, à partager avec ${group.name} ?`
-                        : `Quoi de neuf, ${(currentUser.name || "").split(" ")[0] || currentUser.name} ?`
+                        ? "Quoi de neuf ?"
+                        : "Quoi de neuf ?"
                   }
                   rows={isReel ? 3 : 3}
                   style={{

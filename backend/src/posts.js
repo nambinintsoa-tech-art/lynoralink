@@ -160,6 +160,7 @@ export async function registerPostRoutes(app) {
           cta: campaign.cta || "En savoir plus",
           isPlatformAdmin: post.author.role === "admin" || (post.author.email && [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL].filter(Boolean).some((email) => post.author.email.toLowerCase() === email.toLowerCase())),
           time: post.createdAt,
+          updatedAt: post.updatedAt,
           likes: post.likes.length,
           reaction: currentReaction?.reaction || null,
           reactions: post.likes.reduce((counts, like) => ({ ...counts, [like.reaction || "ok"]: (counts[like.reaction || "ok"] || 0) + 1 }), {}),
@@ -327,8 +328,15 @@ export async function registerPostRoutes(app) {
     const data = {};
     if (typeof request.body?.text === "string") data.text = request.body.text.trim();
     if (["public", "connections"].includes(request.body?.visibility)) data.visibility = request.body.visibility;
+    const hasMedia = Object.prototype.hasOwnProperty.call(request.body || {}, "media");
+    const media = Array.isArray(request.body?.media) ? request.body.media.slice(0, 20).filter((item) => item?.url) : [];
+    if (hasMedia) {
+      data.mediaData = media.length ? JSON.stringify(media) : null;
+      data.mediaUrl = media[0]?.url || null;
+      data.mediaType = media[0]?.type || null;
+    }
     const updated = await prisma.post.update({ where: { id: post.id }, data });
-    return reply.send({ ok: true, post: updated });
+    return reply.send({ ok: true, post: { ...updated, ...(hasMedia ? { media } : {}) } });
   });
 
   app.delete("/v1/posts/:id", async (request, reply) => {

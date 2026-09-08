@@ -123,8 +123,8 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#081827] font-inter">
-      <div className="absolute inset-0 opacity-70 bg-[linear-gradient(120deg,rgba(27,83,134,.55),transparent_45%),linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:auto,4rem_4rem,4rem_4rem]" />
+    <div className="auth-page-root relative flex min-h-screen items-center justify-center overflow-hidden bg-[#081827] font-inter">
+      <div className="auth-page-atmosphere absolute inset-0" />
 
       <div className="auth-page-shell relative z-10 flex w-full max-w-6xl items-center justify-center gap-12 px-4">
         {/* Left side - Text content */}

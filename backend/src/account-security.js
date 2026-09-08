@@ -4,8 +4,9 @@ import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
 
 async function sendEmail({ to, subject, text }) {
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) throw new Error("Configuration email backend manquante");
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to: [to], subject, text }) });
+  const from = process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
+  if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration email backend manquante");
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text }) });
   if (!response.ok) throw new Error("Échec d'envoi du message email");
 }
 

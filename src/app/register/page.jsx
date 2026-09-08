@@ -153,8 +153,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#081827] font-inter">
-      <div className="absolute inset-0 opacity-70 bg-[linear-gradient(120deg,rgba(27,83,134,.55),transparent_45%),linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:auto,4rem_4rem,4rem_4rem]" />
+    <div className="auth-page-root relative flex min-h-screen items-center justify-center overflow-hidden bg-[#081827] font-inter">
+      <div className="auth-page-atmosphere absolute inset-0" />
 
       <div className="auth-page-shell relative z-10 flex w-full max-w-6xl items-center justify-center gap-12 px-4">
         {/* Left side - Text content */}
@@ -293,7 +293,7 @@ export default function RegisterPage() {
               )}
 
               {verificationStep && (
-                <div className="rounded-xl border border-gold600/40 bg-gold400/10 p-4">
+                <div className="auth-verification-panel">
                   <label htmlFor="verificationCode" className="text-xs font-semibold text-navy900">Code de confirmation</label>
                   <p className="mt-1 text-xs text-muted">Saisissez le code à 6 chiffres envoyé à {verificationEmail}.</p>
                   <input

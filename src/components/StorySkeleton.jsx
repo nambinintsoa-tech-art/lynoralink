@@ -1,6 +1,5 @@
 "use client";
 
-/* ================================================================== */
 /*  STORY SKELETON — Squelettes pour le chargement des stories         */
 /*  ------------------------------------------------------------------ */
 /*  Affiche des cartes squelette qui mimiquent la structure des stories */
@@ -24,6 +23,7 @@ const C = {
 };
 
 const SKELETON_BACKGROUND = C.navy50;
+const SKELETON_GRADIENT = "linear-gradient(115deg, #E4E6EB 18%, #F5F6F7 46%, #E4E6EB 74%)";
 
 /* ---- Skeleton base component ---- */
 function Skeleton({ width = "100%", height = 16, radius = 4, className = "", style = {} }) {
@@ -34,8 +34,9 @@ function Skeleton({ width = "100%", height = 16, radius = 4, className = "", sty
         width,
         height,
         borderRadius: radius,
-        background: SKELETON_BACKGROUND,
-        animation: "lyn-story-pulse 1.8s ease-in-out infinite",
+        background: SKELETON_GRADIENT,
+        backgroundSize: "220% 100%",
+        animation: "lyn-story-shimmer 1.7s ease-in-out infinite",
         boxShadow: `inset 0 0 0 1px ${C.line}`,
         ...style,
       }}
@@ -52,8 +53,9 @@ function SkeletonAvatar({ size = 32, radius, className = "", style = {} }) {
         width: size,
         height: size,
         borderRadius: radius ?? size,
-        background: SKELETON_BACKGROUND,
-        animation: "lyn-story-pulse 1.8s ease-in-out infinite",
+        background: SKELETON_GRADIENT,
+        backgroundSize: "220% 100%",
+        animation: "lyn-story-shimmer 1.7s ease-in-out infinite",
         boxShadow: `inset 0 0 0 1px ${C.line}`,
         flexShrink: 0,
         ...style,
@@ -71,9 +73,23 @@ function useSkeletonStylesEffect() {
     const tag = document.createElement("style");
     tag.id = id;
     tag.innerHTML = `
-      @keyframes lyn-story-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .58; } }
+      @keyframes lyn-story-shimmer { 0% { background-position: 120% 0; } 100% { background-position: -80% 0; } }
       .lynora-story-skeleton-rail { -ms-overflow-style: none; scrollbar-width: none; }
       .lynora-story-skeleton-rail::-webkit-scrollbar { display: none; width: 0; height: 0; }
+      @media (max-width: 560px) {
+        .lynora-story-skeleton-container {
+          padding: 12px !important;
+          border-radius: 0 !important;
+          min-height: 166px !important;
+          box-shadow: none !important;
+        }
+        .lynora-story-skeleton-container > div[aria-hidden="true"] { gap: 8px !important; }
+        .lynora-story-card-skeleton {
+          width: 92px !important;
+          height: 142px !important;
+          border-radius: 14px !important;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         .lyn-story-pulse { animation: none; background: ${C.navy50}; }
       }
@@ -89,7 +105,7 @@ export function SkeletonStoryImage({ width = 104, height = 140, radius = 18, cla
       width={width}
       height={height}
       radius={radius}
-      className={className}
+      className={`lynora-story-card-skeleton ${className}`.trim()}
       style={{ overflow: "hidden", ...style }}
     />
   );
@@ -102,7 +118,7 @@ export function SkeletonStoryVideo({ width = 104, height = 140, radius = 18, cla
       width={width}
       height={height}
       radius={radius}
-      className={className}
+      className={`lynora-story-card-skeleton ${className}`.trim()}
       style={{ overflow: "hidden", ...style }}
     />
   );
@@ -112,7 +128,7 @@ export function SkeletonStoryText({ width = 104, height = 140, radius = 18, clas
   useSkeletonStylesEffect();
   return (
     <div
-      className={`lynora-story-skeleton-rail ${className}`.trim()}
+      className={`lynora-story-card-skeleton lynora-story-skeleton-rail ${className}`.trim()}
       style={{
         width,
         height,
@@ -123,7 +139,9 @@ export function SkeletonStoryText({ width = 104, height = 140, radius = 18, clas
         justifyContent: "flex-end",
         gap: 6,
         padding: 10,
-        background: SKELETON_BACKGROUND,
+        background: SKELETON_GRADIENT,
+        backgroundSize: "220% 100%",
+        animation: "lyn-story-shimmer 1.7s ease-in-out infinite",
         boxShadow: `inset 0 0 0 1px ${C.line}`,
         flexShrink: 0,
         ...style,
@@ -147,7 +165,7 @@ export function SkeletonStoryAddButton({ size = 22, className = "", style = {} }
       width={size}
       height={size}
       radius={999}
-      className={className}
+      className={`lynora-story-add-skeleton ${className}`.trim()}
       style={{ border: `2px solid ${C.white}`, ...style }}
     />
   );
@@ -174,7 +192,7 @@ export function SkeletonStoryRail({
       role="status"
       aria-busy="true"
       aria-label={loadingLabel}
-      className={className}
+      className={`lynora-story-skeleton-container ${className}`.trim()}
       style={{
         position: "relative",
         display: "flex",

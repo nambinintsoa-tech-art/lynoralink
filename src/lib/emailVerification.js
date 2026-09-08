@@ -41,7 +41,7 @@ async function sendWithConfiguredProvider({ to, subject, text, html }) {
 
   if (provider === "resend") {
     const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const from = process.env.NO_REPLY_EMAIL || process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
     if (!apiKey || !from) {
       throw new Error("Configuration Resend manquante");
     }
@@ -85,7 +85,7 @@ async function sendWithConfiguredProvider({ to, subject, text, html }) {
 
 function getSenderAddress() {
   const smtpUser = process.env.SMTP_USER;
-  const configuredSender = process.env.SMTP_FROM_EMAIL;
+  const configuredSender = process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL;
   const smtpHost = (process.env.SMTP_HOST || "").toLowerCase();
   const userDomain = smtpUser?.split("@")[1]?.toLowerCase();
   const senderDomain = configuredSender?.split("@")[1]?.toLowerCase();

@@ -6,7 +6,7 @@ import { fetchBackendApi } from "@/lib/backend-api";
 import {
   Users, MessageCircle, UserPlus, Check, UserX, X, Clock,
   Building2, ChevronRight, Contact, Gift, ListChecks, Settings,
-  Plus, Pencil, Trash2, Search, Sparkles,
+  Plus, Pencil, Trash2, Search, Sparkles, MoreHorizontal,
 } from "lucide-react";
 
 /* ================================================================== *
@@ -100,19 +100,35 @@ function MutualRow({ mutual, label = "relations en commun", avatars = [] }) {
 }
 
 function NetworkTabSkeleton({ tab }) {
+  if (tab === "invitations") {
+    return <div className="fb-network-skeleton-grid fb-network-invitations-skeleton">{Array.from({ length: 4 }).map((_, index) => <div className="fb-network-skeleton-card" key={index}><span className="fb-skeleton-cover" /><span className="fb-skeleton-avatar fb-skeleton-card-avatar" /><span className="fb-skeleton-line fb-skeleton-line-card-name" /><span className="fb-skeleton-line fb-skeleton-line-card-title" /><span className="fb-skeleton-button" /><span className="fb-skeleton-button fb-skeleton-button-secondary" /></div>)}</div>;
+  }
   if (tab === "connections") {
-    return <div className="fb-network-skeleton-list">{Array.from({ length: 5 }).map((_, index) => <div className="fb-network-skeleton-row" key={index}><span className="fb-skeleton-circle" /><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>)}</div>;
+    return <div className="fb-network-skeleton-list fb-network-connections-skeleton">{Array.from({ length: 3 }).map((_, index) => <div className="fb-network-skeleton-row" key={index}><span className="fb-skeleton-avatar fb-skeleton-connection-avatar" /><span className="fb-skeleton-connection-info"><span className="fb-skeleton-line fb-skeleton-line-connection-name" /><span className="fb-skeleton-line fb-skeleton-line-connection-title" /></span><span className="fb-skeleton-action" /></div>)}</div>;
   }
   if (tab === "anniversaires") {
-    return <div className="fb-network-skeleton-list">{Array.from({ length: 4 }).map((_, index) => <div className="fb-network-skeleton-row" key={index}><span className="fb-skeleton-calendar" /><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>)}</div>;
+    return <div className="fb-network-skeleton-list fb-network-birthdays-skeleton">{Array.from({ length: 4 }).map((_, index) => <div className="fb-network-skeleton-row" key={index}><span className="fb-skeleton-avatar fb-skeleton-birthday-avatar" /><span className="fb-skeleton-connection-info"><span className="fb-skeleton-line fb-skeleton-line-connection-name" /><span className="fb-skeleton-line fb-skeleton-line-birthday-date" /></span><span className="fb-skeleton-message-action" /></div>)}</div>;
   }
   if (tab === "listes") {
-    return <div className="fb-network-skeleton-list">{Array.from({ length: 3 }).map((_, index) => <div className="fb-network-skeleton-list-card" key={index}><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-medium" /><span className="fb-skeleton-button" /></div>)}</div>;
+    return <div className="fb-network-lists-skeleton"><div className="fb-network-list-form-skeleton"><span className="fb-skeleton-line fb-skeleton-line-form-title" /><span className="fb-skeleton-input" /><span className="fb-skeleton-input fb-skeleton-textarea" /><span className="fb-skeleton-button fb-skeleton-form-button" /></div><div className="fb-network-list-results-skeleton">{Array.from({ length: 3 }).map((_, index) => <div className="fb-network-skeleton-list-card" key={index}><span className="fb-skeleton-line fb-skeleton-line-wide" /><span className="fb-skeleton-line fb-skeleton-line-medium" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>)}</div></div>;
   }
   return <div className="fb-network-skeleton-grid">{Array.from({ length: 6 }).map((_, index) => <div className="fb-network-skeleton-card" key={index}><span className="fb-skeleton-cover" /><span className="fb-skeleton-avatar" /><span className="fb-skeleton-line fb-skeleton-line-medium" /><span className="fb-skeleton-line fb-skeleton-line-short" /><span className="fb-skeleton-button" /></div>)}</div>;
 }
+function NetworkSettingsSkeleton({ isMobile }) {
+  const line = (width, height = 12) => <span className="fb-settings-skeleton-line" style={{ width, height }} />;
+  return (
+    <div className="fb-network-settings-panel fb-network-settings-skeleton" role="status" aria-label="Chargement des paramètres de notification" style={{ width: isMobile ? "100%" : "100%", maxWidth: isMobile ? "100%" : 440, height: isMobile ? "100dvh" : "auto", minHeight: isMobile ? "100dvh" : 430, background: FB.cardBg, borderRadius: isMobile ? 0 : 18, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div className="fb-settings-skeleton-header">{line(isMobile ? "62%" : 210, isMobile ? 22 : 20)}<span className="fb-settings-skeleton-close" /></div>
+      <div className="fb-settings-skeleton-description">{line("94%", 10)}{line("76%", 10)}</div>
+      <div className="fb-settings-skeleton-options">
+        {Array.from({ length: 4 }).map((_, index) => <div className="fb-settings-skeleton-option" key={index}>{line(index === 0 ? "58%" : "64%", 12)}<span className="fb-settings-skeleton-toggle" /></div>)}
+      </div>
+      <div className="fb-settings-skeleton-actions"><span className="fb-settings-skeleton-button" /><span className="fb-settings-skeleton-button fb-settings-skeleton-button-primary" /></div>
+    </div>
+  );
+}
 
-function NetworkOpeningSkeleton() {
+export function NetworkOpeningSkeleton({ tab = "connections" }) {
   return (
     <div className="fb-network-opening-skeleton" aria-label="Chargement du réseau" role="status">
       <aside className="fb-network-opening-sidebar">
@@ -121,9 +137,9 @@ function NetworkOpeningSkeleton() {
       </aside>
       <main className="fb-network-opening-content">
         <div className="fb-network-opening-header"><span className="fb-skeleton-line fb-skeleton-line-heading" /><span className="fb-skeleton-line fb-skeleton-line-short" /></div>
-        <NetworkTabSkeleton tab="suggestions" />
+        <NetworkTabSkeleton tab={tab} />
       </main>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .fb-network-opening-skeleton { display: flex; min-height: calc(100dvh - var(--lynora-header-offset, 0px)); height: 100%; background: ${FB.pageBg}; color: ${FB.text}; }
         .fb-network-opening-sidebar { width: ${SIDEBAR_WIDTH}px; flex: 0 0 ${SIDEBAR_WIDTH}px; padding: 24px 16px; border-right: 1px solid ${FB.border}; background: ${FB.sidebarBg}; }
         .fb-network-opening-content { flex: 1; min-width: 0; padding: 28px; overflow: hidden; }
@@ -134,6 +150,25 @@ function NetworkOpeningSkeleton() {
         .fb-skeleton-cover { width: calc(100% + 24px); height: 62px; margin: -12px -12px 2px; background: ${FB.borderSoft}; }
         .fb-skeleton-avatar, .fb-skeleton-circle { display: block; flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: ${FB.borderSoft}; }
         .fb-skeleton-circle { width: 36px; height: 36px; }
+        .fb-skeleton-card-avatar { margin-top: -2px; }
+        .fb-skeleton-line-card-name { width: 68%; height: 12px; }
+        .fb-skeleton-line-card-title { width: 48%; height: 9px; }
+        .fb-skeleton-button-secondary { margin-top: 0; }
+        .fb-network-skeleton-list { display: flex; flex-direction: column; }
+        .fb-network-skeleton-row { display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 14px 8px; border-bottom: 1px solid ${FB.borderSoft}; }
+        .fb-skeleton-connection-avatar { width: 56px; height: 56px; }
+        .fb-skeleton-connection-info { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 8px; }
+        .fb-skeleton-line-connection-name { width: min(220px, 62%); height: 12px; }
+        .fb-skeleton-line-connection-title { width: min(120px, 38%); height: 9px; }
+        .fb-skeleton-action { display: block; width: 36px; height: 36px; flex-shrink: 0; border-radius: 6px; background: ${FB.borderSoft}; }
+        .fb-skeleton-message-action { display: block; width: 88px; height: 32px; flex-shrink: 0; border-radius: 6px; background: ${FB.borderSoft}; }
+        .fb-network-lists-skeleton { display: flex; flex-direction: column; gap: 16px; }
+        .fb-network-list-form-skeleton, .fb-network-list-results-skeleton { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid ${FB.borderSoft}; border-radius: 16px; background: ${FB.cardBg}; }
+        .fb-skeleton-line-form-title { width: 160px; height: 16px; }
+        .fb-skeleton-input { display: block; width: 100%; height: 42px; border: 1px solid ${FB.border}; border-radius: 10px; background: ${FB.borderSoft}; }
+        .fb-skeleton-textarea { height: 58px; }
+        .fb-skeleton-form-button { width: 112px; margin-top: 0; }
+        .fb-network-list-results-skeleton .fb-network-skeleton-list-card { display: flex; flex-direction: column; gap: 10px; min-height: 90px; padding: 14px; border: 1px solid ${FB.borderSoft}; border-radius: 14px; background: #F9FAFB; }
         .fb-skeleton-line { display: block; height: 10px; border-radius: 999px; background: ${FB.borderSoft}; }
         .fb-skeleton-line-wide { width: min(70%, 220px); }
         .fb-skeleton-line-medium { width: 68%; }
@@ -143,10 +178,105 @@ function NetworkOpeningSkeleton() {
         .fb-skeleton-line-heading { width: 220px; height: 22px; }
         .fb-network-opening-skeleton .fb-network-skeleton-card, .fb-network-opening-skeleton .fb-network-opening-nav, .fb-network-opening-skeleton .fb-skeleton-line { animation: fb-skeleton-pulse 1.1s ease-in-out infinite alternate; }
         @media (max-width: 700px) {
-          .fb-network-opening-sidebar { display: none; }
-          .fb-network-opening-content { padding: 18px 12px; }
+          .fb-network-opening-skeleton {
+            display: block;
+            min-height: calc(100dvh - var(--lynora-header-offset, 0px));
+            background: ${FB.pageBg};
+          }
+          .fb-network-opening-sidebar {
+            display: block;
+            width: 100%;
+            padding: 12px 10px;
+            border-right: 0;
+            border-bottom: 1px solid ${FB.border};
+            background: ${FB.sidebarBg};
+          }
+          .fb-network-opening-sidebar > .fb-skeleton-line-title {
+            display: block;
+            width: 92px;
+            height: 20px;
+            margin: 0 0 10px;
+          }
+          .fb-network-opening-sidebar .fb-network-opening-nav {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 78px;
+            min-height: 66px;
+            gap: 6px;
+            padding: 8px 6px;
+            margin-right: 2px;
+            vertical-align: top;
+          }
+          .fb-network-opening-sidebar .fb-network-opening-nav .fb-skeleton-line-wide {
+            width: 60px;
+            height: 8px;
+          }
+          .fb-network-opening-content {
+            width: 100%;
+            padding: 14px 0 24px;
+            overflow: visible;
+          }
+          .fb-network-opening-header {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            margin: 0;
+            padding: 0 12px 14px;
+          }
+          .fb-network-opening-header .fb-skeleton-line-heading { width: 46%; height: 20px; }
+          .fb-network-opening-header .fb-skeleton-line-short { width: 28%; }
+          .fb-network-skeleton-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            padding: 0 12px;
+          }
+          .fb-network-skeleton-card,
+          .fb-network-skeleton-list-card,
+          .fb-network-skeleton-row {
+            border-left: 0;
+            border-right: 0;
+            border-radius: 0;
+            box-shadow: none;
+          }
+          .fb-network-skeleton-card {
+            min-height: 220px;
+            padding: 12px;
+            border-radius: 8px;
+          }
+          .fb-network-skeleton-card .fb-skeleton-cover {
+            height: 62px;
+            margin: -12px -12px 2px;
+            width: calc(100% + 24px);
+          }
+          .fb-network-skeleton-list { gap: 8px; }
+          .fb-network-skeleton-row {
+            min-height: 64px;
+            padding: 10px 14px;
+            gap: 10px;
+          }
+          .fb-network-connections-skeleton { gap: 0; }
+          .fb-network-connections-skeleton .fb-network-skeleton-row { min-height: 78px; padding: 10px 14px; }
+          .fb-network-connections-skeleton .fb-skeleton-connection-avatar { width: 48px; height: 48px; }
+          .fb-network-connections-skeleton .fb-skeleton-line-connection-name { width: 62%; }
+          .fb-network-connections-skeleton .fb-skeleton-line-connection-title { width: 38%; }
+          .fb-network-invitations-skeleton { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .fb-network-birthdays-skeleton .fb-network-skeleton-row { min-height: 78px; padding: 10px 14px; }
+          .fb-network-birthdays-skeleton .fb-skeleton-birthday-avatar { width: 48px; height: 48px; }
+          .fb-skeleton-message-action { width: 36px; height: 36px; }
+          .fb-network-list-form-skeleton, .fb-network-list-results-skeleton { border-left: 0; border-right: 0; border-radius: 0; }
+          .fb-skeleton-line-wide { width: 46%; }
+          .fb-skeleton-line-short { width: 24%; }
+          .fb-skeleton-button { height: 30px; }
         }
-      `}</style>
+        @media (max-width: 520px) {
+          .fb-network-opening-content { padding-top: 8px; }
+          .fb-network-opening-header { padding: 0 12px 10px; }
+          .fb-network-skeleton-card { min-height: 210px; }
+        }
+      ` }} />
     </div>
   );
 }
@@ -159,6 +289,7 @@ function Toast({ message, icon: Icon, onClose }) {
 
   return (
     <div
+      className="fb-network-toast"
       style={{
         position: "fixed", bottom: "1.5rem", left: "50%", transform: "translateX(-50%)", zIndex: 60,
         display: "flex", alignItems: "center", gap: "0.625rem", borderRadius: 9999, padding: "0.75rem 1.25rem",
@@ -225,7 +356,9 @@ export default function Reseau({
   const [openingLoading, setOpeningLoading] = useState(
     connectionsProp === undefined || invitationsProp === undefined || suggestionsProp === undefined
   );
+  const [tabLoading, setTabLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [openConnectionMenuId, setOpenConnectionMenuId] = useState(null);
   const [lists, setLists] = useState([]);
   const [listForm, setListForm] = useState({ name: "", description: "", color: "#D4A72C" });
   const [editingListId, setEditingListId] = useState(null);
@@ -238,6 +371,8 @@ export default function Reseau({
     suggestions: true,
     email: false,
   });
+  const [notificationSettingsLoading, setNotificationSettingsLoading] = useState(true);
+  const [notificationSettingsOpening, setNotificationSettingsOpening] = useState(false);
   const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
 
   useEffect(() => {
@@ -255,6 +390,8 @@ export default function Reseau({
         });
       } catch {
         // ignore missing backend config
+      } finally {
+        setNotificationSettingsLoading(false);
       }
     };
 
@@ -300,6 +437,22 @@ export default function Reseau({
   }, []);
 
   useEffect(() => {
+    const closeMenu = (event) => {
+      if (!event.target.closest?.(".fb-actions-menu")) setOpenConnectionMenuId(null);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setOpenConnectionMenuId(null);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
     setSuggestionLimit(isMobile ? 6 : 10);
   }, [isMobile]);
 
@@ -329,9 +482,22 @@ export default function Reseau({
     if (pendingRequestIdsProp !== undefined) setPendingRequestIds(pendingRequestIdsProp);
   }, [pendingRequestIdsProp]);
 
+  useEffect(() => {
+    if (!tabLoading) return undefined;
+    const timeoutId = window.setTimeout(() => setTabLoading(false), 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [tabLoading]);
+
+  useEffect(() => {
+    if (!notificationSettingsOpening) return undefined;
+    const timeoutId = window.setTimeout(() => setNotificationSettingsOpening(false), 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [notificationSettingsOpening]);
+
   const handleTabChange = (nextTab) => {
     if (nextTab === tab) return;
     setTab(nextTab);
+    setTabLoading(true);
     onTabChange?.(nextTab);
   };
 
@@ -679,7 +845,7 @@ export default function Reseau({
 
   const profileHref = (id) => `/feed?view=profile&userId=${encodeURIComponent(id)}`;
 
-  if (openingLoading) return <NetworkOpeningSkeleton />;
+  if (openingLoading || tabLoading) return <NetworkOpeningSkeleton tab={tab} />;
 
   return (
     <div
@@ -692,6 +858,24 @@ export default function Reseau({
     >
       <style>{`
         .fb-page * { box-sizing: border-box; }
+        .fb-settings-skeleton-line { display: block; border-radius: 999px; background: ${FB.borderSoft}; animation: fb-skeleton-pulse 1.1s ease-in-out infinite alternate; }
+        .fb-network-settings-skeleton { border: 1px solid ${FB.border}; box-shadow: 0 28px 80px rgba(15, 51, 82, 0.22); }
+        .fb-settings-skeleton-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 14px; border-bottom: 1px solid ${FB.borderSoft}; }
+        .fb-settings-skeleton-close { display: block; width: 32px; height: 32px; border-radius: 50%; background: ${FB.borderSoft}; }
+        .fb-settings-skeleton-description { display: flex; flex-direction: column; gap: 8px; padding: 14px 18px 8px; }
+        .fb-settings-skeleton-options { display: flex; flex: 1; flex-direction: column; gap: 12px; padding: 8px 18px 18px; }
+        .fb-settings-skeleton-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid ${FB.borderSoft}; border-radius: 12px; background: ${FB.pageBg}; }
+        .fb-settings-skeleton-toggle { display: block; width: 40px; height: 22px; flex-shrink: 0; border-radius: 999px; background: ${FB.border}; }
+        .fb-settings-skeleton-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 18px 18px; border-top: 1px solid ${FB.borderSoft}; }
+        .fb-settings-skeleton-button { display: block; width: 88px; height: 36px; border-radius: 999px; background: ${FB.borderSoft}; }
+        .fb-settings-skeleton-button-primary { width: 110px; background: #E7D39A; }
+        @media (max-width: 880px) {
+          .fb-settings-skeleton-header { padding: 18px 18px 12px; }
+          .fb-settings-skeleton-description { padding: 12px 18px 8px; }
+          .fb-settings-skeleton-options { padding: 8px 16px 16px; }
+          .fb-settings-skeleton-actions { justify-content: stretch; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
+          .fb-settings-skeleton-button { flex: 1; height: 42px; }
+        }
 
         /* Le panneau (sidebar + contenu) occupe toute la hauteur restante de l'écran.
            La sidebar est un bloc fixe qui ne bouge jamais ; seul .fb-content défile,
@@ -837,6 +1021,20 @@ export default function Reseau({
         .fb-list-info { flex: 1; min-width: 0; }
         .fb-list-name { font-size: 15px; font-weight: 700; color: ${FB.text}; text-decoration: none; }
         .fb-list-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .fb-actions-menu { display: block; position: relative; }
+        .fb-actions-menu > .fb-list-btn { width: 36px; height: 36px; justify-content: center; padding: 0; }
+        .fb-mobile-menu {
+          position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; min-width: 168px; padding: 6px;
+          border: 1px solid ${FB.borderSoft}; border-radius: 10px; background: ${FB.white};
+          box-shadow: 0 8px 24px rgba(15, 36, 51, 0.16);
+        }
+        .fb-mobile-menu button {
+          width: 100%; border: none; border-radius: 7px; background: transparent; color: ${FB.text}; padding: 10px;
+          display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+        }
+        .fb-menu-danger { color: #D93025 !important; }
+        .fb-mobile-menu button:hover { background: ${FB.gray}; }
+        .fb-mobile-menu button:disabled { cursor: default; opacity: 0.6; }
         .fb-list-btn {
           border-radius: 6px; border: none; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
           display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.15s ease;
@@ -915,7 +1113,7 @@ export default function Reseau({
           .fb-btn { font-size: 12.5px; padding: 7px 6px; }
           .fb-content-header h2 { font-size: 18px; }
           .fb-list-row { gap: 10px; padding: 12px 4px; flex-wrap: wrap; }
-          .fb-list-actions { width: 100%; justify-content: flex-end; }
+          .fb-list-actions { width: auto; margin-left: auto; justify-content: flex-end; }
           .fb-list-btn { padding: 7px 12px; font-size: 13px; }
         }
       `}</style>
@@ -928,7 +1126,10 @@ export default function Reseau({
             <button
               className="fb-gear-btn"
               aria-label="Paramètres de notification"
-              onClick={() => setNotificationSettingsOpen(true)}
+              onClick={() => {
+                setNotificationSettingsOpening(true);
+                setNotificationSettingsOpen(true);
+              }}
               type="button"
             >
               <Settings size={17} />
@@ -1217,17 +1418,33 @@ export default function Reseau({
                         <div style={{ fontSize: 12.5, color: FB.textSecondary, marginTop: 2 }}>{c.title}</div>
                       </div>
                       <div className="fb-list-actions">
-                        <button onClick={() => onMessageUser?.(c)} className="fb-list-btn fb-list-btn-secondary">
-                          <MessageCircle size={14} /> Message
-                        </button>
-                        <button
-                          onClick={() => removeConnection(c)}
-                          disabled={removingConnectionIds.includes(c.id)}
-                          className="fb-list-btn fb-list-btn-secondary"
-                          style={{ opacity: removingConnectionIds.includes(c.id) ? 0.6 : 1 }}
-                        >
-                          <UserX size={14} /> {removingConnectionIds.includes(c.id) ? "Retrait…" : "Retirer"}
-                        </button>
+                        <div className="fb-actions-menu">
+                          <button
+                            type="button"
+                            className="fb-list-btn fb-list-btn-secondary"
+                            aria-label={`Actions pour ${c.name}`}
+                            aria-expanded={openConnectionMenuId === c.id}
+                            onClick={() => setOpenConnectionMenuId((current) => current === c.id ? null : c.id)}
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+                          {openConnectionMenuId === c.id && (
+                            <div className="fb-mobile-menu" role="menu">
+                              <button type="button" role="menuitem" onClick={() => { setOpenConnectionMenuId(null); onMessageUser?.(c); }}>
+                                <MessageCircle size={15} /> Message
+                              </button>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="fb-menu-danger"
+                                onClick={() => { setOpenConnectionMenuId(null); removeConnection(c); }}
+                                disabled={removingConnectionIds.includes(c.id)}
+                              >
+                                <UserX size={15} /> {removingConnectionIds.includes(c.id) ? "Retrait…" : "Retirer"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1413,8 +1630,28 @@ export default function Reseau({
         </main>
       </div>
 
-      {notificationSettingsOpen && (
+      {notificationSettingsOpen && (notificationSettingsLoading || notificationSettingsOpening) && (
         <div
+          className="fb-network-settings-overlay"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: isMobile ? 0 : 20,
+            zIndex: 80,
+          }}
+        >
+          <NetworkSettingsSkeleton isMobile={isMobile} />
+        </div>
+      )}
+
+      {notificationSettingsOpen && !notificationSettingsLoading && !notificationSettingsOpening && (
+        <div
+          className="fb-network-settings-overlay"
           style={{
             position: "fixed",
             inset: 0,
@@ -1429,6 +1666,7 @@ export default function Reseau({
           onClick={() => setNotificationSettingsOpen(false)}
         >
           <div
+            className="fb-network-settings-panel"
             style={{
               width: isMobile ? "100%" : "100%",
               maxWidth: isMobile ? "100%" : 440,
@@ -1493,7 +1731,7 @@ export default function Reseau({
               Vous pouvez gérer la manière dont vous recevez les notifications relatives à l’actualité de vos amis.
             </div>
 
-            <div style={{ padding: isMobile ? "8px 16px 16px" : "8px 18px 18px", display: "flex", flexDirection: "column", gap: 12, flex: 1, overflowY: "auto" }}>
+            <div className="fb-network-settings-options" style={{ padding: isMobile ? "8px 16px 16px" : "8px 18px 18px", display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0, overflowY: "auto" }}>
               {[
                 { key: "activity", label: "Activité de mes amis" },
                 { key: "requests", label: "Demandes de connexion" },
@@ -1548,7 +1786,7 @@ export default function Reseau({
               ))}
             </div>
 
-            <div style={{ display: "flex", justifyContent: isMobile ? "stretch" : "flex-end", gap: 8, padding: isMobile ? "0 16px 16px" : "0 18px 18px" }}>
+            <div className="fb-network-settings-actions" style={{ display: "flex", justifyContent: isMobile ? "stretch" : "flex-end", gap: 8, padding: isMobile ? "12px 16px max(12px, env(safe-area-inset-bottom))" : "0 18px 18px", position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 90, background: FB.cardBg, borderTop: `1px solid ${FB.borderSoft}` }}>
               <button
                 type="button"
                 onClick={() => setNotificationSettingsOpen(false)}

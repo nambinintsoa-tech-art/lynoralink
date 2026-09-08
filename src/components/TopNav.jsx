@@ -405,7 +405,7 @@ export const TopNav = forwardRef(function TopNav({
   const [profileMenuLoading, setProfileMenuLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [containerWidth, setContainerWidth] = useState(1200);
+  const [containerWidth, setContainerWidth] = useState(0);
   const headerRef = useRef(null);
   const profileMenuRef = useRef(null);
   const inputRef = useRef(null);
@@ -420,7 +420,7 @@ export const TopNav = forwardRef(function TopNav({
       ]
     : inactiveCompanyPages.map((page) => ({ ...page, type: "company", displayName: page.displayName || page.name || "Page entreprise" }));
 
-  const isCompact = containerWidth < COMPACT_BREAKPOINT;
+  const isCompact = containerWidth === 0 || containerWidth < COMPACT_BREAKPOINT;
 
   useEffect(() => {
     if (!menuOpen) {

@@ -47,6 +47,7 @@ import FeedLoadingShell from "./FeedLoadingShell";
 import AccountSwitchTransition from "./AccountSwitchTransition";
 import LogoutTransition from "./LogoutTransition";
 import RelativeTime from "./RelativeTime";
+import { NetworkOpeningSkeleton } from "./Reseau";
 import {
   FeedSkeleton,
   ComposerSkeleton,
@@ -2669,6 +2670,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           coverUrl: serverPost.coverUrl ?? currentPost.coverUrl,
         } : {}),
         comments: hasPendingComment ? currentComments : (Array.isArray(serverPost.comments) ? serverPost.comments : currentComments),
+        text: serverPost.text ?? currentPost.text,
+        visibility: serverPost.visibility ?? currentPost.visibility,
         likes: Math.max(Number(currentPost.likes ?? serverPost.likes ?? 0), Number(serverPost.likes ?? currentPost.likes ?? 0)),
         liked: currentPost.liked ?? serverPost.liked ?? false,
         reaction: currentPost.reaction ?? serverPost.reaction ?? null,
@@ -3421,6 +3424,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [groupBadgeDismissed, setGroupBadgeDismissed] = useState(false);
   const [companyBadgeDismissed, setCompanyBadgeDismissed] = useState(false);
   const [networkSuggestions, setNetworkSuggestions] = useState([]);
+  const [networkLoading, setNetworkLoading] = useState(true);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState([]);
   const [sidebarGroups, setSidebarGroups] = useState([]);
   const [pendingSuggestionIds, setPendingSuggestionIds] = useState([]);
@@ -3682,6 +3686,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setConnections(MY_CONNECTIONS);
       setInvitations(PENDING_INVITATIONS);
       setNetworkSuggestions([]);
+      setNetworkLoading(false);
       setPublicCompanyPages([]);
       setSidebarGroups([]);
       setSponsoredAds([]);
@@ -3708,6 +3713,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (!active) return;
       } catch (error) {
         // fallback to empty lists if the API is unavailable
+      } finally {
+        if (active) setNetworkLoading(false);
       }
     };
 
@@ -5243,15 +5250,15 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
   };
 
-  const editPost = async (id, text, visibility) => {
+  const editPost = async (id, text, visibility, media) => {
     const response = await fetchBackendApi(`/api/posts/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, visibility }),
+      body: JSON.stringify({ text, visibility, ...(Array.isArray(media) ? { media } : {}) }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Impossible de modifier la publication");
-    setPosts((currentPosts) => currentPosts.map((post) => post.id === id ? { ...post, text: data.post.text, visibility: data.post.visibility } : post));
+    setPosts((currentPosts) => currentPosts.map((post) => post.id === id ? { ...post, text: data.post.text, visibility: data.post.visibility, updatedAt: data.post.updatedAt, ...(Array.isArray(data.post.media) ? { media: data.post.media } : {}) } : post));
     setSidebarToast({ message: "Publication modifiée", icon: Check });
   };
 
@@ -5369,7 +5376,11 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         isSponsored: mode === "ad",
       }),
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || "Impossible d'enregistrer la publication");
+        return data;
+      })
       .then((data) => {
         if (!data?.post) return;
         setPosts((ps) => ps.map((p) => (p.id === newPost.id ? { ...p, id: data.post.id, time: data.post.createdAt } : p)));
@@ -5378,7 +5389,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (composerCompanyId || activeAccount === "company") window.dispatchEvent(new CustomEvent("lynoralink:company-posts-updated"));
         setComposerCompanyId(null);
       })
-      .catch(() => {});
+      .catch((error) => {
+        setPosts((ps) => ps.filter((post) => post.id !== newPost.id));
+        setSidebarToast({ message: error.message || "Impossible d'enregistrer la publication", icon: X });
+      });
   };
 
   const joinGroupFromFeed = useCallback(async (group) => {
@@ -6395,7 +6409,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
           {view === "network" && (
             <div style={{ width: "100%", maxWidth: "none", margin: 0, paddingTop: 0, height: "calc(100dvh - var(--lynora-header-offset, 0px))", minHeight: "calc(100dvh - var(--lynora-header-offset, 0px))", overflow: "hidden" }} className="lynora-feed-container lynora-network-page">
-              <Reseau
+              {networkLoading ? <NetworkOpeningSkeleton /> : <Reseau
                   connections={connections}
                   invitations={invitations}
                   suggestions={activeAccount === "company" ? pageSuggestions : networkSuggestions}
@@ -6425,7 +6439,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                       navigate("messages");
                     }
                   }}
-              />
+              />}
             </div>
           )}
         </>
@@ -7031,32 +7045,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         </div>
       )}
 
-
-      <style>{`
-        @media (max-width: 1024px) {
-          .lynora-grid { grid-template-columns: minmax(0,1fr) !important; }
-          .lynora-grid > aside { display: none !important; }
-          .lynora-grid > div:first-child, .lynora-grid > div:last-child { display: none; }
-          .lynora-saved-content { grid-template-columns: minmax(0, 680px) !important; }
-          .lynora-saved-content > .lynora-saved-sidebar { position: static !important; }
-          .lynora-saved-filters { display: flex; overflow-x: auto; padding: 4px !important; scrollbar-width: none; }
-          .lynora-saved-filters::-webkit-scrollbar { display: none; }
-          .lynora-saved-filters button { width: auto !important; min-width: max-content; border-left: none !important; border-bottom: 3px solid transparent !important; padding: 10px 12px !important; }
-          .lynora-saved-filters button[aria-current="page"] { border-bottom-color: ${C.gold600} !important; }
-          .lynora-fixed-sidebar { display: none !important; }
-        }
-
-        @media (max-width: 560px) {
-          .lynora-saved-content { padding: 12px 12px 40px !important; gap: 14px !important; }
-          .lynora-my-posts-content { padding: 14px 12px 40px !important; }
-          .lynora-saved-content main > div { border-radius: 12px !important; padding: 15px 16px !important; }
-        }
-
-        @keyframes lynora-sidebar-toast-in {
-          from { opacity: 0; transform: translateX(-50%) translateY(12px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
       </div>
     </>
   );

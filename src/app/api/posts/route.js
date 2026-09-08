@@ -247,6 +247,7 @@ export async function GET(req) {
       pageWebsite: page?.website || null,
       followersCount: page?.stats?.followers ?? page?.followers ?? null,
       time: p.createdAt,
+      updatedAt: p.updatedAt,
       likes: p.likes.length,
       reactions: p.likes.reduce((counts, like) => {
         counts[like.reaction || "ok"] = (counts[like.reaction || "ok"] || 0) + 1;

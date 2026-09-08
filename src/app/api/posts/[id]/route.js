@@ -19,6 +19,8 @@ export async function PATCH(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const hasVisibility = Object.prototype.hasOwnProperty.call(body, "visibility");
+  const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
+  const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
   if (!id || !text) {
     return NextResponse.json({ error: "Le contenu est vide." }, { status: 400 });
   }
@@ -34,11 +36,16 @@ export async function PATCH(req, { params }) {
     data: {
       text,
       ...(hasVisibility ? { visibility: normalizeVisibility(body.visibility) } : {}),
+      ...(hasMedia ? {
+        mediaData: media.length ? JSON.stringify(media) : null,
+        mediaUrl: media[0]?.url || null,
+        mediaType: media[0]?.type || null,
+      } : {}),
     },
-    select: { id: true, text: true, visibility: true },
+    select: { id: true, text: true, visibility: true, updatedAt: true, mediaUrl: true, mediaType: true, mediaData: true },
   });
 
-  return NextResponse.json({ post: updatedPost });
+  return NextResponse.json({ post: { ...updatedPost, ...(hasMedia ? { media } : {}) } });
 }
 
 export async function DELETE(req, { params }) {

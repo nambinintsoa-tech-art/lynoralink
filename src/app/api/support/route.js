@@ -16,11 +16,12 @@ async function getSession() {
   return getServerSession(authOptions);
 }
 
-async function sendSupportEmail({ to, replyTo, subject, text }) {
+async function sendSupportEmail({ to, replyTo, subject, text, from }) {
   const provider = (process.env.EMAIL_PROVIDER || "smtp").toLowerCase();
+  const sender = from || process.env.SUPPORT_EMAIL_TO || process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   if (provider === "resend") {
-    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
-      console.warn("[support] Resend is selected but RESEND_API_KEY or RESEND_FROM_EMAIL is missing");
+    if (!process.env.RESEND_API_KEY || !sender) {
+      console.warn("[support] Resend is selected but RESEND_API_KEY or sender is missing");
       return;
     }
     const response = await fetch("https://api.resend.com/emails", {
@@ -29,7 +30,7 @@ async function sendSupportEmail({ to, replyTo, subject, text }) {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to: [to], reply_to: replyTo || undefined, subject, text }),
+      body: JSON.stringify({ from: sender, to: [to], reply_to: replyTo || undefined, subject, text }),
       cache: "no-store",
     });
     if (!response.ok) {
@@ -51,7 +52,7 @@ async function sendSupportEmail({ to, replyTo, subject, text }) {
     secure: smtpPort === 465,
     auth: { user: process.env.SMTP_USER, pass: smtpPassword },
   });
-  await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER, to, replyTo, subject, text });
+  await transporter.sendMail({ from: sender, to, replyTo, subject, text });
 }
 
 async function generateSupportAutoReply({ category, subject, message, fallback }) {
@@ -141,8 +142,11 @@ export async function POST(request) {
     });
 
     const supportEmailTo = process.env.SUPPORT_EMAIL_TO || process.env.ADMIN_EMAIL;
+    const noReplyFrom = process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || process.env.SMTP_USER;
+    const supportFrom = process.env.SUPPORT_EMAIL_TO || process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
     if (supportEmailTo) await sendSupportEmail({
       to: supportEmailTo,
+      from: supportFrom,
       replyTo: user?.email,
       subject: `[LynoraLink #${supportRequest.id.slice(-8).toUpperCase()}] ${payload.subject}`,
       text: [
@@ -157,6 +161,7 @@ export async function POST(request) {
 
     if (autoReplyEnabled && user?.email) await sendSupportEmail({
       to: user.email,
+      from: noReplyFrom,
       subject: `Confirmation de votre demande - ${payload.subject}`,
       text: `Bonjour ${user.name || ""},\n\n${autoReplyMessage}\n\nRéférence : #${supportRequest.id.slice(-8).toUpperCase()}`,
     }).catch((error) => console.warn(`[support] auto-reply email failed (${error.code || "EMAIL_ERROR"})`));

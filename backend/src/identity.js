@@ -67,11 +67,11 @@ async function sendEmail({ to, subject, text }) {
       socketTimeout: 15000,
       auth: { user, pass: password },
     });
-    await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || user, to, subject, text, html });
+    await transporter.sendMail({ from: process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || user, to, subject, text, html });
     return;
   }
 
-  const from = process.env.RESEND_FROM_EMAIL;
+  const from = process.env.NO_REPLY_EMAIL || process.env.RESEND_FROM_EMAIL;
   if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration Resend backend manquante");
   const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
   if (!response.ok) throw new Error(`Email provider returned ${response.status}`);

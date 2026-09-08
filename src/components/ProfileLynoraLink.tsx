@@ -3,7 +3,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faNewspaper, faPhotoFilm, faWandSparkles } from '@fortawesome/free-solid-svg-icons';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
   MapPin, BadgeCheck, MessageCircle, UserPlus,
@@ -316,17 +316,44 @@ function ImageUploadModal({ type, initialPreview, onClose, onSave }: { type: str
 
 function MoreDropdown({ items }: { items: any[] }) {
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobilePosition, setMobilePosition] = useState({ left: 12, top: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateMobile = () => setIsMobile(mediaQuery.matches);
+    updateMobile();
+    mediaQuery.addEventListener?.('change', updateMobile);
+    return () => mediaQuery.removeEventListener?.('change', updateMobile);
+  }, []);
+  useEffect(() => {
+    if (!open || !isMobile) return undefined;
+    const updatePosition = () => {
+      const buttonRect = buttonRef.current?.getBoundingClientRect();
+      if (!buttonRect) return;
+      const menuWidth = Math.min(220, window.innerWidth - 24);
+      const left = Math.min(Math.max(12, buttonRect.right - menuWidth), window.innerWidth - menuWidth - 12);
+      setMobilePosition({ left, top: buttonRect.bottom + 4 });
+    };
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open, isMobile]);
   React.useEffect(() => { if (!open) return; const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, [open]);
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)} style={{ border: '1px solid #9CA3AF', borderRadius: 24, padding: '10px 16px', fontSize: 14, fontWeight: 600, color: '#374151', background: open ? '#F3F4F6' : '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><MoreHorizontal size={16} /> Plus</button>
+      <button ref={buttonRef} onClick={() => setOpen(!open)} style={{ border: '1px solid #9CA3AF', borderRadius: 24, padding: '10px 16px', fontSize: 14, fontWeight: 600, color: '#374151', background: open ? '#F3F4F6' : '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><MoreHorizontal size={16} /> Plus</button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, width: 220, background: '#fff', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB', overflow: 'hidden', zIndex: 30 }}>
+        <div style={{ position: isMobile ? 'fixed' : 'absolute', left: isMobile ? mobilePosition.left : 'auto', right: isMobile ? 'auto' : 0, top: isMobile ? mobilePosition.top : '100%', marginTop: isMobile ? 0 : 4, width: 'min(220px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)', boxSizing: 'border-box', background: '#fff', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB', overflow: 'hidden', zIndex: 100 }}>
           {items.map((item, i) => { const Icon = item.icon; return (
             <React.Fragment key={i}>
               {item.divider && <div style={{ borderTop: '1px solid #E5E7EB' }} />}
-              <button onClick={() => { item.onClick?.(); setOpen(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', fontSize: 14, fontWeight: 500, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: item.danger ? '#DC2626' : 'rgba(0,0,0,0.9)', transition: 'background 100ms' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#F3F4F6')} onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}>
+              <button onClick={() => { item.onClick?.(); setOpen(false); }} style={{ width: '100%', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', fontSize: 14, fontWeight: 500, textAlign: 'left', whiteSpace: 'normal', overflowWrap: 'anywhere', background: 'none', border: 'none', cursor: 'pointer', color: item.danger ? '#DC2626' : 'rgba(0,0,0,0.9)', transition: 'background 100ms' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#F3F4F6')} onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}>
                 <Icon size={15} style={{ color: item.danger ? '#DC2626' : '#6B7280', flexShrink: 0 }} />{item.label}
               </button>
             </React.Fragment>); })}
@@ -355,9 +382,19 @@ function Toast({ message, icon: Icon, onClose }: { message: string; icon: any; o
    SHARE MODAL
    ======================================================================== */
 
-function ShareProfileModal({ profileName, onClose, onCopyLink, onToast }: { profileName: string; onClose: () => void; onCopyLink: () => void; onToast: (msg: string, icon: any) => void }) {
+function ShareProfileModal({ profileName, profileUrl, onClose, onCopyLink, onShare, onToast }: { profileName: string; profileUrl: string; onClose: () => void; onCopyLink: () => Promise<void>; onShare: () => Promise<void>; onToast: (msg: string, icon: any) => void }) {
   const [copied, setCopied] = useState(false);
-  const handleCopy = () => { onCopyLink(); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const [sharing, setSharing] = useState(false);
+  const handleCopy = async () => {
+    await onCopyLink();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  const handleShare = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try { await onShare(); } finally { setSharing(false); }
+  };
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', width: '100%', maxWidth: 448 }}>
@@ -366,6 +403,10 @@ function ShareProfileModal({ profileName, onClose, onCopyLink, onToast }: { prof
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: '50%', color: '#6B7280' }}><X size={18} /></button>
         </div>
         <div style={{ padding: '16px 20px' }}>
+          <button onClick={handleShare} disabled={sharing} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 8, border: 'none', background: '#0F3352', color: '#fff', cursor: sharing ? 'default' : 'pointer', marginBottom: 8, opacity: sharing ? 0.7 : 1 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 8, background: '#D4A72C', color: '#0F3352', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Share2 size={18} /></div>
+            <div style={{ textAlign: 'left' }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sharing ? 'Ouverture du partage...' : 'Partager maintenant'}</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Applications et contacts disponibles</div></div>
+          </button>
           <button onClick={handleCopy} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 8, border: '1px solid #E5E7EB', background: copied ? '#D1FAE5' : 'transparent', cursor: 'pointer', marginBottom: 8 }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, background: copied ? '#057642' : '#0a66c2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{copied ? <Check size={18} /> : <Copy size={18} />}</div>
             <div style={{ textAlign: 'left' }}><div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.9)' }}>{copied ? 'Lien copié !' : 'Copier le lien'}</div><div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Copier le lien du profil</div></div>
@@ -377,7 +418,7 @@ function ShareProfileModal({ profileName, onClose, onCopyLink, onToast }: { prof
           <div style={{ background: '#F3F4F6', borderRadius: 8, padding: 12, marginTop: 12, border: '1px solid #E5E7EB' }}>
             <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 8px' }}>Lien direct du profil</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <code style={{ flex: 1, padding: '8px 12px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, color: '#0a66c2', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>https://lynoralink.com/p/{profileName.toLowerCase().replace(/\s+/g, '-')}</code>
+              <code style={{ flex: 1, padding: '8px 12px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, color: '#0a66c2', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profileUrl}</code>
               <button onClick={handleCopy} style={{ padding: '8px 12px', borderRadius: 6, border: 'none', background: '#0a66c2', color: '#fff', cursor: 'pointer' }}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>
             </div>
           </div>
@@ -399,10 +440,31 @@ const REPORT_REASONS = [
   { id: 'scam', label: 'Escroquerie', icon: AlertTriangle },
 ];
 
-function ReportModal({ profileName, onClose, onToast }: { profileName: string; onClose: () => void; onToast: (msg: string, icon: any) => void }) {
+function ReportModal({ profileName, targetId, onClose, onToast }: { profileName: string; targetId?: string; onClose: () => void; onToast: (msg: string, icon: any) => void }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const handleSubmit = () => { if (!selected) return; setSubmitted(true); setTimeout(() => { onToast('Signalement envoyé', Flag); onClose(); }, 1800); };
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const handleSubmit = async () => {
+    if (!selected || !targetId || submitting) return;
+    setSubmitting(true);
+    setError('');
+    try {
+      const response = await fetchBackendApi('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetId, targetLabel: profileName, reason: selected }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Impossible d’envoyer le signalement.');
+      setSubmitted(true);
+      setTimeout(() => { onToast('Signalement envoyé', Flag); onClose(); }, 1800);
+    } catch (submitError: any) {
+      setError(submitError?.message || 'Impossible d’envoyer le signalement.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', width: '100%', maxWidth: 448 }}>
@@ -411,19 +473,33 @@ function ReportModal({ profileName, onClose, onToast }: { profileName: string; o
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: '50%', color: '#6B7280' }}><X size={18} /></button>
         </div>
         <div style={{ padding: '16px 20px' }}>
-          {submitted ? (<div style={{ textAlign: 'center', padding: '24px 0' }}><div style={{ width: 56, height: 56, borderRadius: '50%', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}><CheckCircle2 size={28} color="#057642" /></div><h4 style={{ margin: '0 0 4px', color: 'rgba(0,0,0,0.9)' }}>Signalement envoyé</h4><p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Notre équipe examinera le profil.</p></div>) : (<>
-            <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 12px' }}>Sélectionnez la raison :</p>
-            {REPORT_REASONS.map((r) => { const Icon = r.icon; const isSel = selected === r.id; return (
-              <button key={r.id} onClick={() => setSelected(r.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, border: isSel ? '2px solid #DC2626' : '1px solid #E5E7EB', background: isSel ? '#FEF2F2' : 'transparent', cursor: 'pointer', marginBottom: 6 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: isSel ? '#DC2626' : '#F3F4F6', color: isSel ? '#fff' : '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon size={17} /></div>
-                <span style={{ fontSize: 14, fontWeight: 500, color: isSel ? '#DC2626' : 'rgba(0,0,0,0.9)', flex: 1, textAlign: 'left' }}>{r.label}</span>
-                <div style={{ width: 18, height: 18, borderRadius: '50%', border: isSel ? '2px solid #DC2626' : '2px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isSel && <Check size={11} color="#fff" />}</div>
-              </button>); })}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-              <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid #E5E7EB', background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}>Annuler</button>
-              <button onClick={handleSubmit} disabled={!selected} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: '#DC2626', color: '#fff', fontSize: 14, fontWeight: 600, cursor: selected ? 'pointer' : 'default', opacity: selected ? 1 : 0.4 }}>Signaler</button>
+          {submitted ? (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}><CheckCircle2 size={28} color="#057642" /></div>
+              <h4 style={{ margin: '0 0 4px', color: 'rgba(0,0,0,0.9)' }}>Signalement envoyé</h4>
+              <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Notre équipe examinera le profil.</p>
             </div>
-          </>)}
+          ) : (
+            <>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 12px' }}>Sélectionnez la raison :</p>
+              {REPORT_REASONS.map((reason) => {
+                const Icon = reason.icon;
+                const isSelected = selected === reason.id;
+                return (
+                  <button key={reason.id} type="button" onClick={() => setSelected(reason.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, border: isSelected ? '2px solid #DC2626' : '1px solid #E5E7EB', background: isSelected ? '#FEF2F2' : 'transparent', cursor: 'pointer', marginBottom: 6 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: isSelected ? '#DC2626' : '#F3F4F6', color: isSelected ? '#fff' : '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon size={17} /></div>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: isSelected ? '#DC2626' : 'rgba(0,0,0,0.9)', flex: 1, textAlign: 'left' }}>{reason.label}</span>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: isSelected ? '2px solid #DC2626' : '2px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isSelected && <Check size={11} color="#fff" />}</div>
+                  </button>
+                );
+              })}
+              {error && <p role="alert" style={{ color: '#DC2626', fontSize: 13, margin: '8px 0 0' }}>{error}</p>}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid #E5E7EB', background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}>Annuler</button>
+                <button type="button" onClick={handleSubmit} disabled={!selected || !targetId || submitting} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: '#DC2626', color: '#fff', fontSize: 14, fontWeight: 600, cursor: selected && targetId && !submitting ? 'pointer' : 'default', opacity: selected && targetId && !submitting ? 1 : 0.4 }}>{submitting ? 'Envoi...' : 'Signaler'}</button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -711,11 +787,11 @@ function CompetencesDetailCard() {
 }
 
 /* Post composer */
-function PostComposerCard({ avatarSrc, onOpenCreate }: { avatarSrc: string | null; onOpenCreate: (mode?: string) => void }) {
+function PostComposerCard({ avatarSrc, initials, isMobile, onOpenCreate }: { avatarSrc: string | null; initials: string; isMobile: boolean; onOpenCreate: (mode?: string) => void }) {
   return (
-    <Card style={{ padding: 16 }}>
+    <Card style={{ padding: 16, width: isMobile ? '100vw' : '100%', maxWidth: 'none', boxSizing: 'border-box', marginLeft: isMobile ? 'calc(50% - 50vw)' : 0, border: isMobile ? 'none' : '1px solid #E5E7EB', borderRadius: isMobile ? 0 : 8, boxShadow: isMobile ? 'none' : '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Avatar src={avatarSrc} initials={profile.initials} size={42} />
+        <Avatar src={avatarSrc} initials={initials} size={42} />
         <button onClick={() => onOpenCreate('post')} style={{ flex: 1, textAlign: 'left', padding: '11px 16px', borderRadius: 22, border: '1.5px solid var(--app-border)', background: 'var(--app-input)', color: 'var(--app-muted)', fontSize: 14, cursor: 'pointer' }}>Exprimez vos idées, partagez vos projets ou vos inspirations...</button>
       </div>
       <div style={{ display: 'flex', marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E7EB' }}>
@@ -869,7 +945,6 @@ function EducationDetailCard() {
 
 export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { targetUserId?: string | null; headerOffset?: number }) {
   const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState('Publications');
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const [coverSrc, setCoverSrc] = useState<string | null>(null);
@@ -1088,7 +1163,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     const observer = new ResizeObserver(updateProfileWidth);
     observer.observe(profileElement);
     return () => observer.disconnect();
-  }, []);
+  }, [profileLoading]);
 
   useEffect(() => {
     const scrollElement = scrollRef.current;
@@ -1108,8 +1183,66 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     try { const payload: { image?: string; cover?: string } = {}; if (modalType === 'avatar') payload.image = preview; if (modalType === 'cover') payload.cover = preview; await fetchBackendApi('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch (e) { console.error('Failed', e); }
     if (modalType === 'avatar') setAvatarSrc(preview); if (modalType === 'cover') setCoverSrc(preview); closeModal();
   };
-  const copyProfileLink = () => { const link = `https://lynoralink.com/p/${profile.name.toLowerCase().replace(/\s+/g, '-')}`; navigator.clipboard?.writeText(link).catch(() => {}); showToast('Lien copié', Copy); };
-  const toggleNotif = () => { setNotifMuted(v => !v); showToast(notifMuted ? 'Notifications réactivées' : 'Notifications désactivées', notifMuted ? Bell : BellOff); };
+  const profileUrl = typeof window === 'undefined'
+    ? `/feed?view=profile${profile.id ? `&userId=${encodeURIComponent(profile.id)}` : ''}`
+    : `${window.location.origin}/feed?view=profile${profile.id ? `&userId=${encodeURIComponent(profile.id)}` : ''}`;
+  const copyProfileLink = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(profileUrl);
+      } else {
+        const input = document.createElement('textarea');
+        input.value = profileUrl;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        input.remove();
+      }
+      showToast('Lien du profil copié', Copy);
+    } catch {
+      showToast('Impossible de copier le lien', AlertTriangle);
+    }
+  };
+  const shareProfile = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Profil de ${profile.name || 'Utilisateur'}`, text: `Découvrez le profil de ${profile.name || 'cet utilisateur'} sur LynoraLink`, url: profileUrl });
+        showToast('Profil partagé', Share2);
+        return;
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+    await copyProfileLink();
+  };
+  useEffect(() => {
+    if (!profile.id || !sessionUser?.id || profile.id === sessionUser.id) return undefined;
+    let mounted = true;
+    fetchBackendApi(`/api/profile/notifications?targetId=${encodeURIComponent(profile.id)}`, { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (mounted && typeof data?.muted === 'boolean') setNotifMuted(data.muted); })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [profile.id, sessionUser?.id]);
+  const toggleNotif = async () => {
+    if (!profile.id || profile.id === sessionUser?.id) return;
+    const nextMuted = !notifMuted;
+    setNotifMuted(nextMuted);
+    try {
+      const response = await fetchBackendApi('/api/profile/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetId: profile.id, muted: nextMuted }),
+      });
+      if (!response.ok) throw new Error('save failed');
+      showToast(nextMuted ? 'Notifications désactivées' : 'Notifications réactivées', nextMuted ? BellOff : Bell);
+    } catch {
+      setNotifMuted(!nextMuted);
+      showToast('Impossible de modifier les notifications', AlertTriangle);
+    }
+  };
   const toggleLike = (id: string | number) => setLikedPosts(prev => ({ ...prev, [id]: !prev[id] }));
   const messageContact = (friend: FriendProfile) => window.history.pushState({}, '', `/feed?view=messages&userId=${encodeURIComponent(String(friend.id))}`);
   const connectContact = async (friend: FriendProfile) => {
@@ -1360,7 +1493,20 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
                 <div className="lynora-profile-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end', width: isMobile ? '100%' : 'auto' }}>
                   {isOwner ? (
                     <>
-                      <button className="lynora-profile-action" onClick={() => router.push('/dashboard')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 24, border: 'none', background: '#0a66c2', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(10,102,194,0.3)' }}>Tableau de bord</button>
+                      <Link
+                        href="/dashboard"
+                        prefetch
+                        className="lynora-profile-action lynora-profile-dashboard-button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          window.location.assign('/dashboard');
+                        }}
+                        onMouseEnter={(event) => { event.currentTarget.style.background = '#D4A72C'; event.currentTarget.style.color = '#0F3352'; }}
+                        onMouseLeave={(event) => { event.currentTarget.style.background = '#0F3352'; event.currentTarget.style.color = '#fff'; }}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 24px', borderRadius: 24, border: 'none', background: '#0F3352', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(15,51,82,0.3)', textDecoration: 'none', transition: 'background 160ms ease, color 160ms ease, transform 160ms ease' }}
+                      >
+                        Tableau de bord
+                      </Link>
                       <button className="lynora-profile-action" onClick={() => window.history.pushState({}, '', '/feed?view=settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 24, border: '1px solid #9CA3AF', background: '#fff', color: 'rgba(0,0,0,0.7)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Modifier</button>
                     </>
                   ) : (
@@ -1407,7 +1553,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
               {activeTab === 'Publications' && (
                 <>
                   {isOwner && (
-                    <PostComposerCard avatarSrc={avatarSrc} onOpenCreate={(mode = 'post') => {
+                    <PostComposerCard avatarSrc={avatarSrc} initials={profile.initials || 'U'} isMobile={isMobile} onOpenCreate={(mode = 'post') => {
                       if (mode === 'visuelfocus') {
                         setVisualFocusOpen(true);
                         return;
@@ -1459,8 +1605,8 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
       {mediaViewerIndex !== null && profileMedia[mediaViewerIndex] && <ProfileMediaViewer media={profileMedia} selectedIndex={mediaViewerIndex} onClose={() => setMediaViewerIndex(null)} onSelect={setMediaViewerIndex} onOpenPost={(postId) => { setMediaViewerIndex(null); setOpenPostId(postId); }} />}
       {selectedOpenPost && <FeedPostViewerPreviewComponent post={selectedOpenPost} currentUser={currentProfileUser} onClose={() => setOpenPostId(null)} onToggleLike={(id) => togglePostLike(id)} onReact={selectPostReaction} onToggleBookmark={() => {}} onAddComment={addComment} onReplyComment={addReply} onToggleCommentLike={(commentId) => toggleCommentLike(selectedOpenPost.id, commentId)} onShare={() => {}} />}
       {selectedOpenArticle && <FeedArticleViewerPreviewComponent article={{ ...selectedOpenArticle, author: selectedOpenArticle.author || profile.name, title: selectedOpenArticle.headline || selectedOpenArticle.text?.slice(0, 60) || 'Article', time: selectedOpenArticle.time, readingTime: 3, body: selectedOpenArticle.body || selectedOpenArticle.text || '', coverUrl: selectedOpenArticle.coverUrl || selectedOpenArticle.media?.[0]?.url || null }} currentUser={currentProfileUser} onClose={() => setOpenArticleId(null)} onToggleLike={(id) => togglePostLike(id)} onToggleBookmark={() => {}} onAddComment={addComment} onShare={() => {}} onFollowAuthor={() => {}} />}
-      {shareModalOpen && <ShareProfileModal profileName={profile.name} onClose={() => setShareModalOpen(false)} onCopyLink={copyProfileLink} onToast={showToast} />}
-      {reportModalOpen && <ReportModal profileName={profile.name} onClose={() => setReportModalOpen(false)} onToast={showToast} />}
+      {shareModalOpen && <ShareProfileModal profileName={profile.name} profileUrl={profileUrl} onClose={() => setShareModalOpen(false)} onCopyLink={copyProfileLink} onShare={shareProfile} onToast={showToast} />}
+      {reportModalOpen && <ReportModal profileName={profile.name} targetId={profile.id} onClose={() => setReportModalOpen(false)} onToast={showToast} />}
       {toast && <Toast message={toast.message} icon={toast.icon} onClose={() => setToast(null)} />}
     </div>
   );

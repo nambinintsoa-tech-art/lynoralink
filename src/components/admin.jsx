@@ -1462,8 +1462,19 @@ function ReportsPage({ reports, setReports, showToast }) {
   const [filter, setFilter] = useState("all");
   const [selectedReport, setSelectedReport] = useState(null);
 
-  const reasonColors = { "Contenu inapproprie": "danger", "Spam": "warning", "Compte suspect": "warning", "Activite frauduleuse": "danger", "Droits d'auteur": "info" };
-  const typeLabel = { post: "Publication", user: "Utilisateur", group: "Groupe" };
+  const reasonLabels = {
+    fake: "Profil fictif",
+    spam: "Spam",
+    impersonation: "Usurpation d'identite",
+    harassment: "Harcelement",
+    scam: "Escroquerie",
+    "Contenu inapproprie": "Contenu inapproprie",
+    "Compte suspect": "Compte suspect",
+    "Activite frauduleuse": "Activite frauduleuse",
+    "Droits d'auteur": "Droits d'auteur",
+  };
+  const reasonColors = { fake: "warning", spam: "warning", impersonation: "danger", harassment: "danger", scam: "danger", "Contenu inapproprie": "danger", "Spam": "warning", "Compte suspect": "warning", "Activite frauduleuse": "danger", "Droits d'auteur": "info" };
+  const typeLabel = { post: "Publication", profile: "Profil utilisateur", user: "Utilisateur", group: "Groupe" };
   const filtered = reports.filter((r) => filter === "all" || r.status === filter);
   const pendingCount = reports.filter((r) => r.status === "pending").length;
 
@@ -1488,6 +1499,7 @@ function ReportsPage({ reports, setReports, showToast }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {filtered.map((report) => {
           const rc = reasonColors[report.reason] || "muted";
+          const reasonLabel = reasonLabels[report.reason] || report.reason || "Motif non precise";
           return (
             <Card key={report.id} style={{ padding: 16, borderLeft: `4px solid ${report.status === "pending" ? C.danger : report.status === "dismissed" ? C.mutedLight : C.success}` }}>
               <div style={{ display: "flex", gap: 14 }}>
@@ -1496,10 +1508,10 @@ function ReportsPage({ reports, setReports, showToast }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                     <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink }}>{report.targetLabel}</span>
                     <Badge label={typeLabel[report.type] || report.type} color="default" small />
-                    <Badge label={report.reason} color={rc === "danger" ? "danger" : rc === "warning" ? "warning" : "info"} small />
+                    <Badge label={reasonLabel} color={rc === "danger" ? "danger" : rc === "warning" ? "warning" : "info"} small />
                     <Badge label={report.status === "pending" ? "En attente" : report.status === "reviewed" ? "Resolu" : "Rejete"} color={report.status === "pending" ? "warning" : report.status === "reviewed" ? "success" : "muted"} small />
                   </div>
-                  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5, marginBottom: 4 }}>{report.details}</div>
+                  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5, marginBottom: 4 }}>Motif : <strong style={{ color: C.ink }}>{reasonLabel}</strong>{report.details ? ` · ${report.details}` : ""}</div>
                   <div style={{ fontSize: 11, color: C.mutedLight }}>Signale par <strong style={{ color: C.ink }}>{report.reporter}</strong> · {new Date(report.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
                   {report.resolution && <div style={{ fontSize: 12, color: C.success, marginTop: 6, padding: "8px 12px", background: C.success50, borderRadius: 8 }}>Resolution : {report.resolution}</div>}
                 </div>
@@ -1521,8 +1533,8 @@ function ReportsPage({ reports, setReports, showToast }) {
               <button onClick={() => setSelectedReport(null)} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: C.navy50, color: C.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
             </div>
             <div style={{ fontSize: 13, color: C.ink, fontWeight: 600, marginBottom: 4 }}>{selectedReport.targetLabel}</div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Raison : <strong>{selectedReport.reason}</strong></div>
-            <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, padding: "12px 14px", background: C.navy50, borderRadius: 10, marginBottom: 16 }}>{selectedReport.details}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Raison : <strong>{reasonLabels[selectedReport.reason] || selectedReport.reason || "Motif non precise"}</strong></div>
+            <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, padding: "12px 14px", background: C.navy50, borderRadius: 10, marginBottom: 16 }}>{selectedReport.details || "Aucun detail supplementaire fourni."}</div>
             <div style={{ fontSize: 11.5, color: C.mutedLight, marginBottom: 16 }}>Signale par {selectedReport.reporter} le {new Date(selectedReport.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn label="Rejeter" variant="secondary" onClick={() => dismissReport(selectedReport.id)} style={{ flex: 1 }} />

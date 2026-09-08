@@ -12,18 +12,19 @@ function validRequest(body) {
   return { category, subject, message };
 }
 
-async function sendEmail({ to, replyTo, subject, text }) {
+async function sendEmail({ to, replyTo, subject, text, from }) {
   if (!to) return;
+  const sender = from || process.env.SUPPORT_EMAIL_TO || process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   if ((process.env.EMAIL_PROVIDER || "smtp").toLowerCase() === "resend") {
-    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return;
-    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to: [to], reply_to: replyTo || undefined, subject, text }) });
+    if (!process.env.RESEND_API_KEY || !sender) return;
+    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: sender, to: [to], reply_to: replyTo || undefined, subject, text }) });
     if (!response.ok) throw new Error(`Resend ${response.status}`);
     return;
   }
   const port = Number(process.env.SMTP_PORT || 587); const password = process.env.SMTP_PASSWORD?.replace(/\s+/g, "");
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !password) return;
   const transporter = nodemailer.createTransport({ host: process.env.SMTP_HOST, port, secure: port === 465, auth: { user: process.env.SMTP_USER, pass: password } });
-  await transporter.sendMail({ from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER, to, replyTo, subject, text });
+  await transporter.sendMail({ from: sender, to, replyTo, subject, text });
 }
 
 async function autoReply(payload, fallback) {
@@ -59,8 +60,10 @@ export async function registerSupportRoutes(app) {
       const fallback = String(byCategory[payload.category] || configured.supportAutoReplyMessage || "").trim(); const enabled = configured.supportAutoReplyEnabled === "true" && fallback.length >= 2; const responseText = enabled ? await autoReply(payload, fallback) : "";
       const supportRequest = await prisma.supportRequest.create({ data: { ...payload, userId, ...(enabled ? { response: responseText, status: "answered", respondedAt: new Date() } : {}) }, select: { id: true, createdAt: true, response: true, status: true, respondedAt: true } });
       const supportEmail = process.env.SUPPORT_EMAIL_TO || process.env.ADMIN_EMAIL;
-      await sendEmail({ to: supportEmail, replyTo: user?.email, subject: `[LynoraLink #${supportRequest.id.slice(-8).toUpperCase()}] ${payload.subject}`, text: [`Nouvelle demande de support LynoraLink #${supportRequest.id.slice(-8).toUpperCase()}`, `Utilisateur : ${user?.name || "Non renseigné"} <${user?.email || "e-mail inconnu"}>`, `Catégorie : ${payload.category}`, `Sujet : ${payload.subject}`, "", payload.message].join("\n") }).catch((error) => console.warn(`[support] notification email failed (${error.message})`));
-      if (enabled && user?.email) await sendEmail({ to: user.email, subject: `Confirmation de votre demande - ${payload.subject}`, text: `Bonjour ${user.name || ""},\n\n${responseText}\n\nRéférence : #${supportRequest.id.slice(-8).toUpperCase()}` }).catch(() => {});
+      const supportFrom = process.env.SUPPORT_EMAIL_TO || process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+      const noReplyFrom = process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || process.env.SMTP_USER;
+      await sendEmail({ to: supportEmail, from: supportFrom, replyTo: user?.email, subject: `[LynoraLink #${supportRequest.id.slice(-8).toUpperCase()}] ${payload.subject}`, text: [`Nouvelle demande de support LynoraLink #${supportRequest.id.slice(-8).toUpperCase()}`, `Utilisateur : ${user?.name || "Non renseigné"} <${user?.email || "e-mail inconnu"}>`, `Catégorie : ${payload.category}`, `Sujet : ${payload.subject}`, "", payload.message].join("\n") }).catch((error) => console.warn(`[support] notification email failed (${error.message})`));
+      if (enabled && user?.email) await sendEmail({ to: user.email, from: noReplyFrom, subject: `Confirmation de votre demande - ${payload.subject}`, text: `Bonjour ${user.name || ""},\n\n${responseText}\n\nRéférence : #${supportRequest.id.slice(-8).toUpperCase()}` }).catch(() => {});
       return reply.code(201).send({ request: supportRequest });
     } catch (error) { request.log.error(error); return reply.code(500).send({ error: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant." }); }
   });
