@@ -5,7 +5,13 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const backendUrl = () => (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4001").replace(/\/$/, "");
+const backendUrl = () => {
+  const configured = (process.env.NEXT_PUBLIC_BACKEND_URL || "").replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production" && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configured)) {
+    return "https://lynoralink-backend.onrender.com";
+  }
+  return configured || (process.env.NODE_ENV === "production" ? "https://lynoralink-backend.onrender.com" : "http://127.0.0.1:4001");
+};
 
 async function getAuthenticatedUserId(request) {
   const session = await getServerSession(authOptions);
