@@ -63,6 +63,7 @@ model User {
   companyPosts            Post[]               @relation("CompanyPosts")
   postShares              PostShare[]
   pushSubscriptions       PushSubscription[]
+  nativePushTokens        NativePushToken[]
   removedUsers            RemovedConnection[]  @relation("RemovedUser")
   removedBy               RemovedConnection[]  @relation("RemovedByUser")
   reportsSent             Report[]             @relation("ReportReporter")
@@ -422,6 +423,18 @@ model PushSubscription {
   endpoint  String   @unique
   p256dh    String
   auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model NativePushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String   @default("android")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

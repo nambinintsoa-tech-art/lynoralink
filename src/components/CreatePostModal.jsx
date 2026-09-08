@@ -92,7 +92,7 @@ const CREATE_POST_MODAL_CSS = `
   .cpm-publish:not(:disabled):active { transform: translateY(0) scale(0.98); }
 
   .cpm-mode-tab { transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
-  .cpm-mode-tab:hover:not(.cpm-mode-tab-active) { color: ${C.navy800} !important; background: rgba(255,255,255,0.6) !important; }
+  .cpm-mode-tab:hover:not(.cpm-mode-tab-active) { color: ${C.navy800} !important; background: rgba(15,51,82,0.05) !important; }
 
   .cpm-media-opt { transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease; }
   .cpm-media-opt:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(15,51,82,0.1); }
@@ -175,7 +175,7 @@ const CREATE_POST_MODAL_CSS = `
     }
     /* Exceptions explicites pour les classes spéciales */
     .cpm-panel .cpm-media-opt {
-      border-radius: 10px !important;
+      border-radius: 50% !important;
     }
     .cpm-panel .cpm-chip {
       border-radius: 999px !important;
@@ -195,7 +195,7 @@ const CREATE_POST_MODAL_CSS = `
     .cpm-panel [class*="badge"] {
       border-radius: 999px !important;
     }
-    .cpm-toolbar {
+    .cpm-header {
       position: sticky !important;
       top: 0 !important;
       z-index: 20 !important;
@@ -212,16 +212,9 @@ const CREATE_POST_MODAL_CSS = `
     .cpm-panel textarea,
     .cpm-panel select { font-size: 16px !important; }
     .cpm-scroll { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-    .cpm-toolbar { position: relative !important; padding: 10px 54px 10px 10px !important; min-height: 58px; overflow: hidden; }
-    .cpm-toolbar > div:first-child {
-      min-width: 0;
-      overflow: visible !important;
-      justify-content: flex-start !important;
-    }
-    .cpm-toolbar > div:first-child > div {
-      width: 100%;
-      justify-content: stretch;
-      flex-wrap: nowrap;
+    .cpm-header {
+      padding: 8px 12px 6px !important;
+      grid-template-columns: 44px 1fr 44px !important;
     }
     .cpm-mode-tab {
       white-space: nowrap;
@@ -257,15 +250,25 @@ const CREATE_POST_MODAL_CSS = `
       font-size: 11px !important;
     }
     .cpm-media-options {
+      align-items: flex-start !important;
       justify-content: center !important;
       flex-wrap: wrap !important;
       overflow: visible !important;
       padding-bottom: 0 !important;
     }
-    .cpm-media-options > button {
-      flex: 1 1 calc(50% - 4px) !important;
+    .cpm-media-options > span:first-child {
+      width: 100%;
+      white-space: normal !important;
+    }
+    .cpm-media-option-actions {
+      width: 100%;
+      min-width: 0;
+      flex-wrap: wrap !important;
       justify-content: center !important;
-      min-width: 0 !important;
+      gap: 4px !important;
+    }
+    .cpm-media-option-actions > span {
+      max-width: 100%;
     }
     .cpm-footer {
       padding: 12px 14px calc(32px + env(safe-area-inset-bottom)) !important;
@@ -292,18 +295,14 @@ const CREATE_POST_MODAL_CSS = `
     }
     .cpm-footer-publish {
       width: 100% !important;
+      min-width: 0 !important;
       justify-content: center !important;
     }
-    .cpm-toolbar .cpm-close-btn {
-      position: absolute !important;
-      top: 10px;
-      right: 12px;
+    .cpm-header .cpm-close-btn {
       width: 44px !important;
       height: 44px !important;
-      background: ${C.navy900} !important;
-      color: ${C.white} !important;
-      z-index: 5;
-      box-shadow: 0 4px 12px rgba(15,51,82,0.24);
+      background: ${C.navy50} !important;
+      color: ${C.muted} !important;
     }
   }
 `;
@@ -1988,41 +1987,79 @@ export default function CreatePostModal({
             </div>
           </div>
         )}
-        <div className="cpm-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 20px", borderBottom: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.white} 0%, ${C.white} 100%)` }}>
-          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-            <div style={{ display: "flex", gap: 3, padding: 4, borderRadius: 13, background: C.navy50, border: `1px solid ${C.navy100}` }}>
-              {MODE_TABS.filter(({ id }) => !isEditing || id === mode).map(({ id, label, icon: Icon }) => {
-                const active = mode === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setMode(id)}
-                    className={`cpm-mode-tab${active ? " cpm-mode-tab-active" : ""}`}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderRadius: 10, border: "none",
-                      cursor: "pointer", fontSize: 13.5, fontWeight: 700,
-                      background: active ? C.white : "transparent",
-                      color: active ? C.navy900 : C.muted,
-                      boxShadow: active ? "0 3px 10px rgba(15,51,82,0.14)" : "none",
-                    }}
-                  >
-                    <Icon size={14} color={active ? C.gold600 : undefined} /> {label}
-                  </button>
-                );
-              })}
-            </div>
+        {/* ================================================================== */}
+        {/* EN-TÊTE FAÇON FACEBOOK : titre centré + ✕ en haut à droite,   */}
+        {/* puis onglets pleine largeur avec soulignement de l'onglet actif.   */}
+        {/* ================================================================== */}
+        <div
+          className="cpm-header"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "36px 1fr 36px",
+            alignItems: "center",
+            padding: "12px 16px 8px",
+            borderBottom: `1px solid ${C.line}`,
+            background: C.white,
+          }}
+        >
+          <span aria-hidden="true" />
+          <div style={{ textAlign: "center", minWidth: 0 }}>
+            <span
+              className="cpm-title"
+              style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em" }}
+            >
+              {isEditing ? "Modifier la publication" : "Créer une publication"}
+            </span>
+            {group && (
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: C.gold600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                → {group.name}
+              </div>
+            )}
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Fermer"
             className="cpm-close-btn"
-            style={{ background: C.navy50, border: "none", borderRadius: 999, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.muted, flexShrink: 0 }}
+            style={{ background: C.navy50, border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.muted, flexShrink: 0 }}
           >
-            <X size={17} />
+            <X size={18} />
           </button>
         </div>
 
+        {/* Onglets pleine largeur — soulignement de l'onglet actif façon Facebook */}
+        <div
+          className="cpm-mode-tabs"
+          style={{ display: "flex", alignItems: "stretch", borderBottom: `1px solid ${C.line}`, background: C.white }}
+        >
+          {MODE_TABS.filter(({ id }) => !isEditing || id === mode).map(({ id, label, icon: Icon }) => {
+            const active = mode === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMode(id)}
+                className={`cpm-mode-tab${active ? " cpm-mode-tab-active" : ""}`}
+                style={{
+                  flex: "1 1 0",
+                  minWidth: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "11px 4px 9px",
+                  border: "none",
+                  borderBottom: active ? `2.5px solid ${C.gold600}` : "2.5px solid transparent",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: 13, fontWeight: active ? 800 : 600,
+                  color: active ? C.ink : C.muted,
+                  marginBottom: -1,
+                }}
+              >
+                <Icon size={15} color={active ? C.gold600 : undefined} />
+                <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
         {/* ================================================================== */}
         {/* CORPS (scrollable + zone de dépôt globale)                        */}
         {/* ================================================================== */}
@@ -2051,27 +2088,27 @@ export default function CreatePostModal({
           {/* ---------------------------------------------------------- */}
           {/* SECTION UTILISATEUR                                          */}
           {/* ---------------------------------------------------------- */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px 8px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px 4px" }}>
             <Avatar initials={currentUser.avatar} size={40} imgUrl={currentUser.avatarUrl} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontFamily: "'Sora', sans-serif", lineHeight: 1.3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>{currentUser.name}</span>
+            <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontFamily: "'Sora', sans-serif", lineHeight: 1.25 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</span>
                 {currentUser.isPlatformAdmin ? (
                   <span style={{ display: "inline-flex", borderRadius: 999 }}>
-                    <EnterpriseBadge size={14} label="Administrateur officiel LynoraLink" />
+                    <EnterpriseBadge size={13} label="Administrateur officiel LynoraLink" />
                   </span>
                 ) : currentUser.isPremium && (
                   <span style={{ display: "inline-flex", borderRadius: 999 }}>
-                    <PremiumBadge size={14} />
+                    <PremiumBadge size={13} />
                   </span>
                 )}
               </div>
               {currentUser.title && (
-                <div style={{ fontSize: 12.5, color: C.mutedLight, fontWeight: 500, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 12, color: C.mutedLight, fontWeight: 500, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {currentUser.title}
                 </div>
               )}
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 3 }}>
                 <VisibilityPicker value={groupVisibility} onChange={setVisibility} locked={Boolean(group)} variant="inline" />
               </div>
             </div>
@@ -2081,7 +2118,7 @@ export default function CreatePostModal({
           {/* CHAMPS ARTICLE (titre + chapô)                               */}
           {/* ---------------------------------------------------------- */}
           {isArticle && (
-            <div style={{ padding: "0 24px 16px" }}>
+            <div style={{ padding: "0 16px 16px" }}>
               <input
                 value={articleTitle}
                 onChange={(e) => setArticleTitle(e.target.value)}
@@ -2110,7 +2147,7 @@ export default function CreatePostModal({
           )}
 
           {isReel && (
-            <div style={{ padding: "0 24px 16px" }}>
+            <div style={{ padding: "0 16px 16px" }}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ display: "grid", gap: 6 }}>
                   <label style={{ fontSize: 12.5, fontWeight: 700, color: C.muted }}>Légende</label>
@@ -2139,7 +2176,7 @@ export default function CreatePostModal({
           {/* RUBAN D'OUTILS — ÉDITEUR D'ARTICLE (type traitement de texte) */}
           {/* ---------------------------------------------------------- */}
           {isArticle && (
-            <div style={{ padding: "0 24px 12px" }}>
+            <div style={{ padding: "0 16px 12px" }}>
               <div style={{ position: "sticky", top: 0, zIndex: 10 }}>
                 <div
                   className="cpm-article-toolbar"
@@ -2223,7 +2260,7 @@ export default function CreatePostModal({
           {/* ---------------------------------------------------------- */}
           {/* ZONE DE TEXTE / APERÇU                                      */}
           {/* ---------------------------------------------------------- */}
-          <div style={{ padding: "0 24px 16px" }}>
+          <div style={{ padding: "0 16px 16px" }}>
             {isArticle && showPreview ? (
               <ArticleViewerPreview
                 article={{
@@ -2332,7 +2369,7 @@ export default function CreatePostModal({
           </div>
 
           {isArticle && (
-            <div style={{ fontSize: 11.5, color: C.mutedLight, padding: "10px 24px", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 8, background: C.white, boxSizing: "border-box", width: "100%" }}>
+            <div style={{ fontSize: 11.5, color: C.mutedLight, padding: "10px 16px", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 8, background: C.white, boxSizing: "border-box", width: "100%" }}>
               <Clock size={11} /> {estMinutes} min de lecture estimée · {words} mots
               {text.trim().length > 0 && text.trim().length <= 40 && (
                 <span style={{ color: C.danger }}>Développez un peu plus votre article (min. 40 caractères)</span>
@@ -2341,54 +2378,10 @@ export default function CreatePostModal({
           )}
 
           {/* ---------------------------------------------------------- */}
-          {/* "AJOUTER À VOTRE PUBLICATION" — boîte façon Facebook        */}
-          {/* ---------------------------------------------------------- */}
-          {!isArticle && !isReel && (
-            <div style={{ padding: "8px 24px 16px" }}>
-              <div
-                className="cpm-media-options"
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-                  padding: "10px 12px 10px 16px", borderRadius: 12, border: `1px solid ${C.line}`, background: C.white,
-                }}
-              >
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink, whiteSpace: "nowrap" }}>
-                  Ajouter à votre publication
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
-                  {MEDIA_BAR_OPTIONS.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => handleMediaBarClick(option)}
-                      title={option.label}
-                      className="cpm-media-opt"
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 34, height: 34, borderRadius: "50%", border: "none",
-                        background: "transparent", cursor: "pointer", color: option.color, flexShrink: 0,
-                      }}
-                    >
-                      <FontAwesomeIcon icon={option.icon} style={{ fontSize: 17 }} />
-                    </button>
-                  ))}
-                  <span style={{ width: 1, height: 22, background: C.line, margin: "0 2px" }} />
-                  <span title="Humeur" style={{ display: "flex" }}>
-                    <MoodPicker value={mood} onChange={setMood} placement="top" />
-                  </span>
-                  <span title="Identifier des personnes" style={{ display: "flex" }}>
-                    <IdentifierPicker value={identifiedUsers} onChange={setIdentifiedUsers} />
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ---------------------------------------------------------- */}
           {/* ZONE MÉDIAS — dédiée au Reel (aperçu vertical 9:16) ou      */}
           {/* grille/dropzone générique pour les autres modes             */}
           {/* ---------------------------------------------------------- */}
-          <div style={{ padding: "16px 24px" }}>
+          <div style={{ padding: "12px 16px 16px" }}>
             {isReel ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                 {media.length === 0 ? (
@@ -2567,16 +2560,62 @@ export default function CreatePostModal({
           </div>
 
           {/* ---------------------------------------------------------- */}
+          {/* "AJOUTER À VOTRE PUBLICATION" — boîte façon Facebook :      */}
+          {/* fond clair navy50, boutons ronds 36px à pastille colorée.  */}
+          {/* ---------------------------------------------------------- */}
+          {!isArticle && !isReel && (
+            <div style={{ padding: "0 16px 16px" }}>
+              <div
+                className="cpm-media-options"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                  padding: "8px 14px 8px 16px", borderRadius: 12, background: C.navy50,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink, whiteSpace: "nowrap" }}>
+                  Ajouter à votre publication
+                </span>
+                <div className="cpm-media-option-actions" style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
+                  {MEDIA_BAR_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => handleMediaBarClick(option)}
+                      title={option.label}
+                      className="cpm-media-opt"
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 36, height: 36, borderRadius: "50%", border: "none",
+                        background: option.color, cursor: "pointer", color: C.white, flexShrink: 0,
+                        boxShadow: "0 4px 12px rgba(15,51,82,0.16)",
+                      }}
+                    >
+                      <FontAwesomeIcon icon={option.icon} style={{ fontSize: 17 }} />
+                    </button>
+                  ))}
+                  <span style={{ width: 1, height: 22, background: C.line, margin: "0 4px" }} />
+                  <span title="Humeur" style={{ display: "flex" }}>
+                    <MoodPicker value={mood} onChange={setMood} placement="top" />
+                  </span>
+                  <span title="Identifier des personnes" style={{ display: "flex" }}>
+                    <IdentifierPicker value={identifiedUsers} onChange={setIdentifiedUsers} />
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------------- */}
           {/* SECTION TAGS (dépliable depuis le footer)                   */}
           {/* ---------------------------------------------------------- */}
           {showTagsInput && (
-            <div className="cpm-fade" style={{ padding: "0 24px 16px" }}>
+            <div className="cpm-fade" style={{ padding: "0 16px 16px" }}>
               <TagInput tags={tags} onChange={setTags} />
             </div>
           )}
 
           {globalError && (
-            <div className="cpm-fade" style={{ margin: "0 24px 16px", display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 10, background: C.danger50, color: C.danger, fontSize: 12 }}>
+            <div className="cpm-fade" style={{ margin: "0 16px 16px", display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 10, background: C.danger50, color: C.danger, fontSize: 12 }}>
               <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>{globalError}</span>
             </div>
@@ -2586,9 +2625,9 @@ export default function CreatePostModal({
         {/* ================================================================== */}
         {/* PIED DE MODALE                                                    */}
         {/* ================================================================== */}
-        <div className="cpm-footer" style={{ padding: "14px 24px", borderTop: `1px solid ${C.line}`, position: "relative", zIndex: 2, background: C.white }}>
-          <div className="cpm-footer-row" style={{ width: "100%" }}>
-            {/* --- Bouton Publier, pleine largeur, façon Facebook --- */}
+        <div className="cpm-footer" style={{ padding: "12px 16px", borderTop: `1px solid ${C.line}`, position: "relative", zIndex: 2, background: C.white }}>
+          <div className="cpm-footer-row" style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>
+            {/* --- Bouton Publier : pill navy à droite (desktop), pleine largeur (mobile) --- */}
             <button
               type="button"
               disabled={!canPublish || submitting}
@@ -2596,10 +2635,10 @@ export default function CreatePostModal({
               onClick={handlePublish}
               className="cpm-publish cpm-footer-publish"
               style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%",
-                padding: "11px 26px", borderRadius: 8, border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "auto", minWidth: 170,
+                padding: "10px 24px", borderRadius: 999, border: "none",
                 background: canPublish && !submitting ? navyGrad : C.line, color: canPublish && !submitting ? C.white : C.mutedLight,
-                fontWeight: 700, fontSize: 15, fontFamily: "'Sora', sans-serif", cursor: canPublish && !submitting ? "pointer" : "not-allowed",
+                fontWeight: 700, fontSize: 14.5, fontFamily: "'Sora', sans-serif", cursor: canPublish && !submitting ? "pointer" : "not-allowed",
               }}
             >
               {submitting && <Loader2 size={15} className="cpm-spinner" />}

@@ -7,8 +7,6 @@ import AccountPicker from "@/components/AccountPicker";
 import AuthNavigationTransition from "@/components/AuthNavigationTransition";
 import SplashScreen from "@/components/SplashScreen";
 
-const STARTUP_SPLASH_KEY = "lynoralink_startup_splash_seen";
-
 export default function HomePage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -27,12 +25,6 @@ export default function HomePage() {
       return nextAccounts;
     });
   };
-
-  useEffect(() => {
-    if (window.sessionStorage.getItem(STARTUP_SPLASH_KEY) === "1") {
-      setShowStartupSplash(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (status !== "authenticated" || !session?.user?.id) {
@@ -107,10 +99,10 @@ export default function HomePage() {
   if (showStartupSplash) {
     return (
       <SplashScreen
-        duration={1100}
+        duration={2600}
         tagline="Le réseau professionnel nouvelle génération"
+        isReady={status !== "loading"}
         onFinish={() => {
-          window.sessionStorage.setItem(STARTUP_SPLASH_KEY, "1");
           setShowStartupSplash(false);
         }}
       />

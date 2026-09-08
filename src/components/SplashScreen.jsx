@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import LogoBadge from "./LogoBadge";
 
 /* ------------------------------------------------------------------ */
@@ -9,14 +9,12 @@ import LogoBadge from "./LogoBadge";
 const C = {
   navy900: "#0F3352",
   navy800: "#1B5386",
-  navy100: "#DCE7F1",
   navy50: "#EFF4F9",
   muted: "#5C7488",
   gold400: "#F6D374",
   gold600: "#D9A536",
   white: "#FFFFFF",
 };
-const goldGrad = `linear-gradient(135deg, ${C.gold400} 0%, ${C.gold600} 100%)`;
 
 /* ------------------------------------------------------------------ */
 /*  SplashScreen — écran de démarrage affiché au lancement de l'app   */
@@ -25,26 +23,29 @@ const goldGrad = `linear-gradient(135deg, ${C.gold400} 0%, ${C.gold600} 100%)`;
  * @param {() => void} onFinish   Appelé une fois le splash terminé (afficher l'app ou l'écran de connexion à ce moment)
  * @param {number} [duration=2600]  Durée totale en ms avant l'appel à onFinish
  * @param {string} [tagline]     Texte affiché sous le logo
+ * @param {boolean} [isReady=true]  Autorise la fin une fois l'authentification prête
  */
 export default function SplashScreen({
   onFinish,
   duration = 2600,
   tagline = "Le réseau professionnel nouvelle génération",
+  isReady = true,
 }) {
-  const [progressStarted, setProgressStarted] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
+  const startedAtRef = useRef(Date.now());
 
   useEffect(() => {
-    // Démarre l'animation de la barre au frame suivant (pour permettre la transition CSS)
-    const raf = requestAnimationFrame(() => setProgressStarted(true));
-    const toFade = setTimeout(() => setFadingOut(true), duration - 400);
-    const toFinish = setTimeout(() => onFinish?.(), duration);
+    if (!isReady) return undefined;
+
+    const remaining = Math.max(0, duration - (Date.now() - startedAtRef.current));
+    const finishDelay = Math.max(remaining, 400);
+    const toFade = setTimeout(() => setFadingOut(true), finishDelay - 400);
+    const toFinish = setTimeout(() => onFinish?.(), finishDelay);
     return () => {
-      cancelAnimationFrame(raf);
       clearTimeout(toFade);
       clearTimeout(toFinish);
     };
-  }, [duration, onFinish]);
+  }, [duration, isReady, onFinish]);
 
   return (
     <div
@@ -86,26 +87,37 @@ export default function SplashScreen({
           65%  { opacity: 1; transform: scale(1.05) translateY(0); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes lyn-sp-letter-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
         @keyframes lyn-sp-fade-up {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes lyn-sp-shimmer {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(220%); }
+        @keyframes lyn-sp-dot {
+          0%, 60%, 100% { opacity: .28; transform: scale(.72); }
+          30%           { opacity: 1; transform: scale(1); }
         }
         .lyn-sp-field-a { animation: lyn-sp-drift-a 9s ease-in-out infinite; }
         .lyn-sp-field-b { animation: lyn-sp-drift-b 11s ease-in-out infinite; }
         .lyn-sp-ring-1 { animation: lyn-sp-ring 2.8s cubic-bezier(0.22,1,0.36,1) infinite; }
         .lyn-sp-ring-2 { animation: lyn-sp-ring 2.8s cubic-bezier(0.22,1,0.36,1) infinite 1.4s; }
         .lyn-sp-logo { animation: lyn-sp-logo-in .75s cubic-bezier(0.22,1,0.36,1) both; }
-        .lyn-sp-name { animation: lyn-sp-fade-up .55s ease .3s both; }
+        .lyn-sp-name { display: inline-flex; }
+        .lyn-sp-letter { display: inline-block; opacity: 0; animation: lyn-sp-letter-in .42s cubic-bezier(0.22,1,0.36,1) both; }
         .lyn-sp-tagline { animation: lyn-sp-fade-up .55s ease .45s both; }
         .lyn-sp-bar { animation: lyn-sp-fade-up .55s ease .58s both; }
-        .lyn-sp-shimmer { animation: lyn-sp-shimmer 1.6s ease-in-out infinite; }
+        .lyn-sp-dot { animation: lyn-sp-dot 1.2s ease-in-out infinite; }
+        .lyn-sp-dot:nth-child(2) { animation-delay: .12s; }
+        .lyn-sp-dot:nth-child(3) { animation-delay: .24s; }
+        .lyn-sp-dot:nth-child(4) { animation-delay: .36s; }
+        .lyn-sp-dot:nth-child(5) { animation-delay: .48s; }
+        .lyn-sp-dot:nth-child(6) { animation-delay: .60s; }
         @media (prefers-reduced-motion: reduce) {
-          .lyn-sp-field-a, .lyn-sp-field-b, .lyn-sp-ring-1, .lyn-sp-ring-2, .lyn-sp-shimmer { animation: none !important; }
+          .lyn-sp-field-a, .lyn-sp-field-b, .lyn-sp-ring-1, .lyn-sp-ring-2, .lyn-sp-dot { animation: none !important; }
           .lyn-sp-logo, .lyn-sp-name, .lyn-sp-tagline, .lyn-sp-bar { animation: none !important; opacity: 1 !important; transform: none !important; }
+          .lyn-sp-letter { animation: none !important; opacity: 1 !important; transform: none !important; }
         }
       `}</style>
 
@@ -114,7 +126,7 @@ export default function SplashScreen({
       <div className="lyn-sp-field-b" style={{ position: "absolute", width: 380, height: 380, borderRadius: "50%", background: `radial-gradient(circle, ${C.navy800} 0%, rgba(27,83,134,0) 70%)`, opacity: 0.08, filter: "blur(60px)", bottom: "-14%", left: "-10%" }} />
 
       {/* Logo, anneaux pulsés et halo doré */}
-      <div style={{ position: "relative", width: 168, height: 168, marginBottom: 30, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "relative", width: 200, height: 200, marginBottom: 30, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span className="lyn-sp-ring-1" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${C.gold600}` }} />
         <span className="lyn-sp-ring-2" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${C.gold600}` }} />
         <div style={{ position: "absolute", inset: 14, borderRadius: "50%", background: `radial-gradient(circle, rgba(246,211,116,0.35) 0%, rgba(246,211,116,0) 72%)` }} />
@@ -122,24 +134,29 @@ export default function SplashScreen({
           className="lyn-sp-logo"
           style={{
             position: "relative",
-            width: 116,
-            height: 116,
-            borderRadius: 28,
-            background: C.white,
+            width: 152,
+            height: 152,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 18px 40px -14px rgba(15,51,82,0.28), 0 2px 8px rgba(15,51,82,0.08)",
           }}
         >
-          <LogoBadge size={104} />
+          <LogoBadge size={144} />
         </div>
       </div>
 
       {/* Nom de l'app */}
       <div className="lyn-sp-name" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 10 }}>
-        <span style={{ color: C.navy900 }}>Lynora</span>
-        <span style={{ color: C.gold600 }}>Link</span>
+        {[..."Lynora"].map((letter, index) => (
+          <span key={`lynora-${index}`} className="lyn-sp-letter" style={{ color: C.navy900, animationDelay: `${300 + index * 55}ms` }}>
+            {letter}
+          </span>
+        ))}
+        {[..."Link"].map((letter, index) => (
+          <span key={`link-${index}`} className="lyn-sp-letter" style={{ color: C.gold600, animationDelay: `${630 + index * 55}ms` }}>
+            {letter}
+          </span>
+        ))}
       </div>
 
       {/* Accroche */}
@@ -149,29 +166,16 @@ export default function SplashScreen({
         </div>
       )}
 
-      {/* Barre de progression */}
-      <div className="lyn-sp-bar" style={{ position: "relative", width: 180, height: 4, borderRadius: 4, background: C.navy100, overflow: "hidden" }}>
-        <div
-          style={{
-            position: "relative",
-            height: "100%",
-            width: progressStarted ? "100%" : "0%",
-            background: goldGrad,
-            borderRadius: 4,
-            overflow: "hidden",
-            transition: `width ${Math.max(duration - 400, 200)}ms linear`,
-          }}
-        >
+      {/* Indicateur de chargement en points, comme Facebook */}
+      <div className="lyn-sp-bar" aria-label="Chargement" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, height: 16 }}>
+        {[0, 1, 2, 3, 4, 5].map((dot) => (
           <span
-            className="lyn-sp-shimmer"
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "40%",
-              background: "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.65) 50%, rgba(255,255,255,0) 100%)",
-            }}
+            key={dot}
+            className="lyn-sp-dot"
+            aria-hidden="true"
+            style={{ width: 7, height: 7, borderRadius: "50%", background: dot === 1 ? C.gold600 : C.navy800 }}
           />
-        </div>
+        ))}
       </div>
     </div>
   );

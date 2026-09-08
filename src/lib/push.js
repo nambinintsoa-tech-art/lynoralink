@@ -1,4 +1,6 @@
 import webpush from "web-push";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getMessaging } from "firebase-admin/messaging";
 import { prisma } from "@/lib/prisma";
 
 let vapidConfigured = false;
@@ -14,8 +16,60 @@ function configureWebPush() {
   return true;
 }
 
+function getFirebaseMessaging() {
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!serviceAccountJson && (!projectId || !clientEmail || !privateKey)) return null;
+
+  try {
+    const app = getApps()[0] || initializeApp({
+      credential: serviceAccountJson
+        ? cert(JSON.parse(serviceAccountJson))
+        : cert({ projectId, clientEmail, privateKey }),
+    });
+    return getMessaging(app);
+  } catch {
+    return null;
+  }
+}
+
+async function sendNativePushNotification(userId, notification) {
+  const messaging = getFirebaseMessaging();
+  if (!messaging || !userId) return;
+
+  const devices = await prisma.nativePushToken.findMany({
+    where: { userId },
+    select: { id: true, token: true },
+  });
+  if (!devices.length) return;
+
+  const meta = typeof notification.meta === "string" ? JSON.parse(notification.meta || "{}") : (notification.meta || {});
+  const url = notification.type === "connection"
+    ? `/feed?view=network&tab=${meta.kind === "accepted" ? "connections" : "invitations"}`
+    : (notification.url || "/feed?view=notifications");
+  const title = notification.actor ? `LynoraLink - ${notification.actor}` : (notification.title || "LynoraLink");
+  const response = await messaging.sendEachForMulticast({
+    tokens: devices.map((device) => device.token),
+    notification: { title, body: notification.text || "Nouvelle notification" },
+    data: { url, notificationId: String(notification.id || "") },
+    android: { priority: "high", notification: { channelId: "lynoralink_default" } },
+  });
+
+  const invalidTokens = devices
+    .filter((_, index) => response.responses[index]?.error?.code === "messaging/registration-token-not-registered")
+    .map((device) => device.token);
+  if (invalidTokens.length) {
+    await prisma.nativePushToken.deleteMany({ where: { token: { in: invalidTokens } } });
+  }
+}
+
 export async function sendPushNotification(userId, notification) {
-  if (!userId || !configureWebPush()) return;
+  if (!userId) return;
+
+  await sendNativePushNotification(userId, notification).catch(() => {});
+  if (!configureWebPush()) return;
 
   const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
   let meta = {};

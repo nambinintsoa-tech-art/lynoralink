@@ -1,5 +1,6 @@
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
+import { sendNativePushNotification } from "./push.js";
 
 function initialsFromName(name = "") {
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
@@ -109,6 +110,7 @@ export async function registerNotificationRoutes(app) {
       },
       include: { user: { select: { id: true, name: true, image: true } }, sender: { select: { image: true, cover: true } } },
     });
+    await sendNativePushNotification(targetUserId, { ...notification, url: "/feed?view=notifications" }).catch(() => {});
     return reply.send({ ok: true, notification: normalizeNotification(notification) });
   });
 
