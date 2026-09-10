@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 export const authOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
