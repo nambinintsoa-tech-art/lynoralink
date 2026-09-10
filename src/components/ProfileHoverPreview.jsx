@@ -336,15 +336,11 @@ export default function ProfileHoverPreview({
     fontSize: 12.5, fontWeight: 800, lineHeight: 1, whiteSpace: "nowrap",
     textDecoration: "none",
     cursor: kind === "static" || kind === "staticGold" ? "default" : "pointer",
-    ...(kind === "primary" ? {
-      border: `1px solid ${C.gold600}`,
-      background: "linear-gradient(135deg, #F6D374, #D9A536)",
-      color: C.navy900,
-      boxShadow: "0 2px 6px rgba(217,165,54,0.28)",
-    } : kind === "staticGold" ? {
-      border: `1px solid ${C.gold600}`,
-      background: "#FFF8E5",
+    ...(kind === "primary" || kind === "staticGold" ? {
+      border: `1px solid ${C.line}`,
+      background: "transparent",
       color: C.navy800,
+      boxShadow: "none",
     } : kind === "static" ? {
       border: `1px solid ${C.line}`,
       background: C.white,

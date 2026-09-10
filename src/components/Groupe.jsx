@@ -1665,7 +1665,7 @@ const GroupCard = ({ group, onClick, isSuggestion, suggestionReason, onJoin, onD
           {isSuggestion ? (
             <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
               <button onClick={e => { e.stopPropagation(); onDismiss?.(); }} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.line}`, background: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} style={{ color: C.muted }} /></button>
-              <button onClick={e => { e.stopPropagation(); onJoin?.(); }} style={{ padding: "0 14px", height: 32, borderRadius: 8, border: "none", background: C.navy800, color: C.white, fontFamily: S.font, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Rejoindre</button>
+              <button onClick={e => { e.stopPropagation(); onJoin?.(); }} style={{ padding: "0 14px", height: 32, borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent", color: C.navy800, fontFamily: S.font, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Rejoindre</button>
             </div>
           ) : group.location && (
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>

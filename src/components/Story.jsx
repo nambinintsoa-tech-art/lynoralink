@@ -1363,6 +1363,27 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
                     style={fbInputStyle}
                   />
                 </div>
+                <div style={{ position: "relative", flexShrink: 0 }} ref={reactionBtnRef} onMouseEnter={openReactionPicker} onMouseLeave={closeReactionPicker}>
+                  <button
+                    onClick={handleReactionClick}
+                    onPointerDown={handleReactionPointerDown}
+                    onPointerUp={handleReactionPointerUp}
+                    onPointerLeave={handleReactionPointerUp}
+                    className="story-react-btn-main"
+                    style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: showReactionPicker ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.45)",
+                      backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                      color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", flexShrink: 0, transition: "all 0.2s ease",
+                    }}
+                    data-no-pause
+                    aria-label="Reagir a votre story"
+                  >
+                    <SmilePlus size={18} />
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={sendReply}

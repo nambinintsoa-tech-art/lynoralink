@@ -65,6 +65,8 @@ export async function GET(request) {
     const authorId = searchParams.get("authorId");
     const pageId = searchParams.get("pageId");
     const userId = searchParams.get("userId") || session?.user?.id || null;
+    const reelsFeedMaxAgeMs = 48 * 60 * 60 * 1000;
+    const maxAgeCutoff = new Date(Date.now() - reelsFeedMaxAgeMs);
 
     if (cursorValue && !cursor) {
       return NextResponse.json({ error: "Curseur de pagination invalide." }, { status: 400 });
@@ -81,6 +83,9 @@ export async function GET(request) {
         where.companyPageId = null;
       }
       if (pageId) where.companyPageId = pageId;
+      if (!savedOnly && !authorId && !pageId) {
+        where.createdAt = { gte: maxAgeCutoff };
+      }
       if (cursor) {
         where.OR = [
           { createdAt: { lt: cursor.createdAt } },

@@ -877,7 +877,11 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
 /*  SECTION SUGGESTIONS POUR LE FEED PRINCIPAL                         */
 /* ------------------------------------------------------------------ */
 function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onConnect, onCancel, onDismiss, onNavigate, onOpenProfile }) {
-  const displayedSuggestions = suggestions.slice(0, 10);
+  const visibleSuggestions = (Array.isArray(suggestions) ? suggestions : []).filter((suggestion) => {
+    const suggestionId = suggestion?.id;
+    return !connectedIds.includes(suggestionId) && !connectedIds.includes(String(suggestionId));
+  });
+  const displayedSuggestions = visibleSuggestions.slice(0, 10);
   const trackRef = useRef(null);
 
   const scrollSuggestions = (direction) => {
@@ -1554,8 +1558,9 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
   const suggestedGroups = groups
     .filter((group) => !normalizeMembersList(group?.members).some((member) => String(member?.id) === String(currentUserId)))
     .slice(0, 3);
-  const displaySuggestions = suggestions
+  const displaySuggestions = (Array.isArray(suggestions) ? suggestions : [])
     .filter((suggestion) => !isPageMode || suggestion.type === "company")
+    .filter((suggestion) => !connectedIds.includes(suggestion.id) && !connectedIds.includes(String(suggestion.id)))
     .slice(0, 4);
   const displayPageSuggestions = pageSuggestions.slice(0, 3);
 
@@ -2836,7 +2841,14 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       const response = await fetchBackendApi(`/api/reels?${query.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        const nextReels = Array.isArray(data.reels) ? data.reels.filter((reel) => reel && (reel.videoUrl || reel.poster)) : [];
+        const nextReels = Array.isArray(data.reels)
+          ? data.reels.filter((reel) => {
+              if (!reel || (!reel.videoUrl && !reel.poster)) return false;
+              const createdAt = reel.createdAt ? new Date(reel.createdAt).getTime() : 0;
+              const ageMs = Date.now() - createdAt;
+              return ageMs <= 48 * 60 * 60 * 1000;
+            })
+          : [];
         setReelPreview((current) => append ? [...current, ...nextReels] : nextReels);
         setReelPreviewHasMore(Boolean(data.hasMore));
         setReelPreviewNextCursor(data.nextCursor || null);
@@ -3793,7 +3805,12 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         const data = await res.json();
         if (!active || !data) return;
         const suggestions = Array.isArray(data.suggestions) ? data.suggestions : (Array.isArray(data.users) ? data.users : []);
-        setNetworkSuggestions(suggestions);
+        const filteredSuggestions = suggestions.filter((suggestion) => {
+          const suggestionId = suggestion?.id;
+          if (!suggestionId) return true;
+          return !connectedSuggestionIds.includes(String(suggestionId)) && !connectedSuggestionIds.includes(suggestionId);
+        });
+        setNetworkSuggestions(filteredSuggestions);
       } catch (error) {
         // Preserve the last valid list during a transient network failure.
       }
@@ -3885,7 +3902,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       window.removeEventListener("lynoralink:ads-updated", handleAdsUpdated);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [session?.user?.id, fetchRelations, view, messagesModalOpen]);
+  }, [session?.user?.id, fetchRelations, view, messagesModalOpen, connectedSuggestionIds]);
 
   useEffect(() => {
     if (!openPostOverride?.isSponsored) return;

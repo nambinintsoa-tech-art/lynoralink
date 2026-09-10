@@ -1505,15 +1505,15 @@ export default function PostViewerPreview({
           position: relative;
           padding: 12px 52px 11px;
           min-height: 58px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-          background: linear-gradient(135deg, #0F3352 0%, #163E63 42%, #1B5386 100%);
+          border-bottom: 1px solid var(--app-border);
+          background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(244,247,250,0.96) 100%);
           color: var(--app-text);
           font-size: 15px;
           font-weight: 800;
           font-family: 'Sora', sans-serif;
           flex-shrink: 0;
           box-sizing: border-box;
-          box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08), 0 1px 0 rgba(15, 51, 82, 0.18);
+          box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
         }
         .post-viewer-header-title {
           max-width: 100%;
@@ -1521,7 +1521,7 @@ export default function PostViewerPreview({
           text-overflow: ellipsis;
           white-space: nowrap;
           letter-spacing: 0.01em;
-          color: #D9A536;
+          color: var(--app-text);
         }
         .post-viewer-close {
           position: absolute;
@@ -1530,23 +1530,22 @@ export default function PostViewerPreview({
           transform: translateY(-50%);
           width: 32px;
           height: 32px;
-          border: 1px solid rgba(255, 255, 255, 0.26);
+          border: 1px solid var(--app-border);
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.08);
-          color: #ffffff;
+          background: var(--app-bg);
+          color: var(--app-text);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease;
+          transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
           z-index: 2;
-          box-shadow: 0 2px 10px rgba(15, 51, 82, 0.12);
+          box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
         }
         .post-viewer-close:hover {
-          background: rgba(255, 255, 255, 0.16);
-          border-color: rgba(255, 255, 255, 0.4);
-          color: #ffffff;
-          box-shadow: 0 4px 14px rgba(15, 51, 82, 0.16);
+          background: var(--app-input);
+          border-color: rgba(148, 163, 184, 0.6);
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
         }
         .pv-back-btn {
           display: none;
@@ -2014,8 +2013,8 @@ export default function PostViewerPreview({
         {/* --- Zone scrollable unique : contenu + stats + actions + commentaires --- */}
         <div className="post-viewer-scroll">
           {isAnnouncement && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", background: "linear-gradient(100deg, #0F3352 0%, #1B5386 72%, #D9A536 100%)", color: "#fff", fontSize: 11.5, fontWeight: 800, letterSpacing: "0.045em", textTransform: "uppercase", flexShrink: 0 }}>
-              <Megaphone size={15} color="#F6D374" />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", background: "linear-gradient(135deg, #F8FAFC 0%, #EEF2F7 100%)", borderBottom: "1px solid var(--app-border)", color: "var(--app-text)", fontSize: 11.5, fontWeight: 800, letterSpacing: "0.045em", textTransform: "uppercase", flexShrink: 0 }}>
+              <Megaphone size={15} color="#3B82F6" />
               <span>Annonce officielle LynoraLink</span>
             </div>
           )}
@@ -2069,7 +2068,7 @@ export default function PostViewerPreview({
                         type="button"
                         onClick={() => onFollowPage?.(post.companyPageId)}
                         disabled={isPageFollowed || !onFollowPage}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: "1px solid #D9A536", background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: "#0F3352", fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: `1px solid ${LI_BORDER}`, background: "transparent", color: LI_TEXT, fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer" }}
                       >
                         {isPageFollowed ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}
                       </button>
@@ -2096,7 +2095,7 @@ export default function PostViewerPreview({
                         type="button"
                         onClick={() => onFollowPage?.(post.companyPageId)}
                         disabled={isPageFollowed || !onFollowPage}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: "1px solid #D9A536", background: isPageFollowed ? "#FFF8E5" : "linear-gradient(135deg, #F6D374, #D9A536)", color: "#0F3352", fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer", boxShadow: isPageFollowed ? "none" : "0 2px 6px rgba(217,165,54,0.24)" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "6px 11px", borderRadius: 8, border: `1px solid ${LI_BORDER}`, background: "transparent", color: LI_TEXT, fontSize: 11, fontWeight: 800, cursor: isPageFollowed || !onFollowPage ? "default" : "pointer" }}
                       >
                         {isPageFollowed ? <><Check size={11} /> Suivi</> : <><UserPlus size={11} /> Suivre</>}
                       </button>
