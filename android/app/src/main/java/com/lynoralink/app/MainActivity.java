@@ -21,7 +21,7 @@ import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
-	private boolean keepSplashVisible = true;
+	private boolean keepSplashVisible = false;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -37,7 +37,10 @@ public class MainActivity extends BridgeActivity {
 		registerConnectivityMonitoring();
 
 		if (!hasInternetConnection()) {
+			keepSplashVisible = true;
 			Toast.makeText(this, "Connexion Internet indisponible", Toast.LENGTH_LONG).show();
+		} else {
+			keepSplashVisible = false;
 		}
 	}
 
@@ -53,7 +56,9 @@ public class MainActivity extends BridgeActivity {
 					runOnUiThread(() -> {
 						keepSplashVisible = false;
 						if (thisBridgeHasOfflinePage()) {
-							this.bridge.getWebView().reload();
+							if (bridge != null && bridge.getWebView() != null) {
+								bridge.getWebView().reload();
+							}
 						}
 					});
 				}
@@ -67,7 +72,7 @@ public class MainActivity extends BridgeActivity {
 	}
 
 	private boolean thisBridgeHasOfflinePage() {
-		return this.bridge != null && this.bridge.getWebView() != null && "file:///android_asset/offline.html".equals(this.bridge.getWebView().getUrl());
+		return bridge != null && bridge.getWebView() != null && "file:///android_asset/offline.html".equals(bridge.getWebView().getUrl());
 	}
 
 	private boolean hasInternetConnection() {
@@ -96,21 +101,29 @@ public class MainActivity extends BridgeActivity {
 			super.onPageStarted(view, url, favicon);
 			if (!hasInternetConnection()) {
 				keepSplashVisible = true;
-				view.stopLoading();
-				view.loadUrl("file:///android_asset/offline.html");
+				if (!"file:///android_asset/offline.html".equals(url)) {
+					view.stopLoading();
+					view.loadUrl("file:///android_asset/offline.html");
+				}
+			} else {
+				keepSplashVisible = false;
 			}
 		}
 
 		@Override
 		public void onPageFinished(WebView view, String url) {
 			super.onPageFinished(view, url);
-			if (hasInternetConnection() && "file:///android_asset/offline.html".equals(url)) {
-				keepSplashVisible = false;
-			} else if (!hasInternetConnection()) {
+			if (!hasInternetConnection()) {
 				keepSplashVisible = true;
-			} else {
-				keepSplashVisible = false;
+				return;
 			}
+
+			if ("file:///android_asset/offline.html".equals(url)) {
+				keepSplashVisible = false;
+				return;
+			}
+
+			keepSplashVisible = false;
 		}
 
 		@Override
@@ -118,8 +131,12 @@ public class MainActivity extends BridgeActivity {
 			super.onReceivedError(view, request, error);
 			if (!hasInternetConnection()) {
 				keepSplashVisible = true;
-				view.stopLoading();
-				view.loadUrl("file:///android_asset/offline.html");
+				if (!"file:///android_asset/offline.html".equals(view.getUrl())) {
+					view.stopLoading();
+					view.loadUrl("file:///android_asset/offline.html");
+				}
+			} else {
+				keepSplashVisible = false;
 			}
 		}
 
@@ -128,8 +145,12 @@ public class MainActivity extends BridgeActivity {
 			super.onReceivedHttpError(view, request, errorResponse);
 			if (!hasInternetConnection()) {
 				keepSplashVisible = true;
-				view.stopLoading();
-				view.loadUrl("file:///android_asset/offline.html");
+				if (!"file:///android_asset/offline.html".equals(view.getUrl())) {
+					view.stopLoading();
+					view.loadUrl("file:///android_asset/offline.html");
+				}
+			} else {
+				keepSplashVisible = false;
 			}
 		}
 	}
