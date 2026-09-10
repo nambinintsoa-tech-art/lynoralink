@@ -1487,6 +1487,8 @@ export default function CreatePostModal({
   const [mood, setMood] = useState(initialMood);
   const [identifiedUsers, setIdentifiedUsers] = useState(initialIdentifiedUsers);
   const [tags, setTags] = useState(initialTags);
+  const [commentsLocked, setCommentsLocked] = useState(false);
+  const [commentatorsLimit, setCommentatorsLimit] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [globalError, setGlobalError] = useState("");
@@ -1858,6 +1860,8 @@ export default function CreatePostModal({
         mood,
         identifiedUsers,
         tags,
+        commentsLocked,
+        commentatorsLimit,
         reelSound,
         media: media
           .filter((m) => m.status === "done")
@@ -2117,6 +2121,44 @@ export default function CreatePostModal({
               )}
               <div style={{ marginTop: 3 }}>
                 <VisibilityPicker value={groupVisibility} onChange={setVisibility} locked={Boolean(group)} variant="inline" />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setCommentsLocked((current) => !current)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    borderRadius: 999,
+                    border: `1px solid ${C.line}`,
+                    background: commentsLocked ? C.navy800 : C.navy50,
+                    color: commentsLocked ? C.white : C.ink,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <Lock size={13} />
+                  {commentsLocked ? "Commentaires verrouillés" : "Verrouiller les commentaires"}
+                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.muted, fontWeight: 600 }}>
+                  <label htmlFor="create-post-commentators-limit" style={{ whiteSpace: "nowrap" }}>Limite commentateurs</label>
+                  <input
+                    id="create-post-commentators-limit"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={commentatorsLimit}
+                    onChange={(event) => {
+                      const value = Number(event.target.value);
+                      setCommentatorsLimit(Number.isFinite(value) && value >= 0 ? value : 0);
+                    }}
+                    style={{ width: 70, padding: "6px 8px", borderRadius: 8, border: `1px solid ${C.line}`, background: C.white, color: C.ink, fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                  />
+                </div>
               </div>
             </div>
           </div>

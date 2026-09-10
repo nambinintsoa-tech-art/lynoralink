@@ -25,6 +25,16 @@ function renderEmailHtml(subject, text) {
   return `<!doctype html><html lang="fr"><body style="margin:0;background:#f3f6fa;font-family:Arial,Helvetica,sans-serif;color:#152a4d;"><div style="padding:32px 16px;"><div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e1e7ef;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(21,42,77,.08);"><div style="padding:26px 28px;background:#152a4d;text-align:center;"><img src="${escapeHtml(logoUrl)}" width="64" height="64" alt="LynoraLink" style="display:block;margin:0 auto 12px;border-radius:50%;"><div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.2px;">LynoraLink</div></div><div style="padding:30px 28px;"><h1 style="margin:0 0 20px;color:#152a4d;font-size:24px;line-height:1.3;">${escapeHtml(subject)}</h1>${content}</div><div style="padding:18px 28px;border-top:1px solid #e1e7ef;color:#8290a5;font-size:12px;line-height:1.5;text-align:center;">LynoraLink · Le réseau qui crée des connexions utiles</div></div></div></body></html>`;
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function sendEmail({ to, subject, text }) {
   const html = renderEmailHtml(subject, text);
   const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
@@ -33,11 +43,11 @@ async function sendEmail({ to, subject, text }) {
     const fromEmail = process.env.BREVO_FROM_EMAIL?.trim();
     const apiKey = process.env.BREVO_API_KEY?.trim();
     if (!fromEmail || !apiKey) throw new Error("Configuration Brevo backend manquante");
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const response = await fetchWithTimeout("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text, htmlContent: html }),
-    });
+    }, 20000);
     if (!response.ok) {
       let details = "";
       try {
@@ -73,7 +83,7 @@ async function sendEmail({ to, subject, text }) {
 
   const from = process.env.NO_REPLY_EMAIL || process.env.RESEND_FROM_EMAIL;
   if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration Resend backend manquante");
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
+  const response = await fetchWithTimeout("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) }, 20000);
   if (!response.ok) throw new Error(`Email provider returned ${response.status}`);
 }
 

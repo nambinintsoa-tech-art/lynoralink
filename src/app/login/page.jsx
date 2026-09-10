@@ -129,9 +129,6 @@ function LoginPageContent() {
       <div className="auth-page-shell relative z-10 flex w-full max-w-6xl items-center justify-center gap-12 px-4">
         {/* Left side - Text content */}
         <div className="hidden lg:block flex-1 max-w-lg animate-slide-in-left">
-          <div className="mb-6">
-            <LogoBadge size={56} />
-          </div>
           <h1 className="mb-4 font-brand text-5xl font-bold text-white leading-tight">
             Connectez-vous à votre <span style={{ color: "#F6D374" }}>avenir professionnel</span>
           </h1>
@@ -176,7 +173,7 @@ function LoginPageContent() {
         <div className="w-full max-w-md animate-scale-in">
           <div className="auth-page-card rounded-2xl border border-navy100 bg-white p-8 shadow-2xl">
             <div className="mb-7 flex flex-col items-center gap-3 text-center">
-              <LogoBadge />
+              <LogoBadge size={72} />
               <h1 className="font-brand text-2xl font-bold text-navy900">Bon retour parmi nous</h1>
               <p className="text-sm text-muted">
                 Connectez-vous à votre compte <BrandName />

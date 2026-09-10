@@ -55,7 +55,21 @@ export const authOptions = {
         }
 
         const twoFactor = await prisma.userSetting.findUnique({ where: { userId_key: { userId: user.id, key: "twoFactor" } } });
+        const emailDeliveryConfigured = Boolean(
+          process.env.EMAIL_PROVIDER ||
+          process.env.BREVO_API_KEY ||
+          process.env.SMTP_HOST ||
+          process.env.RESEND_API_KEY
+        );
+
         if (twoFactor?.value === "true") {
+          if (process.env.NODE_ENV !== "production" && !emailDeliveryConfigured) {
+            return {
+              id: user.id,
+              remember: credentials.remember === "true" || credentials.remember === true,
+            };
+          }
+
           if (!credentials.otp) return null;
           const challengeSetting = await prisma.userSetting.findUnique({ where: { userId_key: { userId: user.id, key: "twoFactorChallenge" } } });
           let challenge;

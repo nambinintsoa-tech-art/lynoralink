@@ -147,8 +147,8 @@ function Badge({ count, size = "md" }) {
     <span
       style={{
         position: "absolute",
-        top: -7,
-        right: -7,
+        top: -8,
+        right: -10,
         minWidth: dims,
         height: dims,
         padding: "0 4px",
@@ -162,7 +162,10 @@ function Badge({ count, size = "md" }) {
         justifyContent: "center",
         lineHeight: 1,
         border: `1.5px solid ${C.white}`,
+        boxShadow: `0 0 0 2px ${C.white}`,
         fontFamily: "'Inter', sans-serif",
+        zIndex: 1,
+        pointerEvents: "none",
       }}
     >
       {count > 99 ? "99+" : count}

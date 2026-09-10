@@ -36,13 +36,17 @@ export async function handler(request, { params }) {
   const init = { method: request.method, headers, redirect: "manual", cache: "no-store" };
   if (!["GET", "HEAD"].includes(request.method)) init.body = await request.arrayBuffer();
 
-  // Set appropriate timeout based on route type
-  // AI generation endpoints need longer timeouts
+  // Set appropriate timeout based on route type.
+  // Registration and email-verification flows can legitimately take longer than the default when
+  // external email providers are slow or temporarily delayed.
   let timeoutMs = 10000; // 10 seconds default
-  if (path.includes("ai-image") || path.includes("ai-article")) {
+  const normalizedPath = path.replace(/^\/+/, "");
+  if (normalizedPath.includes("ai-image") || normalizedPath.includes("ai-article")) {
     timeoutMs = 120000; // 120 seconds for AI generation
-  } else if (path.includes("notifications")) {
+  } else if (normalizedPath.includes("notifications")) {
     timeoutMs = 5000; // 5 seconds for notifications
+  } else if (/^(register|verify-email|forgot-password|reset-password|security\/new-device|account\/email|auth\/2fa)/.test(normalizedPath)) {
+    timeoutMs = 60000; // 60 seconds for auth and email verification flows
   }
 
   try {

@@ -24,6 +24,41 @@ function initials(name = "") {
     .join("") || "L";
 }
 
+function normalizeCommentMedia(value) {
+  if (!value) return [];
+  try {
+    return Array.isArray(JSON.parse(value)) ? JSON.parse(value) : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatAdComment(comment, allComments = []) {
+  const parsedMedia = normalizeCommentMedia(comment.mediaData);
+  const replies = allComments
+    .filter((candidate) => candidate.parentId === comment.id)
+    .map((reply) => formatAdComment(reply, allComments));
+
+  return {
+    id: comment.id,
+    authorId: comment.author.id,
+    authorType: "person",
+    author: comment.author.name,
+    isPlatformAdmin: Boolean(comment.author.role === "admin" || (process.env.NEXT_PUBLIC_ADMIN_EMAIL && comment.author.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase())),
+    isPremium: hasActiveSubscription(comment.author.subscription),
+    initials: initials(comment.author.name),
+    avatarUrl: comment.author.image || null,
+    text: comment.text,
+    media: parsedMedia,
+    time: comment.createdAt,
+    likes: 0,
+    liked: false,
+    reaction: null,
+    totalReactions: Number(comment.reactions?.length || 0),
+    replies,
+  };
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -57,7 +92,21 @@ export async function GET() {
       mediaType: true,
       isSponsored: true,
       campaignId: true,
+      commentsLocked: true,
+      commentatorsLimit: true,
       createdAt: true,
+      comments: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          parentId: true,
+          text: true,
+          mediaData: true,
+          createdAt: true,
+          reactions: { select: { userId: true, reaction: true } },
+          author: { select: { id: true, name: true, image: true, role: true, email: true, subscription: { select: { status: true, currentPeriodEnd: true } } } },
+        },
+      },
     },
   });
   const pageSettings = await prisma.userSetting.findMany({
@@ -77,6 +126,7 @@ export async function GET() {
       const page = pagesByOwnerId.get(ad.author.id);
       const pageName = page?.name || ad.author.name || "Partenaire LynoraLink";
       const pageImage = page?.logoUrl || page?.avatarUrl || ad.author.image || null;
+      const formattedComments = (ad.comments || []).filter((comment) => !comment.parentId).map((comment) => formatAdComment(comment, ad.comments || []));
       return {
         id: ad.id,
         title: campaignsById.get(ad.campaignId)?.title || (ad.headline && ad.headline !== ad.excerpt && ad.headline !== ad.text ? ad.headline : "Publicité sponsorisée"),
@@ -91,6 +141,9 @@ export async function GET() {
         mediaType: ad.mediaType || null,
         isSponsored: ad.isSponsored,
         campaignId: ad.campaignId,
+        comments: formattedComments,
+        commentsLocked: Boolean(ad.commentsLocked),
+        commentatorsLimit: Number(ad.commentatorsLimit || 0),
         objective: campaignsById.get(ad.campaignId)?.objective || null,
         format: campaignsById.get(ad.campaignId)?.format || "post",
         cta: campaignsById.get(ad.campaignId)?.cta || "En savoir plus",

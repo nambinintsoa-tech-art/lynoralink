@@ -17,12 +17,17 @@ export async function PATCH(req, { params }) {
 
   const id = params?.id;
   const body = await req.json().catch(() => ({}));
+  const hasText = Object.prototype.hasOwnProperty.call(body, "text");
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const hasVisibility = Object.prototype.hasOwnProperty.call(body, "visibility");
   const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
+  const hasCommentsSettings = Object.prototype.hasOwnProperty.call(body, "commentsLocked") || Object.prototype.hasOwnProperty.call(body, "commentatorsLimit");
   const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
-  if (!id || !text) {
-    return NextResponse.json({ error: "Le contenu est vide." }, { status: 400 });
+  const normalizedCommentatorsLimit = Number.isFinite(Number(body.commentatorsLimit)) && Number(body.commentatorsLimit) >= 0
+    ? Math.max(0, Math.min(1000, Math.floor(Number(body.commentatorsLimit))))
+    : 0;
+  if (!id || (!hasText && !hasVisibility && !hasMedia && !hasCommentsSettings)) {
+    return NextResponse.json({ error: "Aucune donnée à mettre à jour." }, { status: 400 });
   }
 
   const post = await prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true } });
@@ -34,15 +39,19 @@ export async function PATCH(req, { params }) {
   const updatedPost = await prisma.post.update({
     where: { id },
     data: {
-      text,
+      ...(hasText ? { text } : {}),
       ...(hasVisibility ? { visibility: normalizeVisibility(body.visibility) } : {}),
       ...(hasMedia ? {
         mediaData: media.length ? JSON.stringify(media) : null,
         mediaUrl: media[0]?.url || null,
         mediaType: media[0]?.type || null,
       } : {}),
+      ...(hasCommentsSettings ? {
+        commentsLocked: Boolean(body.commentsLocked),
+        commentatorsLimit: normalizedCommentatorsLimit,
+      } : {}),
     },
-    select: { id: true, text: true, visibility: true, updatedAt: true, mediaUrl: true, mediaType: true, mediaData: true },
+    select: { id: true, text: true, visibility: true, updatedAt: true, mediaUrl: true, mediaType: true, mediaData: true, commentsLocked: true, commentatorsLimit: true },
   });
 
   return NextResponse.json({ post: { ...updatedPost, ...(hasMedia ? { media } : {}) } });

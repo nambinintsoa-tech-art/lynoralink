@@ -687,22 +687,40 @@ function getProfileMedia(posts: any[]) {
 function ProfileMediaViewer({ media, selectedIndex = 0, onClose, onSelect, onOpenPost }: { media: any[]; selectedIndex?: number; onClose: () => void; onSelect: (index: number) => void; onOpenPost: (postId: string | number) => void }) {
   const currentIndex = Math.min(Math.max(selectedIndex, 0), Math.max(media.length - 1, 0));
   const currentMedia = media[currentIndex];
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateMobile = () => setIsMobile(mediaQuery.matches);
+    updateMobile();
+    mediaQuery.addEventListener?.('change', updateMobile);
+    return () => mediaQuery.removeEventListener?.('change', updateMobile);
+  }, []);
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Aperçu du média" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(19,28,51,0.8)' }}>
-      <div onClick={(event) => event.stopPropagation()} style={{ width: 'min(900px, 100%)', maxHeight: '90dvh', overflow: 'auto', borderRadius: 12, padding: 16, background: '#fff' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-          <strong style={{ color: 'rgba(0,0,0,0.9)', fontSize: 16 }}>Aperçu du média</strong>
-          <button type="button" onClick={onClose} aria-label="Fermer l’aperçu" style={{ border: 'none', background: 'transparent', color: '#6B7280', cursor: 'pointer', padding: 4 }}><X size={20} /></button>
-        </div>
+    <div role="dialog" aria-modal="true" aria-label="Aperçu du média" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 24, background: isMobile ? 'rgba(8, 28, 48, 0.72)' : 'rgba(19,28,51,0.8)', backdropFilter: isMobile ? 'blur(6px)' : 'none', webkitBackdropFilter: isMobile ? 'blur(6px)' : 'none' }}>
+      <div onClick={(event) => event.stopPropagation()} style={{ position: 'relative', width: isMobile ? '100vw' : 'min(900px, 100%)', height: isMobile ? '100dvh' : 'auto', maxHeight: isMobile ? '100dvh' : '90dvh', overflow: 'hidden', borderRadius: isMobile ? 0 : 16, background: '#fff', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', boxShadow: isMobile ? 'none' : '0 16px 40px rgba(15,51,82,0.18)' }}>
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 16px 12px', borderBottom: '1px solid #E5E7EB', background: '#fff' }}>
+            <strong style={{ color: 'rgba(0,0,0,0.9)', fontSize: 16 }}>Aperçu du média</strong>
+            <button type="button" onClick={onClose} aria-label="Fermer l’aperçu" style={{ border: 'none', background: 'transparent', color: '#6B7280', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+          </div>
+        )}
+        {isMobile && (
+          <>
+            <div style={{ position: 'absolute', left: 16, top: 16, zIndex: 2, padding: '6px 10px', borderRadius: 999, background: 'rgba(15,23,42,0.58)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', fontSize: 12, fontWeight: 700, backdropFilter: 'blur(8px)', webkitBackdropFilter: 'blur(8px)' }}>{currentIndex + 1} / {media.length}</div>
+            <button type="button" onClick={onClose} aria-label="Fermer l’aperçu" style={{ position: 'absolute', right: 16, top: 16, zIndex: 2, border: '1px solid rgba(255,255,255,0.45)', background: 'rgba(15,23,42,0.65)', color: '#fff', cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 12px rgba(0,0,0,0.12)' }}><X size={20} /></button>
+          </>
+        )}
         {currentMedia && <>
-          <div style={{ position: 'relative', aspectRatio: '16 / 10', overflow: 'hidden', borderRadius: 8, background: '#111' }}>
-            {currentMedia.type === 'video' ? <video src={currentMedia.url} controls autoPlay playsInline onClick={() => onOpenPost(currentMedia.postId)} style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' }} /> : <img src={currentMedia.url} alt={currentMedia.name} onClick={() => onOpenPost(currentMedia.postId)} style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' }} />}
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', background: '#111' }}>
+            {currentMedia.type === 'video' ? <video src={currentMedia.url} controls autoPlay playsInline onClick={() => onOpenPost(currentMedia.postId)} style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer', display: 'block' }} /> : <img src={currentMedia.url} alt={currentMedia.name} onClick={() => onOpenPost(currentMedia.postId)} style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer', display: 'block' }} />}
             {media.length > 1 && <>
-              <button type="button" onClick={() => onSelect((currentIndex - 1 + media.length) % media.length)} aria-label="Média précédent" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', border: 'none', borderRadius: '50%', padding: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer' }}><ChevronLeft size={18} /></button>
-              <button type="button" onClick={() => onSelect((currentIndex + 1) % media.length)} aria-label="Média suivant" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', border: 'none', borderRadius: '50%', padding: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer' }}><ArrowRight size={18} /></button>
+              <button type="button" onClick={() => onSelect((currentIndex - 1 + media.length) % media.length)} aria-label="Média précédent" style={{ position: 'absolute', left: isMobile ? 12 : 16, top: '50%', transform: 'translateY(-50%)', border: 'none', borderRadius: '50%', padding: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 12px rgba(0,0,0,0.22)' }}><ChevronLeft size={18} /></button>
+              <button type="button" onClick={() => onSelect((currentIndex + 1) % media.length)} aria-label="Média suivant" style={{ position: 'absolute', right: isMobile ? 12 : 16, top: '50%', transform: 'translateY(-50%)', border: 'none', borderRadius: '50%', padding: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 12px rgba(0,0,0,0.22)' }}><ArrowRight size={18} /></button>
             </>}
           </div>
-          <div style={{ marginTop: 10, textAlign: 'center', color: '#6B7280', fontSize: 12 }}>{currentIndex + 1} / {media.length} · Cliquez sur le média pour ouvrir la publication</div>
+          <div style={{ padding: isMobile ? '10px 16px max(10px, env(safe-area-inset-bottom))' : '12px 16px 16px', textAlign: 'center', color: isMobile ? '#E5E7EB' : '#6B7280', fontSize: 12, background: isMobile ? 'rgba(15,23,42,0.72)' : '#fff', backdropFilter: isMobile ? 'blur(8px)' : 'none', webkitBackdropFilter: isMobile ? 'blur(8px)' : 'none' }}>{currentIndex + 1} / {media.length} · Cliquez sur le média pour ouvrir la publication</div>
         </>}
       </div>
     </div>
@@ -950,7 +968,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const [coverSrc, setCoverSrc] = useState<string | null>(null);
   const [modalType, setModalType] = useState<'avatar' | 'cover' | null>(null);
   const [profileWidth, setProfileWidth] = useState(1200);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [postModalOpen, setPostModalOpen] = useState(false);
   const [visualFocusOpen, setVisualFocusOpen] = useState(false);

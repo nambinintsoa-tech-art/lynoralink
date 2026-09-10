@@ -178,6 +178,8 @@ model Post {
   mediaUrl        String?
   mediaType       String?
   mediaData       String?
+  commentsLocked  Boolean     @default(false)
+  commentatorsLimit Int      @default(0)
   mood            String?
   identifiedUsers String?
   visibility      String      @default("public")

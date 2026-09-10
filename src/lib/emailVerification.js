@@ -36,8 +36,56 @@ function isResendDomainVerificationFailure(message = "") {
   return /domain.*not verified|not verified.*domain|validation_error|resend 403/i.test(message);
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function sendWithConfiguredProvider({ to, subject, text, html }) {
-  const provider = (process.env.EMAIL_PROVIDER || "smtp").toLowerCase();
+  const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
+  const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
+
+  if (provider === "brevo") {
+    const apiKey = process.env.BREVO_API_KEY;
+    const from = process.env.BREVO_FROM_EMAIL || process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL;
+    if (!apiKey || !from) {
+      throw new Error("Configuration Brevo manquante");
+    }
+
+    const response = await fetchWithTimeout("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: from, name: process.env.BREVO_FROM_NAME || "LynoraLink" },
+        to: [{ email: to }],
+        subject,
+        textContent: text,
+        htmlContent: html || text,
+      }),
+      cache: "no-store",
+    }, 20000);
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      const message = `Brevo ${response.status}: ${detail.slice(0, 200)}`;
+      if (response.status === 401 && isSmtpConfigured()) {
+        console.warn("Brevo rejected; falling back to SMTP provider.");
+        await sendWithSmtp({ to, subject, text, html });
+        return;
+      }
+      throw new Error(message);
+    }
+
+    return;
+  }
 
   if (provider === "resend") {
     const apiKey = process.env.RESEND_API_KEY;
@@ -47,7 +95,7 @@ async function sendWithConfiguredProvider({ to, subject, text, html }) {
     }
 
     try {
-      const response = await fetch("https://api.resend.com/emails", {
+      const response = await fetchWithTimeout("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -55,7 +103,7 @@ async function sendWithConfiguredProvider({ to, subject, text, html }) {
         },
         body: JSON.stringify({ from, to: [to], subject, text, html }),
         cache: "no-store",
-      });
+      }, 20000);
 
       if (!response.ok) {
         const detail = await response.text().catch(() => "");

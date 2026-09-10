@@ -20,6 +20,17 @@ export async function POST(req) {
   const enabled = settings.find((setting) => setting.key === "twoFactor")?.value === "true";
   if (!enabled) return NextResponse.json({ requiresTwoFactor: false });
 
+  const hasMailProvider = Boolean(
+    process.env.EMAIL_PROVIDER ||
+    process.env.BREVO_API_KEY ||
+    process.env.SMTP_HOST ||
+    process.env.RESEND_API_KEY
+  );
+
+  if (process.env.NODE_ENV !== "production" && (!hasMailProvider || (!process.env.SMTP_HOST && !process.env.BREVO_API_KEY && !process.env.RESEND_API_KEY))) {
+    return NextResponse.json({ requiresTwoFactor: false, warning: "2FA disabled in local mode without working email provider" });
+  }
+
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
   const challenge = JSON.stringify({ hash: crypto.createHash("sha256").update(code).digest("hex"), expiresAt: Date.now() + 10 * 60 * 1000 });
   await prisma.userSetting.upsert({
@@ -31,6 +42,9 @@ export async function POST(req) {
   try {
     await sendTwoFactorCode(user.email, code);
   } catch {
+    if (process.env.NODE_ENV !== "production") {
+      return NextResponse.json({ requiresTwoFactor: false, warning: "2FA disabled in local mode because email delivery failed" });
+    }
     return NextResponse.json({ error: "Impossible d'envoyer le code de sécurité" }, { status: 503 });
   }
   return NextResponse.json({ requiresTwoFactor: true });

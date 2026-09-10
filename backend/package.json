@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "prisma generate --schema ../prisma/schema.prisma && node src/server.js",
+    "dev": "node --env-file=../.env --env-file=../.env.local --watch src/server.js",
+    "start": "prisma generate --schema ../prisma/schema.prisma && node --env-file=../.env --env-file=../.env.local src/server.js",
     "postinstall": "prisma generate --schema ../prisma/schema.prisma"
   },
   "dependencies": {

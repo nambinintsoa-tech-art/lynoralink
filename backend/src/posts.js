@@ -83,30 +83,42 @@ export async function registerPostRoutes(app) {
       }
     }
 
-    const posts = await prisma.post.findMany({
-      where: {
-        status: "published",
-        ...(!query.companyPageId ? { isSponsored: false } : {}),
-        ...(query.userId ? { authorId: String(query.userId) } : {}),
-        ...(query.companyPageId ? { companyPageId: String(query.companyPageId) } : {}),
-        ...(query.mediaOnly === "true" ? { mediaData: { not: null } } : {}),
-        ...(query.feedOnly === "true" ? { createdAt: { gte: feedSince } } : {}),
-        AND: [{ OR: visibilityRules }],
-      },
-      orderBy: { createdAt: "desc" },
-      skip: offset,
-      take: limit,
-      include: {
-        author: { select: { id: true, name: true, title: true, image: true, role: true, email: true } },
-        likes: { select: { userId: true, reaction: true } },
-        _count: { select: { savedPosts: true, shares: true } },
-        comments: {
-          where: { parentId: null },
-          orderBy: { createdAt: "asc" },
-          include: { author: { select: { id: true, name: true, image: true } }, replies: { include: { author: { select: { id: true, name: true, image: true } } } } },
+    let posts;
+    try {
+      posts = await prisma.post.findMany({
+        where: {
+          status: "published",
+          ...(!query.companyPageId ? { isSponsored: false } : {}),
+          ...(query.userId ? { authorId: String(query.userId) } : {}),
+          ...(query.companyPageId ? { companyPageId: String(query.companyPageId) } : {}),
+          ...(query.mediaOnly === "true" ? { mediaData: { not: null } } : {}),
+          ...(query.feedOnly === "true" ? { createdAt: { gte: feedSince } } : {}),
+          AND: [{ OR: visibilityRules }],
         },
-      },
-    });
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+        include: {
+          author: { select: { id: true, name: true, title: true, image: true, role: true, email: true } },
+          likes: { select: { userId: true, reaction: true } },
+          _count: { select: { savedPosts: true, shares: true } },
+          comments: {
+            where: { parentId: null },
+            orderBy: { createdAt: "asc" },
+            include: { author: { select: { id: true, name: true, image: true } }, replies: { include: { author: { select: { id: true, name: true, image: true } } } } },
+          },
+        },
+      });
+    } catch (error) {
+      if (error?.code === "P2022" || /column .* does not exist/i.test(error?.message || "")) {
+        console.error("Post feed query failed because the database schema is out of sync. Returning empty feed.", error.message);
+        return reply.send({
+          posts: [],
+          pagination: { limit, offset, hasMore: false },
+        });
+      }
+      throw error;
+    }
 
     const saved = userId
       ? await prisma.savedPost.findMany({ where: { userId, postId: { in: posts.map((post) => post.id) } }, select: { postId: true } })
@@ -133,32 +145,68 @@ export async function registerPostRoutes(app) {
         const currentReaction = post.likes.find((like) => like.userId === userId);
         const campaign = campaigns.get(post.campaignId) || {};
         const page = pages.get(post.companyPageId) || {};
-        const displayName = page.name || post.author.name;
-        const displayImage = page.logoUrl || page.avatarUrl || post.author.image || null;
+        const displayName = page?.name || post.author?.name || "Utilisateur";
+        const displayImage = page?.logoUrl || page?.avatarUrl || post.author?.image || null;
+        const formatComment = (comment) => {
+          const commentPage = page && String(comment.author?.id) === String(post.companyPageId) ? page : null;
+          const commentAuthor = commentPage?.name || comment.author?.name || "Utilisateur";
+          const commentAvatar = commentPage?.logoUrl || commentPage?.avatarUrl || comment.author?.image || null;
+          const replies = (comment.replies || []).map((reply) => ({
+            id: reply.id,
+            authorId: reply.author?.id || null,
+            authorType: commentPage ? "page" : "person",
+            companyPageId: commentPage ? post.companyPageId : null,
+            author: commentPage?.name || reply.author?.name || "Utilisateur",
+            initials: initials(commentPage?.name || reply.author?.name || "Utilisateur"),
+            avatarUrl: commentPage?.logoUrl || commentPage?.avatarUrl || reply.author?.image || null,
+            coverUrl: commentPage?.bannerUrl || commentPage?.coverUrl || null,
+            text: reply.text,
+            time: reply.createdAt,
+            likes: 0,
+            liked: false,
+          }));
+
+          return {
+            id: comment.id,
+            authorId: comment.author?.id || null,
+            authorType: commentPage ? "page" : "person",
+            companyPageId: commentPage ? post.companyPageId : null,
+            author: commentAuthor,
+            initials: initials(commentAuthor),
+            avatarUrl: commentAvatar,
+            coverUrl: commentPage?.bannerUrl || commentPage?.coverUrl || null,
+            text: comment.text,
+            time: comment.createdAt,
+            likes: 0,
+            liked: false,
+            replies,
+          };
+        };
+
         return {
           id: post.id,
           authorId: post.authorId,
           companyPageId: post.companyPageId || null,
-          authorType: page.name ? "page" : "person",
+          authorType: page?.name ? "page" : "person",
           author: displayName,
-          title: page.name ? "Page entreprise" : (post.author.title || "Membre"),
-          role: post.author.role || null,
+          title: page?.name ? "Page entreprise" : (post.author?.title || "Membre"),
+          role: post.author?.role || null,
           initials: initials(displayName),
           avatarUrl: displayImage,
-          pageCoverUrl: page.bannerUrl || page.coverUrl || null,
-          description: page.description || null,
-          location: page.location || null,
-          pageWebsite: page.website || null,
-          followersCount: page.stats?.followers ?? page.followers ?? null,
+          pageCoverUrl: page?.bannerUrl || page?.coverUrl || null,
+          description: page?.description || null,
+          location: page?.location || null,
+          pageWebsite: page?.website || null,
+          followersCount: page?.stats?.followers ?? page?.followers ?? null,
           isSponsored: Boolean(post.isSponsored || post.campaignId),
           campaignId: post.campaignId || null,
-          campaignTitle: campaign.title || null,
-          campaignDescription: campaign.description || null,
-          objective: campaign.objective || null,
-          website: campaign.website || null,
-          whatsapp: campaign.whatsapp || null,
-          cta: campaign.cta || "En savoir plus",
-          isPlatformAdmin: post.author.role === "admin" || (post.author.email && [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL].filter(Boolean).some((email) => post.author.email.toLowerCase() === email.toLowerCase())),
+          campaignTitle: campaign?.title || null,
+          campaignDescription: campaign?.description || null,
+          objective: campaign?.objective || null,
+          website: campaign?.website || null,
+          whatsapp: campaign?.whatsapp || null,
+          cta: campaign?.cta || "En savoir plus",
+          isPlatformAdmin: post.author?.role === "admin" || (post.author?.email && [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL].filter(Boolean).some((email) => post.author.email.toLowerCase() === email.toLowerCase())),
           time: post.createdAt,
           updatedAt: post.updatedAt,
           likes: post.likes.length,
@@ -169,35 +217,15 @@ export async function registerPostRoutes(app) {
           bookmarks: post._count?.savedPosts || 0,
           shares: post._count?.shares || 0,
           isArticle: post.isArticle,
+          commentsLocked: Boolean(post.commentsLocked),
+          commentatorsLimit: Number(post.commentatorsLimit || 0),
           presentation: (() => { try { return post.presentation ? JSON.parse(post.presentation) : {}; } catch { return {}; } })(),
           text: post.text,
           headline: post.headline,
           excerpt: post.excerpt,
           body: post.body,
           media: media.length > 1 ? media : media[0] || null,
-          comments: post.comments.map((comment) => {
-            const isPageComment = Boolean(page.name && String(comment.author.id) === String(post.companyPageId));
-            const commentAuthor = isPageComment ? page.name : comment.author.name;
-            return {
-            id: comment.id,
-            authorId: comment.author.id,
-            authorType: isPageComment ? "page" : "person",
-            companyPageId: isPageComment ? post.companyPageId : null,
-            author: commentAuthor,
-            initials: initials(commentAuthor),
-            avatarUrl: isPageComment ? (page.logoUrl || page.avatarUrl || null) : comment.author.image || null,
-            coverUrl: isPageComment ? (page.bannerUrl || page.coverUrl || null) : null,
-            text: comment.text,
-            time: comment.createdAt,
-            likes: 0,
-            liked: false,
-            replies: (comment.replies || []).map((reply) => {
-              const isPageReply = Boolean(page.name && String(reply.author.id) === String(post.companyPageId));
-              const replyAuthor = isPageReply ? page.name : reply.author.name;
-              return { id: reply.id, authorId: reply.author.id, authorType: isPageReply ? "page" : "person", companyPageId: isPageReply ? post.companyPageId : null, author: replyAuthor, initials: initials(replyAuthor), avatarUrl: isPageReply ? (page.logoUrl || page.avatarUrl || null) : reply.author.image || null, coverUrl: isPageReply ? (page.bannerUrl || page.coverUrl || null) : null, text: reply.text, time: reply.createdAt, likes: 0, liked: false };
-            }),
-          };
-          }),
+          comments: (post.comments || []).filter((comment) => !comment.parentId).map(formatComment),
         };
       }),
       pagination: { limit, offset, hasMore: posts.length === limit },
@@ -214,6 +242,9 @@ export async function registerPostRoutes(app) {
     const companyPageId = body.companyPageId ? String(body.companyPageId) : null;
     if (companyPageId && companyPageId !== userId) return reply.code(403).send({ error: "Vous ne pouvez pas publier pour cette page" });
     const media = Array.isArray(body.media) ? body.media.slice(0, 20) : [];
+    const normalizedCommentatorsLimit = Number.isFinite(Number(body.commentatorsLimit)) && Number(body.commentatorsLimit) >= 0
+      ? Math.max(0, Math.min(1000, Math.floor(Number(body.commentatorsLimit))))
+      : 0;
     const post = await prisma.post.create({
       data: {
         authorId: userId,
@@ -231,6 +262,8 @@ export async function registerPostRoutes(app) {
         mood: body.mood ? String(body.mood).slice(0, 80) : null,
         identifiedUsers: body.identifiedUsers ? JSON.stringify(body.identifiedUsers) : null,
         visibility: ["public", "connections"].includes(body.visibility) ? body.visibility : "public",
+        commentsLocked: Boolean(body.commentsLocked),
+        commentatorsLimit: normalizedCommentatorsLimit,
         status: "published",
       },
       include: { author: { select: { id: true, name: true, title: true, image: true } } },
@@ -326,14 +359,23 @@ export async function registerPostRoutes(app) {
     const post = await findPost(request.params.id, reply); if (!post) return;
     if (!(await canManagePost(post, userId))) return reply.code(403).send({ error: "Vous ne pouvez modifier que votre publication" });
     const data = {};
-    if (typeof request.body?.text === "string") data.text = request.body.text.trim();
-    if (["public", "connections"].includes(request.body?.visibility)) data.visibility = request.body.visibility;
-    const hasMedia = Object.prototype.hasOwnProperty.call(request.body || {}, "media");
-    const media = Array.isArray(request.body?.media) ? request.body.media.slice(0, 20).filter((item) => item?.url) : [];
+    const body = request.body || {};
+    const hasCommentsSettings = Object.prototype.hasOwnProperty.call(body, "commentsLocked") || Object.prototype.hasOwnProperty.call(body, "commentatorsLimit");
+    if (typeof body.text === "string") data.text = body.text.trim();
+    if (["public", "connections"].includes(body.visibility)) data.visibility = body.visibility;
+    const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
+    const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
     if (hasMedia) {
       data.mediaData = media.length ? JSON.stringify(media) : null;
       data.mediaUrl = media[0]?.url || null;
       data.mediaType = media[0]?.type || null;
+    }
+    if (hasCommentsSettings) {
+      const normalizedCommentatorsLimit = Number.isFinite(Number(body.commentatorsLimit)) && Number(body.commentatorsLimit) >= 0
+        ? Math.max(0, Math.min(1000, Math.floor(Number(body.commentatorsLimit))))
+        : 0;
+      data.commentsLocked = Boolean(body.commentsLocked);
+      data.commentatorsLimit = normalizedCommentatorsLimit;
     }
     const updated = await prisma.post.update({ where: { id: post.id }, data });
     return reply.send({ ok: true, post: { ...updated, ...(hasMedia ? { media } : {}) } });

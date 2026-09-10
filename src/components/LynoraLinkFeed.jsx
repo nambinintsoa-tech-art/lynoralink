@@ -5262,7 +5262,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setSidebarToast({ message: "Publication modifiée", icon: Check });
   };
 
-  const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, visibility, reelSound }) => {
+  const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, visibility, reelSound, commentsLocked, commentatorsLimit }) => {
     const isArticle = mode === "article";
     const isReel = mode === "reel";
     const postMedia = Array.isArray(media) ? media : [];
@@ -5333,6 +5333,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       shares: 0,
       liked: false,
       bookmarked: false,
+      commentsLocked: Boolean(commentsLocked),
+      commentatorsLimit: Number(commentatorsLimit) || 0,
       mood,
       identifiedUsers,
       visibility,
@@ -5372,6 +5374,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         mood,
         identifiedUsers,
         visibility,
+        commentsLocked: Boolean(commentsLocked),
+        commentatorsLimit: Number(commentatorsLimit) || 0,
         companyPageId: composerCompanyId || (activeAccount === "company" ? companyData?.id : undefined),
         isSponsored: mode === "ad",
       }),

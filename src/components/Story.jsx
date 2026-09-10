@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import {
   Plus, X, Type, Image as ImageIcon, Upload, ChevronLeft, ChevronRight,
   Heart, Send, MoreHorizontal, Trash2, Eye, Flag, UserMinus, Loader2,
-  Volume2, VolumeX, Camera, Check, Users, Lock, SmilePlus,
+  Volume2, VolumeX, Camera, Check, Users, Lock, SmilePlus, ChevronDown,
   ChevronUp, Sparkles, Zap, Share2, Bookmark, Copy, Play, Pause,
 } from "lucide-react";
 import ReactionPicker from "./ReactionPicker";
@@ -116,7 +116,79 @@ function storyPreviewBg(item) {
   return "#0B1A28";
 }
 
-function StoryPrivacyPicker({ value, onChange }) {
+function StoryPrivacyPicker({ value, onChange, variant = "grid" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = STORY_PRIVACY_OPTIONS.find((o) => o.id === value) || STORY_PRIVACY_OPTIONS[0];
+
+  useEffect(() => {
+    if (variant !== "pill") return undefined;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [variant]);
+
+  /* Variante "pill" — sélecteur d'audience façon Facebook (barre du composer) */
+  if (variant === "pill") {
+    return (
+      <div ref={ref} className="story-privacy-wrap" style={{ position: "relative", minWidth: 0, flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="story-chip"
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "10px 14px", borderRadius: 999, border: `1.5px solid ${C.lineSoft}`,
+            background: C.white, color: C.navy800, fontSize: 12.5, fontWeight: 700,
+            cursor: "pointer", fontFamily: "'Inter', sans-serif", boxShadow: shadow.xs,
+          }}
+        >
+          <current.icon size={14} color={C.navy700} />
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{current.label}</span>
+          <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s ease", flexShrink: 0 }} />
+        </button>
+        {open && (
+          <div
+            className="story-menu-pop"
+            style={{
+            position: "absolute", bottom: "calc(100% + 8px)", left: 0, minWidth: 240,
+            background: C.white, border: `1px solid ${C.line}`, borderRadius: 12,
+            boxShadow: shadow.lg, overflow: "hidden", zIndex: 30,
+            }}
+          >
+            {STORY_PRIVACY_OPTIONS.map((opt) => {
+              const active = opt.id === value;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className="story-menu-item"
+                  onClick={() => { onChange(opt.id); setOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%",
+                    padding: "10px 12px", border: "none", textAlign: "left",
+                    background: active ? C.navy50 : "transparent", cursor: "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: active ? navyGrad : C.navy50, color: active ? C.white : C.navy700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <opt.icon size={14} />
+                  </span>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: C.ink }}>{opt.label}</span>
+                    <span style={{ display: "block", fontSize: 11, color: C.mutedLight, marginTop: 1 }}>{opt.description}</span>
+                  </span>
+                  {active && <Check size={14} color={C.navy700} style={{ flexShrink: 0 }} />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* Variante "grid" — comportement d'origine conservé (3 colonnes) */
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
       {STORY_PRIVACY_OPTIONS.map(({ id, label, description, icon: Icon }) => (
@@ -251,12 +323,11 @@ function ModalShell({ children, onClose, maxWidth = 420 }) {
         className="story-modal-card"
         style={{
           position: "relative", width: "100%", maxWidth, maxHeight: "88vh", overflow: "auto",
-          background: C.white, borderRadius: 28,
+          background: C.white, borderRadius: 12,
           boxShadow: `${shadow.xl}, 0 0 0 1px rgba(15,51,82,0.06)`,
           border: `1px solid rgba(255,255,255,0.6)`,
         }}
       >
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, borderRadius: "28px 28px 0 0", background: goldGrad, opacity: 0.9 }} />
         {children}
       </div>
     </div>
@@ -266,7 +337,7 @@ function ModalShell({ children, onClose, maxWidth = 420 }) {
 
 function ModalHeader({ title, onClose, onBack, subtitle }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "22px 22px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 18px 14px", borderBottom: `1px solid ${C.lineSoft}` }}>
       {onBack && (
         <button onClick={onBack} className="story-icon-btn" style={iconBtnStyle}>
           <ChevronLeft size={17} />
@@ -302,7 +373,7 @@ function CreateStoryModal({ onClose, onGoUpload, onPublishText, currentUser }) {
   const maxLen = 220;
 
   return (
-    <ModalShell onClose={onClose} maxWidth={mode === "text" ? 400 : 420}>
+    <ModalShell onClose={onClose} maxWidth={mode === "text" ? 400 : 380}>
       <ModalHeader
         title={mode === "choice" ? "Creer un moment" : "Story texte"}
         subtitle={mode === "choice" ? "Partagez avec votre reseau" : "Personnalisez votre message"}
@@ -310,7 +381,8 @@ function CreateStoryModal({ onClose, onGoUpload, onPublishText, currentUser }) {
         onBack={mode === "text" ? () => setMode("choice") : null}
       />
 
-      {/* Avatar de l'utilisateur connecté */}
+      {/* Avatar de l'utilisateur connecté (écran de choix, façon Facebook) */}
+      {mode === "choice" && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, padding: "0 18px" }}>
         <Avatar
           initials={currentUser?.initials || "U"}
@@ -327,41 +399,49 @@ function CreateStoryModal({ onClose, onGoUpload, onPublishText, currentUser }) {
           </div>
         </div>
       </div>
+      )}
 
       {mode === "choice" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "18px 18px 24px" }}>
-          <button onClick={() => setMode("text")} className="story-option-btn" style={optionBtnStyle}>
-            <div style={{ ...optionIconWrap, background: navyGrad, color: C.white }}>
-              <Type size={19} strokeWidth={2} />
+        /* Façon Facebook : deux grandes tuiles verticales côte à côte */
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "4px 18px 22px" }}>
+          <button
+            onClick={() => setMode("text")}
+            className="story-option-btn"
+            style={{ ...fbTileStyle }}
+            aria-label="Créer une story texte"
+          >
+            <div style={{ position: "absolute", inset: 0, borderRadius: 15, background: "linear-gradient(180deg, rgba(27,83,134,0.05), rgba(15,51,82,0.09))", pointerEvents: "none" }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 14, background: navyGrad, color: C.white, boxShadow: shadow.sm, flexShrink: 0 }}>
+              <Type size={21} strokeWidth={2.2} />
             </div>
-            <div style={{ flex: 1, textAlign: "left" }}>
+            <div style={{ marginTop: "auto", position: "relative", textAlign: "left", minWidth: 0 }}>
               <div style={optionTitleStyle}>Story texte</div>
-              <div style={optionSubStyle}>Partagez une pensee ou une annonce</div>
-            </div>
-            <div className="story-option-chevron" style={optionChevronWrap}>
-              <ChevronRight size={15} color={C.navy700} />
+              <div style={optionSubStyle}>Partagez une pensée ou une annonce</div>
             </div>
           </button>
 
-          <button onClick={onGoUpload} className="story-option-btn" style={optionBtnStyle}>
-            <div style={{ ...optionIconWrap, background: goldGrad, color: C.navy900 }}>
-              <ImageIcon size={19} strokeWidth={2} />
+          <button
+            onClick={onGoUpload}
+            className="story-option-btn"
+            style={{ ...fbTileStyle }}
+            aria-label="Importer une photo ou une vidéo"
+          >
+            <div style={{ position: "absolute", inset: 0, borderRadius: 15, background: "linear-gradient(180deg, rgba(246,211,116,0.10), rgba(217,165,54,0.14))", pointerEvents: "none" }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 14, background: goldGrad, color: C.navy900, boxShadow: shadow.gold, flexShrink: 0 }}>
+              <ImageIcon size={21} strokeWidth={2.2} />
             </div>
-            <div style={{ flex: 1, textAlign: "left" }}>
-              <div style={optionTitleStyle}>Photo ou video</div>
+            <div style={{ marginTop: "auto", position: "relative", textAlign: "left", minWidth: 0 }}>
+              <div style={optionTitleStyle}>Photo ou vidéo</div>
               <div style={optionSubStyle}>Importez un fichier depuis votre appareil</div>
-            </div>
-            <div className="story-option-chevron" style={optionChevronWrap}>
-              <ChevronRight size={15} color={C.navy700} />
             </div>
           </button>
         </div>
       )}
-
       {mode === "text" && (
         <div style={{ padding: "16px 18px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Preview */}
+          {/* Preview — canvas façon Facebook */}
           <div
+            className="story-canvas"
             style={{
               position: "relative", background: bg, borderRadius: 22, aspectRatio: "9 / 14", width: "100%",
               display: "flex", alignItems: "center", justifyContent: "center", padding: 28, boxSizing: "border-box",
@@ -418,20 +498,23 @@ function CreateStoryModal({ onClose, onGoUpload, onPublishText, currentUser }) {
             </span>
           </div>
 
-          <StoryPrivacyPicker value={audience} onChange={setAudience} />
-
-          <button
-            onClick={() => text.trim() && onPublishText({ text: text.trim(), bg, fontSize, audience })}
-            disabled={!text.trim()}
-            className="story-publish-btn"
-            style={{
+          {/* Barre d'action façon Facebook : audience à gauche, Publier à droite */}
+          <div className="story-create-footer" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <StoryPrivacyPicker value={audience} onChange={setAudience} variant="pill" />
+            <button
+              onClick={() => text.trim() && onPublishText({ text: text.trim(), bg, fontSize, audience })}
+              disabled={!text.trim()}
+              className="story-publish-btn"
+              style={{
               ...publishBtnStyle,
+              width: "auto", flex: 1, minWidth: 150,
               opacity: text.trim() ? 1 : 0.5,
               cursor: text.trim() ? "pointer" : "default",
             }}
-          >
+            >
             <Sparkles size={15} strokeWidth={2} /> Publier
           </button>
+          </div>
         </div>
       )}
     </ModalShell>
@@ -456,6 +539,14 @@ const publishBtnStyle = {
   display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "14px 16px",
   borderRadius: 999, border: "none", background: goldGrad, color: C.navy900, fontWeight: 700, fontSize: 14,
   letterSpacing: "-0.005em", boxShadow: shadow.gold,
+};
+
+/* Tuile verticale façon Facebook (écran de choix « Créer une story ») */
+const fbTileStyle = {
+  position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12,
+  aspectRatio: "9 / 13", minHeight: 170, padding: 14, borderRadius: 16,
+  border: `1.5px solid ${C.lineSoft}`, background: C.white, cursor: "pointer",
+  width: "100%", boxSizing: "border-box", boxShadow: shadow.xs, overflow: "hidden",
 };
 
 /* ------------------------------------------------------------------ *
@@ -652,8 +743,6 @@ function UploadModal({ onClose, onBack, onPublishMedia }) {
               }}
             />
 
-            <StoryPrivacyPicker value={audience} onChange={setAudience} />
-
             {error && (
               <div style={{
                 fontSize: 12.5, fontWeight: 600, color: C.danger, background: "rgba(217,83,79,0.08)",
@@ -663,9 +752,13 @@ function UploadModal({ onClose, onBack, onPublishMedia }) {
               </div>
             )}
 
-            <button onClick={startUpload} className="story-publish-btn" style={publishBtnStyle}>
-              <Upload size={15} /> Publier la story
-            </button>
+            {/* Barre d'action façon Facebook : audience à gauche, Publier à droite */}
+            <div className="story-create-footer" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <StoryPrivacyPicker value={audience} onChange={setAudience} variant="pill" />
+              <button onClick={startUpload} className="story-publish-btn" style={{ ...publishBtnStyle, width: "auto", flex: 1, minWidth: 160 }}>
+                <Upload size={15} /> Publier la story
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -1720,6 +1813,17 @@ export default function Story({
         .story-rail::-webkit-scrollbar { display: none; }
         .story-rail { scrollbar-width: none; }
         @media (max-width: 560px) {
+          /* Composer création de story façon Facebook — adaptations mobiles */
+          .story-create-footer {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .story-create-footer .story-publish-btn { width: 100% !important; }
+          .story-create-footer .story-privacy-wrap { width: 100%; }
+          .story-create-footer .story-privacy-wrap > button { width: 100%; justify-content: center; }
+          .story-canvas { max-height: 56vh; }
+          .story-dropzone { aspect-ratio: auto !important; min-height: 300px; }
           .story-backdrop {
             align-items: stretch !important;
             justify-content: stretch !important;

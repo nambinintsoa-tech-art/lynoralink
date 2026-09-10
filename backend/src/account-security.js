@@ -1,12 +1,49 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
 
-async function sendEmail({ to, subject, text }) {
+async function sendEmail({ to, subject, text, html }) {
+  const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
+  const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
+
+  if (provider === "brevo") {
+    const fromEmail = process.env.BREVO_FROM_EMAIL?.trim();
+    const apiKey = process.env.BREVO_API_KEY?.trim();
+    if (!fromEmail || !apiKey) throw new Error("Configuration Brevo backend manquante");
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text, htmlContent: html || text }),
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`Brevo returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    }
+    return;
+  }
+
+  if (provider === "smtp") {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const password = process.env.SMTP_PASSWORD?.replace(/\s+/g, "");
+    if (!host || !user || !password) throw new Error("Configuration SMTP backend manquante");
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
+      auth: { user, pass: password },
+    });
+    await transporter.sendMail({ from: process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || user, to, subject, text, html });
+    return;
+  }
+
   const from = process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
   if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration email backend manquante");
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text }) });
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
   if (!response.ok) throw new Error("Échec d'envoi du message email");
 }
 
@@ -70,7 +107,24 @@ export async function registerAccountSecurityRoutes(app) {
     if (!user?.password || !await bcrypt.compare(password, user.password)) return reply.code(401).send({ error: "Email ou mot de passe incorrect" });
     const enabled = await prisma.userSetting.findUnique({ where: { userId_key: { userId: user.id, key: "twoFactor" } } });
     if (enabled?.value !== "true") return reply.send({ requiresTwoFactor: false });
-    try { await createCode(user.id, "twoFactorChallenge", user.email, "Votre code de sécurité LynoraLink"); } catch { return reply.code(503).send({ error: "Impossible d'envoyer le code de sécurité" }); }
+
+    const hasMailProvider = Boolean(
+      process.env.EMAIL_PROVIDER ||
+      process.env.BREVO_API_KEY ||
+      process.env.SMTP_HOST ||
+      process.env.RESEND_API_KEY
+    );
+
+    if (process.env.NODE_ENV !== "production" && (!hasMailProvider || !process.env.SMTP_HOST && !process.env.BREVO_API_KEY && !process.env.RESEND_API_KEY)) {
+      return reply.send({ requiresTwoFactor: false, warning: "2FA disabled in local mode without working email provider" });
+    }
+
+    try { await createCode(user.id, "twoFactorChallenge", user.email, "Votre code de sécurité LynoraLink"); } catch {
+      if (process.env.NODE_ENV !== "production") {
+        return reply.send({ requiresTwoFactor: false, warning: "2FA disabled in local mode because email delivery failed" });
+      }
+      return reply.code(503).send({ error: "Impossible d'envoyer le code de sécurité" });
+    }
     return reply.send({ requiresTwoFactor: true });
   });
 

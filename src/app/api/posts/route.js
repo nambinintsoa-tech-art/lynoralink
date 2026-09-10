@@ -266,6 +266,8 @@ export async function GET(req) {
       mood: parseJson(p.mood, null),
       identifiedUsers: parseJson(p.identifiedUsers, []),
       visibility: p.visibility,
+      commentsLocked: Boolean(p.commentsLocked),
+      commentatorsLimit: Number(p.commentatorsLimit || 0),
       isSponsored: Boolean(p.isSponsored || p.campaignId),
       campaignId: p.campaignId || null,
       campaignTitle: campaign?.title || null,
@@ -332,7 +334,7 @@ export async function POST(req) {
   }
 
   const body = await req.json();
-  const { text, isArticle, headline, excerpt, articleBody, media, presentation, mood, identifiedUsers, visibility, companyPageId, isSponsored } = body;
+  const { text, isArticle, headline, excerpt, articleBody, media, presentation, mood, identifiedUsers, visibility, companyPageId, isSponsored, commentsLocked, commentatorsLimit } = body;
   const mediaList = Array.isArray(media) ? media : media ? [media] : [];
   const mediaItem = mediaList[0] || null;
   const hasText = typeof text === "string" && text.trim().length > 0;
@@ -348,6 +350,9 @@ export async function POST(req) {
   }
 
   const serializedMedia = mediaList.length ? JSON.stringify(mediaList) : null;
+  const normalizedCommentatorsLimit = Number.isFinite(Number(commentatorsLimit)) && Number(commentatorsLimit) >= 0
+    ? Math.max(0, Math.min(1000, Math.floor(Number(commentatorsLimit))))
+    : 0;
   const pageSetting = companyPageId && companyPageId === session.user.id
     ? await prisma.userSetting.findUnique({ where: { userId_key: { userId: session.user.id, key: "companyPage" } } })
     : null;
@@ -379,6 +384,8 @@ export async function POST(req) {
           })).filter((user) => user.id && user.name))
         : null,
       visibility: normalizeVisibility(visibility),
+      commentsLocked: Boolean(commentsLocked),
+      commentatorsLimit: normalizedCommentatorsLimit,
       isSponsored: isSponsored === true && Boolean(targetCompanyPageId),
     },
   });
