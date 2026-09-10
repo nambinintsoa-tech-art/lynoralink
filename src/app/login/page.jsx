@@ -40,6 +40,7 @@ function LoginPageContent() {
   const [rememberMe, setRememberMe] = useState(false);
   const [twoFactorStep, setTwoFactorStep] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [authFailureReason, setAuthFailureReason] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -67,6 +68,7 @@ function LoginPageContent() {
       if (!challenge.ok) {
         setLoading(false);
         setLoadingMessage("");
+        setAuthFailureReason(challenge.data.code || "invalid_password");
         setError(challenge.data.error || "Email ou mot de passe incorrect.");
         return;
       }
@@ -89,7 +91,20 @@ function LoginPageContent() {
       setLoading(false);
       setLoadingMessage("");
       setTwoFactorCode("");
-      setError("Email ou mot de passe incorrect.");
+      const reason = authFailureReason || res.error;
+      if (reason === "email_not_verified") {
+        setError("Votre email n’a pas encore été vérifié. Vérifiez votre boîte mail ou demandez un nouveau code de confirmation.");
+      } else if (reason === "account_inactive") {
+        setError("Ce compte est inactif ou bloqué. Contactez le support pour réactiver l’accès.");
+      } else if (reason === "oauth_only") {
+        setError("Ce compte utilise une connexion externe. Utilisez le bon mode d’accès.");
+      } else if (reason === "user_not_found") {
+        setError("Aucun compte trouvé pour cet email.");
+      } else if (reason === "CredentialsSignin") {
+        setError("Vérifiez votre email et votre mot de passe. Si votre compte a été créé avant la vérification obligatoire, demandez un nouveau code de confirmation.");
+      } else {
+        setError("Email ou mot de passe incorrect.");
+      }
       return;
     }
 

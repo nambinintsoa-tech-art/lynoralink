@@ -12,8 +12,20 @@ export async function POST(req) {
   if (!normalizedEmail || !password) return NextResponse.json({ error: "Identifiants requis" }, { status: 400 });
 
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (!user?.password || !(await bcrypt.compare(password, user.password))) {
-    return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "Aucun compte trouvé pour cet email.", code: "user_not_found" }, { status: 401 });
+  }
+  if (!user.password) {
+    return NextResponse.json({ error: "Ce compte utilise une connexion externe et ne peut pas être authentifié avec un mot de passe local.", code: "oauth_only" }, { status: 401 });
+  }
+  if (!user.emailVerified) {
+    return NextResponse.json({ error: "Votre email n’a pas encore été vérifié. Vérifiez votre boîte mail ou demandez un nouveau code de confirmation.", code: "email_not_verified" }, { status: 401 });
+  }
+  if (user.status !== "active") {
+    return NextResponse.json({ error: "Ce compte est inactif ou bloqué. Contactez le support pour réactiver l’accès.", code: "account_inactive" }, { status: 401 });
+  }
+  if (!(await bcrypt.compare(password, user.password))) {
+    return NextResponse.json({ error: "Email ou mot de passe incorrect.", code: "invalid_password" }, { status: 401 });
   }
 
   const settings = await prisma.userSetting.findMany({ where: { userId: user.id, key: { in: ["twoFactor", CHALLENGE_KEY] } } });
