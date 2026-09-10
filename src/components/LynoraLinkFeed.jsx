@@ -2802,6 +2802,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [view, setView] = useState(requestedView); // feed | profile | settings | network | messages | notifications | company | saved | groups | pages | trend
   const [selectedTrend, setSelectedTrend] = useState(null);
   const [showLogoutTransition, setShowLogoutTransition] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [feedContentReady, setFeedContentReady] = useState(Array.isArray(initialPosts));
   const [unreadPublications, setUnreadPublications] = useState(0);
   const feedSeenAtRef = useRef(0);
@@ -5507,11 +5508,17 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const openEvent = posts.find((p) => p.id === openEventId);
 
   const requestLogout = () => {
+    setLoggingOut(true);
     setShowLogoutTransition(true);
   };
   const confirmLogout = async () => {
-    await signOut({ redirect: false });
-    window.location.replace("/");
+    setLoggingOut(true);
+    try {
+      await signOut({ redirect: false });
+    } catch {}
+    if (typeof window !== "undefined") {
+      window.location.replace("/");
+    }
   };
   const deleteAccount = () => {
     fetchBackendApi("/api/account", { method: "DELETE" })
@@ -5521,6 +5528,19 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         window.location.replace("/");
       });
   };
+  if (loggingOut) {
+    return (
+      <>
+        {showLogoutTransition && (
+          <LogoutTransition
+            userName={activeProfile.name}
+            onComplete={confirmLogout}
+          />
+        )}
+      </>
+    );
+  }
+
   if (!accountReady && view === "feed") {
     return <FeedLoadingShell profileView={view === "profile"} />;
   }

@@ -631,6 +631,18 @@ function VideoTile({
   const [playing, setPlaying] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [duration, setDuration] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = () => {
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      setIsMobileView(coarsePointer || window.innerWidth <= 768);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const canOpen = interactive && typeof onActivate === "function";
   const durationLabel = formatVideoDuration(duration);
@@ -669,7 +681,22 @@ function VideoTile({
         autoPlay
         playsInline
         aria-label={label || "Vidéo"}
-        style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "#000", ...style }}
+        style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "transparent", ...style }}
+      />
+    );
+  }
+
+  if (isMobileView) {
+    return (
+      <video
+        src={src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-label={label || "Vidéo"}
+        style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "transparent", ...style }}
       />
     );
   }

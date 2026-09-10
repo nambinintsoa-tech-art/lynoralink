@@ -851,6 +851,7 @@ export default function AccountPicker({
   const [pendingAccountId, setPendingAccountId] = useState(null);
   const [pendingAccountEmail, setPendingAccountEmail] = useState("");
   const [pendingAccountName, setPendingAccountName] = useState("");
+  const [pendingAccountPhotoUrl, setPendingAccountPhotoUrl] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -895,8 +896,13 @@ export default function AccountPicker({
   const finalizeSelection = (id, shouldContinue = false) => {
     setSelectedId(id);
     onSelect?.(id);
-    if (shouldContinue) {
+
+    if (shouldContinue || rememberMeEnabled) {
       onContinue?.(id);
+
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/feed")) {
+        window.location.assign("/feed");
+      }
     }
   };
 
@@ -915,6 +921,7 @@ export default function AccountPicker({
       setPendingAccountId(id);
       setPendingAccountEmail(accountEmail);
       setPendingAccountName(getAccount(id)?.name ?? "");
+      setPendingAccountPhotoUrl(getAccount(id)?.photoUrl ?? "");
       setPassword("");
       setPasswordError("");
       setPasswordModalOpen(true);
@@ -954,6 +961,9 @@ export default function AccountPicker({
       setPasswordModalOpen(false);
       setPassword("");
       finalizeSelection(pendingAccountId, true);
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/feed")) {
+        window.location.assign("/feed");
+      }
       return;
     }
 
@@ -1176,6 +1186,7 @@ export default function AccountPicker({
           <div className="ll-modal">
             <Avatar
               name={pendingAccountName}
+              photoUrl={pendingAccountPhotoUrl}
               size={64}
               tintIndex={resolvedAccounts.findIndex((a) => a.id === pendingAccountId)}
             />
@@ -1248,6 +1259,7 @@ export default function AccountPicker({
                   onClick={() => {
                     setPasswordModalOpen(false);
                     setPendingAccountEmail("");
+                    setPendingAccountPhotoUrl("");
                     setPassword("");
                     setPasswordError("");
                   }}

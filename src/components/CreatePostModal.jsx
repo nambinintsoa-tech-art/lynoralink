@@ -996,7 +996,9 @@ const MOOD_OPTIONS = [
 
 function MoodPicker({ value, onChange, placement = "bottom" }) {
   const [open, setOpen] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState({ top: 0, left: 0, width: 320 });
   const ref = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     const onDocClick = (e) => {
@@ -1006,10 +1008,20 @@ function MoodPicker({ value, onChange, placement = "bottom" }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  useEffect(() => {
+    if (!open || !triggerRef.current || typeof window === "undefined") return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const width = Math.min(320, window.innerWidth - 24);
+    const left = Math.min(Math.max(12, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 12);
+    const top = placement === "top" ? Math.max(12, rect.top - 12 - 240) : Math.min(window.innerHeight - 12 - 220, rect.bottom + 12);
+    setPopoverStyle({ top, left, width });
+  }, [open, placement, value]);
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
       {value ? (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="cpm-media-opt"
@@ -1028,6 +1040,7 @@ function MoodPicker({ value, onChange, placement = "bottom" }) {
         </button>
       ) : (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="cpm-media-opt"
@@ -1040,7 +1053,7 @@ function MoodPicker({ value, onChange, placement = "bottom" }) {
       )}
 
       {open && (
-        <div className="cpm-fade" style={{ position: "absolute", ...(placement === "top" ? { bottom: 46 } : { top: 36 }), left: 0, background: C.white, border: `1px solid ${C.line}`, borderRadius: 12, boxShadow: "0 14px 34px rgba(15,51,82,0.2)", zIndex: 20, width: 320, maxWidth: "calc(100vw - 48px)", padding: 10 }}>
+        <div className="cpm-fade" style={{ position: "fixed", top: popoverStyle.top, left: popoverStyle.left, width: popoverStyle.width, background: C.white, border: `1px solid ${C.line}`, borderRadius: 12, boxShadow: "0 14px 34px rgba(15,51,82,0.2)", zIndex: 9999, padding: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.mutedLight, textTransform: "uppercase", letterSpacing: 0.4, padding: "2px 4px 8px" }}>Comment vous sentez-vous ?</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
             {MOOD_OPTIONS.map((opt) => (
@@ -1072,7 +1085,9 @@ function IdentifierPicker({ value = [], onChange }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [popoverStyle, setPopoverStyle] = useState({ top: 0, left: 0, width: 290 });
   const ref = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     if (!open || users.length > 0) return;
@@ -1104,6 +1119,15 @@ function IdentifierPicker({ value = [], onChange }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  useEffect(() => {
+    if (!open || !triggerRef.current || typeof window === "undefined") return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const width = Math.min(290, window.innerWidth - 24);
+    const left = Math.min(Math.max(12, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 12);
+    const top = Math.max(12, rect.top - 12 - 220);
+    setPopoverStyle({ top, left, width });
+  }, [open, value.length]);
+
   const toggleUser = (user) => {
     const selected = value.some((item) => item.id === user.id);
     onChange(selected ? value.filter((item) => item.id !== user.id) : [...value, user]);
@@ -1117,6 +1141,7 @@ function IdentifierPicker({ value = [], onChange }) {
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
         className="cpm-media-opt"
@@ -1129,7 +1154,7 @@ function IdentifierPicker({ value = [], onChange }) {
       </button>
 
       {open && (
-        <div className="cpm-fade" style={{ position: "absolute", bottom: 44, left: 0, width: 290, maxWidth: "calc(100vw - 48px)", background: C.white, border: `1px solid ${C.line}`, borderRadius: 14, boxShadow: "0 14px 34px rgba(15,51,82,0.2)", zIndex: 20, padding: 10 }}>
+        <div className="cpm-fade" style={{ position: "fixed", top: popoverStyle.top, left: popoverStyle.left, width: popoverStyle.width, background: C.white, border: `1px solid ${C.line}`, borderRadius: 14, boxShadow: "0 14px 34px rgba(15,51,82,0.2)", zIndex: 9999, padding: 10 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, margin: "2px 4px 8px" }}>Identifier des membres</div>
           <input
             value={query}

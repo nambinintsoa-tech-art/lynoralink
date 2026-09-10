@@ -118,11 +118,18 @@ export default function WelcomePage({
     };
   }, [statsProp]);
 
+  const goToFeed = () => {
+    onContinue?.();
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/feed")) {
+      window.location.assign("/feed");
+    }
+  };
+
   const handleProfileComplete = (data) => {
     setShowProfileModal(false);
     setProfileCompleted(true);
     onProfileComplete?.(data);
-    onContinue?.();
+    goToFeed();
   };
 
   const professionalsCount = stats.find((s) => s.label === "Professionnels actifs")?.value || "...";
@@ -199,7 +206,7 @@ export default function WelcomePage({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={onContinue}
+              onClick={goToFeed}
               className="lyn-wp-btn-ghost"
               style={{ border: "none", background: "transparent", color: C.navy800, fontWeight: 700, fontSize: 13.5, padding: "9px 14px", borderRadius: 10, cursor: "pointer", transition: "background .2s ease" }}
             >
@@ -249,7 +256,7 @@ export default function WelcomePage({
                 {profileCompleted ? <><CheckCircle2 size={16} /> Profil complété avec succès</> : <>Compléter mon profil <ArrowRight size={16} /></>}
               </button>
               <button
-                onClick={onContinue}
+                onClick={goToFeed}
                 className="lyn-wp-btn-ghost"
                 style={{ border: `1px solid ${C.line}`, background: C.white, color: C.navy800, fontWeight: 700, fontSize: 14.5, padding: "13px 22px", borderRadius: 12, cursor: "pointer", transition: "background .2s ease" }}
               >

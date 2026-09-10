@@ -14,6 +14,38 @@ export const authOptions = {
     strategy: "jwt",
     maxAge: SESSION_TTL_SECONDS,
   },
+  jwt: {
+    maxAge: SESSION_TTL_SECONDS,
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: SESSION_TTL_SECONDS,
+      },
+    },
+    callbackUrl: {
+      name: "next-auth.callback-url",
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   pages: {
     signIn: "/login",
     newUser: "/onboarding",

@@ -2577,7 +2577,10 @@ export function ChatModal({
         const response = await fetchBackendApi(`/api/calls?callId=${encodeURIComponent(callSession.id)}`, { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
-        if (data.call?.status === "ringing") endCall("missed");
+        const status = data.call?.status;
+        if (["ended", "rejected", "missed"].includes(status)) {
+          await endCall(status === "rejected" ? "rejected" : status === "missed" ? "missed" : "ended", true);
+        }
       } catch {
         // Keep the call alive when the status check is temporarily unavailable.
       }
@@ -2593,7 +2596,7 @@ export function ChatModal({
         if (!response.ok || cancelled) return;
         const data = await response.json();
         const status = data.call?.status;
-        if (status === "ended" || status === "rejected" || status === "missed") {
+        if (["ended", "rejected", "missed"].includes(status)) {
           await endCall(status === "rejected" ? "rejected" : status === "missed" ? "missed" : "ended", true);
         }
       } catch {}

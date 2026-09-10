@@ -7,6 +7,7 @@ import LogoBadge from "@/components/LogoBadge";
 import BrandName from "@/components/BrandName";
 import { getPasswordRequirements } from "@/lib/passwordPolicy";
 import { fetchBackendApi } from "@/lib/backend-api";
+import VerificationCodeInput from "@/components/VerificationCodeInput";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: "", title: "", birthDate: "", email: "", password: "" });
@@ -291,20 +292,12 @@ export default function RegisterPage() {
 
               {verificationStep && (
                 <div className="auth-verification-panel">
-                  <label htmlFor="verificationCode" className="text-xs font-semibold text-navy900">Code de confirmation</label>
-                  <p className="mt-1 text-xs text-muted">Saisissez le code à 6 chiffres envoyé à {verificationEmail}.</p>
-                  <input
-                    id="verificationCode"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    required
+                  <VerificationCodeInput
+                    label="Code de confirmation"
+                    helperText={`Saisissez le code à 6 chiffres envoyé à ${verificationEmail}.`}
                     value={verificationCode}
-                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ""))}
-                    placeholder="000000"
-                    className="mt-3 w-full rounded-lg border border-navy100 bg-white px-3.5 py-3 text-center text-lg font-bold tracking-[0.45em] text-[#132433] outline-none focus:border-navy700 focus:ring-2 focus:ring-navy700 focus:ring-opacity-20"
+                    onChange={setVerificationCode}
+                    autoFocus
                   />
                 </div>
               )}

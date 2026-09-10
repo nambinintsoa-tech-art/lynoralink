@@ -1,27 +1,73 @@
 package com.lynoralink.app;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Build;
 import android.os.Bundle;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.splashscreen.SplashScreen;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+	private boolean keepSplashVisible = true;
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
-		splashScreen.setKeepOnScreenCondition(() -> !hasInternetConnection());
+		splashScreen.setKeepOnScreenCondition(() -> keepSplashVisible);
 
 		super.onCreate(savedInstanceState);
+
+		if (this.bridge != null && this.bridge.getWebView() != null) {
+			this.bridge.getWebView().setWebViewClient(new OfflineAwareWebViewClient());
+		}
+
+		registerConnectivityMonitoring();
 
 		if (!hasInternetConnection()) {
 			Toast.makeText(this, "Connexion Internet indisponible", Toast.LENGTH_LONG).show();
 		}
+	}
+
+	private void registerConnectivityMonitoring() {
+		ConnectivityManager connectivityManager =
+			(ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		if (connectivityManager == null) return;
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			connectivityManager.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
+				@Override
+				public void onAvailable(@NonNull Network network) {
+					runOnUiThread(() -> {
+						keepSplashVisible = false;
+						if (thisBridgeHasOfflinePage()) {
+							this.bridge.getWebView().reload();
+						}
+					});
+				}
+
+				@Override
+				public void onLost(@NonNull Network network) {
+					runOnUiThread(() -> keepSplashVisible = true);
+				}
+			});
+		}
+	}
+
+	private boolean thisBridgeHasOfflinePage() {
+		return this.bridge != null && this.bridge.getWebView() != null && "file:///android_asset/offline.html".equals(this.bridge.getWebView().getUrl());
 	}
 
 	private boolean hasInternetConnection() {
@@ -42,5 +88,49 @@ public class MainActivity extends BridgeActivity {
 
 		android.net.NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
 		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+	}
+
+	private class OfflineAwareWebViewClient extends WebViewClient {
+		@Override
+		public void onPageStarted(WebView view, String url, Bitmap favicon) {
+			super.onPageStarted(view, url, favicon);
+			if (!hasInternetConnection()) {
+				keepSplashVisible = true;
+				view.stopLoading();
+				view.loadUrl("file:///android_asset/offline.html");
+			}
+		}
+
+		@Override
+		public void onPageFinished(WebView view, String url) {
+			super.onPageFinished(view, url);
+			if (hasInternetConnection() && "file:///android_asset/offline.html".equals(url)) {
+				keepSplashVisible = false;
+			} else if (!hasInternetConnection()) {
+				keepSplashVisible = true;
+			} else {
+				keepSplashVisible = false;
+			}
+		}
+
+		@Override
+		public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+			super.onReceivedError(view, request, error);
+			if (!hasInternetConnection()) {
+				keepSplashVisible = true;
+				view.stopLoading();
+				view.loadUrl("file:///android_asset/offline.html");
+			}
+		}
+
+		@Override
+		public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+			super.onReceivedHttpError(view, request, errorResponse);
+			if (!hasInternetConnection()) {
+				keepSplashVisible = true;
+				view.stopLoading();
+				view.loadUrl("file:///android_asset/offline.html");
+			}
+		}
 	}
 }

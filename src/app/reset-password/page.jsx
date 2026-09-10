@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import LogoBadge from "@/components/LogoBadge";
+import VerificationCodeInput from "@/components/VerificationCodeInput";
 import { getPasswordRequirements, isStrongPassword } from "@/lib/passwordPolicy";
 import { fetchBackendApi } from "@/lib/backend-api";
 
@@ -18,6 +19,8 @@ function ResetPasswordPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [code, setCode] = useState("");
+  const [codeStep, setCodeStep] = useState(false);
 
   const requestResetLink = async () => {
     if (!email.trim()) return setError("Saisissez votre adresse email.");
@@ -55,6 +58,40 @@ function ResetPasswordPageContent() {
     setDone(true);
   };
 
+  const handleCodeSubmit = async (event) => {
+    event.preventDefault();
+    if (code.length !== 6) {
+      setError("Saisissez le code à 6 chiffres.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const response = await fetchBackendApi("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data.error || "Code invalide ou expiré.");
+        return;
+      }
+      setCodeStep(false);
+      setDone(false);
+      setLoading(false);
+      setPassword("");
+      setConfirmation("");
+      if (typeof window !== "undefined") {
+        window.location.href = "/login?verified=1";
+      }
+    } catch {
+      setError("Impossible de valider le code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-navy900 via-navy800 to-navy900 px-4">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
@@ -78,6 +115,21 @@ function ResetPasswordPageContent() {
               <button type="button" onClick={() => router.push("/login")} className="mt-5 rounded-full bg-navy800 px-5 py-2.5 text-sm font-bold text-white">Se connecter</button>
             )}
           </div>
+        ) : codeStep ? (
+          <form onSubmit={handleCodeSubmit} className="flex flex-col gap-4">
+            <VerificationCodeInput
+              label="Code de validation"
+              helperText="Saisissez le code à 6 chiffres reçu par email."
+              value={code}
+              onChange={setCode}
+              autoFocus
+            />
+            {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+            <button type="submit" disabled={loading || code.length !== 6} className="mt-1 flex items-center justify-center gap-2 rounded-full bg-navy800 py-2.5 text-sm font-bold text-white disabled:opacity-60">
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              Valider le code
+            </button>
+          </form>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-3">
             {!token && <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Adresse email" className="rounded-lg border border-navy100 px-3.5 py-2.5 text-sm outline-none focus:border-navy700" />}

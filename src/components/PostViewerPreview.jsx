@@ -81,6 +81,22 @@ function filterHiddenComments(comments = [], hiddenIds = []) {
     .map((comment) => ({ ...comment, replies: filterHiddenComments(comment.replies || [], hiddenIds) }));
 }
 function normalizeMedia(raw) { if (!raw) return []; return Array.isArray(raw) ? raw : [raw]; }
+function getCommentMedia(comment) {
+  if (Array.isArray(comment?.media)) return comment.media.filter((item) => item && item.url);
+  const mediaData = comment?.mediaData ?? comment?.media;
+  if (!mediaData) return [];
+  if (typeof mediaData === "string") {
+    try {
+      const parsed = JSON.parse(mediaData);
+      return Array.isArray(parsed) ? parsed.filter((item) => item && item.url) : [];
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(mediaData)) return mediaData.filter((item) => item && item.url);
+  if (mediaData && typeof mediaData === "object" && mediaData.url) return [mediaData];
+  return [];
+}
 function isCommentOwnedByUser(comment, currentUser) {
   if (!comment || !currentUser) return false;
   const commentAuthorId = comment.authorId || comment.userId || comment.author?.id;
@@ -405,7 +421,19 @@ function ViewerVideo({ src, label, style = {} }) {
   const [started, setStarted] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [duration, setDuration] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(false);
   const durationLabel = formatVideoDuration(duration);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = () => {
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      setIsMobileView(coarsePointer || window.innerWidth <= 768);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   if (!src) {
     return (
@@ -416,15 +444,16 @@ function ViewerVideo({ src, label, style = {} }) {
     );
   }
 
-  if (started) {
+  if (isMobileView || started) {
     return (
       <video
         src={src}
-        controls
+        controls={started && !isMobileView}
         autoPlay
+        muted={isMobileView}
         playsInline
         aria-label={label || "Vid\u00e9o"}
-        style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "none", objectFit: "contain", display: "block", background: "#000", margin: "0 auto", ...style }}
+        style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "none", objectFit: "contain", display: "block", background: "transparent", margin: "0 auto", ...style }}
       />
     );
   }
@@ -466,7 +495,7 @@ function ViewerVideo({ src, label, style = {} }) {
         width: "100%",
         height: "auto",
         maxHeight: "none",
-        background: "#000",
+        background: isMobileView ? "transparent" : "#000",
         overflow: "visible",
         display: "flex",
         alignItems: "center",
@@ -543,18 +572,33 @@ function ViewerVideo({ src, label, style = {} }) {
 
 function ViewerCommentVideo({ src, label, width = 120, height = 80 }) {
   const [started, setStarted] = useState(false);
-  if (started) {
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = () => {
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      setIsMobileView(coarsePointer || window.innerWidth <= 768);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  if (isMobileView || started) {
     return (
       <video
         src={src}
-        controls
+        controls={started && !isMobileView}
         autoPlay
+        muted={isMobileView}
         playsInline
         aria-label={label || "Vid\u00e9o du commentaire"}
-        style={{ width, height, objectFit: "cover", borderRadius: 8, display: "block", background: "#000" }}
+        style={{ width, height, objectFit: "cover", borderRadius: 8, display: "block", background: "transparent" }}
       />
     );
   }
+
   return (
     <span
       role="button"
@@ -1076,15 +1120,18 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
             ) : (
               <div style={{ fontSize: 14, color: LI_TEXT, lineHeight: 1.45, marginTop: 2, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{displayText}</div>
             )}
-            {Array.isArray(comment.media) && comment.media.length > 0 && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                {comment.media.map((item, index) => item?.url ? (
-                  item.type === "video"
-                    ? <ViewerCommentVideo key={index} src={item.url} label={item.label} />
-                    : <img key={index} src={item.url} alt={item.label || "M\u00e9dia du commentaire"} style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8 }} />
-                ) : null)}
-              </div>
-            )}
+            {(() => {
+              const commentMedia = getCommentMedia(comment);
+              return commentMedia.length > 0 ? (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {commentMedia.map((item, index) => item?.url ? (
+                    item.type === "video"
+                      ? <ViewerCommentVideo key={index} src={item.url} label={item.label} />
+                      : <img key={index} src={item.url} alt={item.label || "M\u00e9dia du commentaire"} style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8 }} />
+                  ) : null)}
+                </div>
+              ) : null;
+            })()}
           </div>
           {/* Badge r\u00e9actions (coin bas-droit de la bulle, comme FB) */}
           {(comment.totalReactions || 0) > 0 && (
@@ -1200,7 +1247,7 @@ export default function PostViewerPreview({
   const [replyingTo, setReplyingTo] = useState(null);
   const [attachedMedia, setAttachedMedia] = useState([]);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [commentsLoading, setCommentsLoading] = useState(!Array.isArray(post?.comments));
+  const [commentsLoading, setCommentsLoading] = useState(true);
   const commentInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const isFilePostContent = isFilePost(post);
@@ -1236,8 +1283,14 @@ export default function PostViewerPreview({
   }, [post?.id]);
 
   useEffect(() => {
-    setCommentsLoading(!Array.isArray(post?.comments));
-  }, [post?.id, post?.comments]);
+    if (!post?.id) {
+      setCommentsLoading(true);
+      return;
+    }
+
+    const hasCommentPayload = post?.comments !== undefined && post?.comments !== null;
+    setCommentsLoading(Boolean(post?.loadingComments || !hasCommentPayload));
+  }, [post?.id, post?.comments, post?.loadingComments]);
 
   useEffect(() => {
     setCommentsLocked(Boolean(post?.commentsLocked || post?.commentingLocked));

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "701141421841",
+    "project_id": "lynoralink",
+    "storage_bucket": "lynoralink.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:701141421841:android:d03d30465e9f1cce4806b0",
+        "android_client_info": {
+          "package_name": "com.lynoralink.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "701141421841-t3lad2c636l6dhuadp08ptcu95djc755.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_N74TU1CbpoYTcGZpyLMIA6v9Kx_zIEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "701141421841-t3lad2c636l6dhuadp08ptcu95djc755.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
