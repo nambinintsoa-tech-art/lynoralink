@@ -82,12 +82,18 @@ function filterHiddenComments(comments = [], hiddenIds = []) {
 }
 function normalizeMedia(raw) {
   if (!raw) return [];
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { return normalizeMedia(JSON.parse(trimmed)); } catch { /* URL string: keep it below. */ }
+    }
+  }
   const values = Array.isArray(raw) ? raw : [raw];
   return values.map((item) => {
     if (typeof item === "string") return { url: item, type: "image" };
     if (!item || typeof item !== "object") return item;
-    const url = item.url || item.mediaUrl || item.src || item.imageUrl || null;
-    const rawType = String(item.type || item.mediaType || "").toLowerCase();
+    const url = item.url || item.mediaUrl || item.src || item.imageUrl || item.path || null;
+    const rawType = String(item.type || item.mediaType || item.mimeType || "").toLowerCase();
     const type = rawType.includes("video") || /\.(mp4|webm|mov|m4v)(?:$|[?#])/i.test(url || "") ? "video" : "image";
     return { ...item, url, type };
   }).filter((item) => item?.url || item?.label || item?.name);
@@ -1315,10 +1321,15 @@ export default function PostViewerPreview({
 
   /* --- Données dérivées (logique inchangée) --- */
   const viewerPost = isJobPost && jobEngagement ? { ...post, ...jobEngagement } : post;
-  const mediaSource = Array.isArray(viewerPost?.media) && viewerPost.media.length > 0
-    ? viewerPost.media
-    : (viewerPost?.mediaUrl || viewerPost?.imageUrl || viewerPost?.image || viewerPost?.coverUrl);
-  const media = normalizeMedia(mediaSource);
+  const media = [
+    viewerPost?.media,
+    viewerPost?.images,
+    viewerPost?.mediaData,
+    viewerPost?.mediaUrl,
+    viewerPost?.imageUrl,
+    viewerPost?.image,
+    viewerPost?.coverUrl,
+  ].reduce((resolved, candidate) => resolved.length > 0 ? resolved : normalizeMedia(candidate), []);
   const comments = Array.isArray(viewerPost?.comments)
     ? (isJobPost ? decorateJobComments(viewerPost.comments, currentUser?.id) : viewerPost.comments)
     : [];
