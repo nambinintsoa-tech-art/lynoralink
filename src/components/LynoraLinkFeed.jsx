@@ -48,7 +48,6 @@ import AccountSwitchTransition from "./AccountSwitchTransition";
 import LogoutTransition from "./LogoutTransition";
 import RelativeTime from "./RelativeTime";
 import { NetworkOpeningSkeleton } from "./Reseau";
-import SuggestionRail from "./SuggestionRail";
 import {
   FeedSkeleton,
   ComposerSkeleton,
@@ -6394,15 +6393,18 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                 </div>
                               )}
                               {index === 0 && (
-                                <section className="lynora-suggestion-rail-mobile">
-                                  <SuggestionRail
-                                    suggestions={personSuggestions || []}
-                                    onConnect={connectUser}
-                                    onOpenProfile={(profileId) => openUserProfile?.(profileId)}
-                                    isPageMode={activeAccount === "company"}
+                                <div className="lynora-feed-inline-suggestions">
+                                  <SuggestionsSection
+                                    suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
                                     connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
+                                    pendingRequestIds={pendingSuggestionIds}
+                                    onConnect={connectSuggestion}
+                                    onCancel={cancelConnectionRequest}
+                                    onDismiss={dismissSuggestion}
+                                    onNavigate={navigate}
+                                    onOpenProfile={openUserProfile}
                                   />
-                                </section>
+                                </div>
                               )}
                               {index === 5 && showGroupSuggestions && (
                                 <div className="lynora-feed-inline-suggestions">

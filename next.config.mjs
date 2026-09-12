@@ -11,7 +11,7 @@ const nextConfig = {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4001";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === "production" ? "https://api.lynoralink.com" : "http://127.0.0.1:4001");
     return [{ source: "/v1/:path*", destination: `${backendUrl}/v1/:path*` }];
   },
   images: {

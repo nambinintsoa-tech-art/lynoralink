@@ -3,7 +3,7 @@ import FeedShell from "@/components/FeedShell";
 
 export default async function FeedPage() {
   const cookie = headers().get("cookie");
-  const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4001";
+  const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.lynoralink.com";
   let data = { posts: [] };
   try {
     const response = await fetch(`${backendUrl}/v1/posts?feedOnly=true&limit=50`, {

@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 const backendUrl = () => {
   const configured = (process.env.NEXT_PUBLIC_BACKEND_URL || "").replace(/\/$/, "");
   if (process.env.NODE_ENV === "production" && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configured)) {
-    return "https://lynoralink-backend.onrender.com";
+    return "https://api.lynoralink.com";
   }
-  return configured || (process.env.NODE_ENV === "production" ? "https://lynoralink-backend.onrender.com" : "http://127.0.0.1:4001");
+  return configured || (process.env.NODE_ENV === "production" ? "https://api.lynoralink.com" : "http://127.0.0.1:4001");
 };
 
 async function getAuthenticatedUserId(request) {

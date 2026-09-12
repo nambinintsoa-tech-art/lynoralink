@@ -16,7 +16,7 @@ function escapeHtml(value) {
 }
 
 function renderEmailHtml(subject, text) {
-  const logoUrl = process.env.EMAIL_LOGO_URL || `${process.env.APP_URL || "https://lynoralink.vercel.app"}/logo_lynora.svg`;
+  const logoUrl = process.env.EMAIL_LOGO_URL || `${process.env.APP_URL || "https://www.lynoralink.com"}/logo_lynora.svg`;
   const safeText = escapeHtml(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#1f6feb;font-weight:600;">$1</a>').replace(/\n/g, "<br>");
   const code = text.match(/\b\d{6}\b/)?.[0];
   const content = code

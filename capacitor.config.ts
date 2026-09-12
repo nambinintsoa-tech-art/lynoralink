@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "LynoraLink",
   webDir: "public",
   server: {
-    url: process.env.CAPACITOR_SERVER_URL || "https://lynoralink.vercel.app",
+    url: process.env.CAPACITOR_SERVER_URL || "https://www.lynoralink.com",
     cleartext: false,
   },
 };
