@@ -110,26 +110,25 @@ function LoginPageContent() {
 
     setLoadingMessage("Chargement de votre espace personnel...");
 
-    try {
-      await fetch("/api/security/new-device", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: getLoginDeviceId() }),
-      });
-    } catch {}
+    void fetch("/api/security/new-device", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: getLoginDeviceId() }),
+    }).catch(() => {});
 
-    try {
-      const accountResponse = await fetchBackendApi("/api/account");
-      const accountData = await accountResponse.json();
-      const authenticatedAccount = accountData?.accounts?.[0];
-      if (accountResponse.ok && authenticatedAccount?.id) {
-        const saved = window.localStorage.getItem("lynoralink:connectedAccounts");
-        const storedAccounts = saved ? JSON.parse(saved) : [];
-        const accounts = Array.isArray(storedAccounts) ? storedAccounts : [];
-        const mergedAccounts = [authenticatedAccount, ...accounts.filter((account) => account?.id !== authenticatedAccount.id)];
-        window.localStorage.setItem("lynoralink:connectedAccounts", JSON.stringify(mergedAccounts));
-      }
-    } catch {}
+    void fetchBackendApi("/api/account", { signal: AbortSignal.timeout(5000) })
+      .then(async (accountResponse) => {
+        const accountData = await accountResponse.json();
+        const authenticatedAccount = accountData?.accounts?.[0];
+        if (accountResponse.ok && authenticatedAccount?.id) {
+          const saved = window.localStorage.getItem("lynoralink:connectedAccounts");
+          const storedAccounts = saved ? JSON.parse(saved) : [];
+          const accounts = Array.isArray(storedAccounts) ? storedAccounts : [];
+          const mergedAccounts = [authenticatedAccount, ...accounts.filter((account) => account?.id !== authenticatedAccount.id)];
+          window.localStorage.setItem("lynoralink:connectedAccounts", JSON.stringify(mergedAccounts));
+        }
+      })
+      .catch(() => {});
 
     const callbackUrl = params.get("verified")
       ? "/welcome"
