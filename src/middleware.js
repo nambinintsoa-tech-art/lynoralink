@@ -1,7 +1,7 @@
-import nextAuthMiddleware from "next-auth/middleware";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 
-export default function middleware(req) {
+export async function middleware(req) {
   if (req.nextUrl?.pathname === "/&") {
     return new NextResponse(null, {
       status: 204,
@@ -15,7 +15,17 @@ export default function middleware(req) {
   } catch (e) {
     // ignore logging errors
   }
-  return nextAuthMiddleware(req);
+
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName: "next-auth.session-token",
+  });
+  if (token) return NextResponse.next();
+
+  const loginUrl = new URL("/login", req.url);
+  loginUrl.searchParams.set("callbackUrl", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
