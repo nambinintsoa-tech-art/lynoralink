@@ -1915,7 +1915,7 @@ function LiveKitCallOverlay({ mode, conversation, status, elapsed, minimized, on
     const onLocalTrackPublished = (publication) => {
       if (publication.source === "camera" && publication.track) setLocalVideoTrack(publication.track);
     };
-    const onTrackSubscribed = (track) => { refreshTracks(); if (track.kind === "audio") track.attach(); };
+    const onTrackSubscribed = () => refreshTracks();
     const onTrackUnsubscribed = () => refreshTracks();
     const connect = async () => {
       try {
@@ -2504,6 +2504,7 @@ export function ChatModal({
   };
 
   const startCall = async (mode) => {
+    if (activeCall || incomingCall || callSession) return;
     try {
       const response = await fetchBackendApi("/api/calls", {
         method: "POST",
@@ -2522,7 +2523,7 @@ export function ChatModal({
     }
   };
   const answerIncomingCall = () => {
-    if (!incomingCall) return;
+    if (!incomingCall || activeCall) return;
     onIncomingCallHandled?.();
     setCallSession(incomingCall);
     setIncomingCall(null);
@@ -2531,6 +2532,7 @@ export function ChatModal({
   };
   const rejectIncomingCall = async () => {
     const call = incomingCall;
+    if (!call) return;
     onIncomingCallHandled?.();
     setIncomingCall(null);
     if (!call?.id) return;

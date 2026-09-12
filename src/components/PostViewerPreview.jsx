@@ -7,9 +7,9 @@ import { faWhatsapp, faLinkedin, faFacebook, faXTwitter } from "@fortawesome/fre
 import { faPenNib } from "@fortawesome/free-solid-svg-icons";
 import {
   X, Globe, Lock, Users2, MoreHorizontal, ThumbsUp, MessageCircle, Briefcase, MapPin, Megaphone,
-  Share2, Bookmark, Send, Smile, ChevronDown, ChevronUp, Search, Check, Mail, ExternalLink, PlayCircle, Image as ImageIcon, Play, VolumeX,
+  Share2, Bookmark, Send, Smile, ChevronDown, ChevronUp, Search, Check, Mail, ExternalLink, PlayCircle, Image as ImageIcon, Play, VolumeX, Volume2,
   ChevronLeft, ChevronRight, Pencil, Trash2, Flag, Link2, ShieldCheck,
-  EyeOff, Copy, UserPlus, FileText, Download, Info,
+  EyeOff, Copy, UserPlus, FileText, Download, Info, Maximize2,
 } from "lucide-react";
 import ReactionPicker from "@/components/ReactionPicker";
 import Emojipicker from "@/components/Emojipicker";
@@ -433,11 +433,25 @@ function formatVideoDuration(seconds) {
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
+function requestVideoFullscreen(node) {
+  if (!node) return false;
+  const candidates = ["requestFullscreen", "webkitRequestFullscreen", "mozRequestFullScreen", "msRequestFullscreen"];
+  const method = candidates.find((name) => typeof node[name] === "function");
+  if (!method) return false;
+  try {
+    node[method]();
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 function ViewerVideo({ src, label, style = {} }) {
   const videoRef = useRef(null);
   const [started, setStarted] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [duration, setDuration] = useState(null);
+  const [isMuted, setIsMuted] = useState(true);
   const [isMobileView, setIsMobileView] = useState(false);
   const durationLabel = formatVideoDuration(duration);
 
@@ -451,6 +465,27 @@ function ViewerVideo({ src, label, style = {} }) {
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
+
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node) return;
+    node.muted = isMuted || isMobileView;
+  }, [isMuted, isMobileView]);
+
+  const toggleMute = (event) => {
+    event?.stopPropagation?.();
+    const node = videoRef.current;
+    if (!node) return;
+    const next = !node.muted;
+    node.muted = next;
+    setIsMuted(next);
+  };
+
+  const toggleFullscreen = (event) => {
+    event?.stopPropagation?.();
+    if (!videoRef.current) return;
+    requestVideoFullscreen(videoRef.current);
+  };
 
   if (!src) {
     return (
@@ -526,7 +561,7 @@ function ViewerVideo({ src, label, style = {} }) {
         className="pv-video-frame"
         src={src}
         preload="metadata"
-        muted
+        muted={isMuted}
         playsInline
         aria-hidden="true"
         tabIndex={-1}
@@ -534,22 +569,50 @@ function ViewerVideo({ src, label, style = {} }) {
         style={{ width: "100%", height: "auto", objectFit: "contain", display: "block", pointerEvents: "none" }}
       />
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.12)", pointerEvents: "none" }} />
-      {previewing && (
-        <div
-          className="pv-video-muted"
-          aria-hidden="true"
+      <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 8, zIndex: 2 }}>
+        {previewing && (
+          <div
+            className="pv-video-muted"
+            aria-hidden="true"
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: "rgba(0,0,0,0.65)", color: "#fff",
+              padding: "3px 8px", borderRadius: 999,
+              fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
+              pointerEvents: "none",
+            }}
+          >
+            <VolumeX size={12} /> Muet
+          </div>
+        )}
+        <button
+          type="button"
+          aria-label={isMuted ? "Activer le son" : "Couper le son"}
+          onClick={toggleMute}
           style={{
-            position: "absolute", top: 10, left: 10,
-            display: "flex", alignItems: "center", gap: 4,
-            background: "rgba(0,0,0,0.65)", color: "#fff",
-            padding: "3px 8px", borderRadius: 999,
-            fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
-            pointerEvents: "none",
+            width: 28, height: 28, borderRadius: "50%", border: "none",
+            background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex",
+            alignItems: "center", justifyContent: "center", cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
           }}
         >
-          <VolumeX size={12} /> Muet
-        </div>
-      )}
+          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+        </button>
+      </div>
+      <button
+        type="button"
+        aria-label="Lecture plein écran"
+        onClick={toggleFullscreen}
+        style={{
+          position: "absolute", right: 10, bottom: 10, zIndex: 2,
+          width: 28, height: 28, borderRadius: "50%", border: "none",
+          background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex",
+          alignItems: "center", justifyContent: "center", cursor: "pointer",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+        }}
+      >
+        <Maximize2 size={14} />
+      </button>
       {!previewing && (
         <span
           className="pv-video-play"
