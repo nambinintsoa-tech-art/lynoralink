@@ -4,6 +4,16 @@ import nodemailer from "nodemailer";
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function sendEmail({ to, subject, text, html }) {
   const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
   const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
@@ -12,7 +22,7 @@ async function sendEmail({ to, subject, text, html }) {
     const fromEmail = process.env.BREVO_FROM_EMAIL?.trim();
     const apiKey = process.env.BREVO_API_KEY?.trim();
     if (!fromEmail || !apiKey) throw new Error("Configuration Brevo backend manquante");
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const response = await fetchWithTimeout("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ sender: { email: fromEmail, name: process.env.BREVO_FROM_NAME || "LynoraLink" }, to: [{ email: to }], subject, textContent: text, htmlContent: html || text }),
@@ -35,6 +45,9 @@ async function sendEmail({ to, subject, text, html }) {
       port,
       secure: port === 465,
       requireTLS: port === 587,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
       auth: { user, pass: password },
     });
     await transporter.sendMail({ from: process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || user, to, subject, text, html });
@@ -43,7 +56,7 @@ async function sendEmail({ to, subject, text, html }) {
 
   const from = process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
   if (!process.env.RESEND_API_KEY || !from) throw new Error("Configuration email backend manquante");
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
+  const response = await fetchWithTimeout("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
   if (!response.ok) throw new Error("Échec d'envoi du message email");
 }
 
