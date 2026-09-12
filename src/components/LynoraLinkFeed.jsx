@@ -43,7 +43,6 @@ import Story from "./Story";
 import Reel from "./Reel";
 import { getReelsSource } from "@/lib/reels";
 import { SkeletonStoryRail } from "./StorySkeleton";
-import FeedLoadingShell from "./FeedLoadingShell";
 import AccountSwitchTransition from "./AccountSwitchTransition";
 import LogoutTransition from "./LogoutTransition";
 import RelativeTime from "./RelativeTime";
@@ -2964,7 +2963,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     return () => { mounted = false; };
   }, [session?.user?.id]);
   const [activeAccount, setActiveAccount] = useState("personal");
-  const [accountReady, setAccountReady] = useState(false);
+  const [accountReady, setAccountReady] = useState(true);
   useEffect(() => {
     if (!session?.user?.id) {
       setAccountReady(true);
@@ -5583,10 +5582,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         )}
       </>
     );
-  }
-
-  if (!accountReady && view === "feed") {
-    return <FeedLoadingShell profileView={view === "profile"} />;
   }
 
   const accountLockState = session?.user?.status && session.user.status !== "active"
