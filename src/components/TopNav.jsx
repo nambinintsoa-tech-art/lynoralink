@@ -148,7 +148,7 @@ function Badge({ count, size = "md" }) {
       style={{
         position: "absolute",
         top: -8,
-        right: -10,
+        left: -10,
         minWidth: dims,
         height: dims,
         padding: "0 4px",
