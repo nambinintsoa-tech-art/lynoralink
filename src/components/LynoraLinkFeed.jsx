@@ -5672,7 +5672,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       {lockOverlay}
       <div className={`lynora-feed-page${view === "company" ? " lynora-company-view" : ""}`} style={{ fontFamily: "'Inter', sans-serif", background: C.navy50, minHeight: "100dvh", paddingTop: "var(--lynora-header-offset)", filter: accountLockState ? "blur(8px) saturate(0.7)" : "none", pointerEvents: accountLockState ? "none" : "auto", userSelect: accountLockState ? "none" : "auto" }}>
       <style suppressHydrationWarning>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         input, textarea, button { font-family: inherit; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
