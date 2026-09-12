@@ -847,7 +847,7 @@ RÈGLES : réponds en français, avec un ton professionnel, chaleureux et direct
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+      <style>{`
         .lm-spin { animation: lm-spin 1s linear infinite; } @keyframes lm-spin { to { transform: rotate(360deg); } }
         .lm-ai-icon { animation: lm-ai-icon-rotate 5s ease-in-out infinite; transform-origin: center center; }
         @keyframes lm-ai-icon-rotate { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(360deg); } }

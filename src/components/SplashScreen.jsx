@@ -67,7 +67,6 @@ export default function SplashScreen({
       }}
     >
       <style suppressHydrationWarning>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
 
         @keyframes lyn-sp-drift-a {
           0%, 100% { transform: translate(0, 0) scale(1); }

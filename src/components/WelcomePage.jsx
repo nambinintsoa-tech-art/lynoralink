@@ -138,7 +138,6 @@ export default function WelcomePage({
   return (
     <div className="lyn-wp-root" style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "var(--app-bg)", color: C.ink, minHeight: "100dvh", width: "100%", overflowX: "hidden" }}>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
 
         @keyframes lyn-wp-fade-up {
           from { opacity: 0; transform: translateY(16px); }

@@ -1456,7 +1456,6 @@ export default function UserDashboard({ profile: initialProfile }) {
   return (
     <div className="user-dashboard-root" style={{ fontFamily: "'Inter', sans-serif", background: C.navy50, minHeight: "calc(100vh - 64px)", display: "flex", padding: isMobile ? "0" : "24px 24px 32px", overflowX: "hidden", width: "100%" }}>
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         input, textarea, button { font-family: inherit; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }

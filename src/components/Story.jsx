@@ -1828,7 +1828,6 @@ export default function Story({
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", ...style }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
         /* Scrollbar */
         .story-rail::-webkit-scrollbar { display: none; }

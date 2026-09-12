@@ -2002,7 +2002,6 @@ export default function LynoraAdmin({ onBack, adminEmail }) {
   };
 
   const globalStyles = `
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         input, textarea, button, select { font-family: inherit; }
         ::-webkit-scrollbar { width: 7px; height: 7px; }

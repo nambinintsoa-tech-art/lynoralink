@@ -38,7 +38,7 @@ export function formatRelativeTime(dateValue) {
  * @returns {string} Le temps relatif formaté
  */
 export function useRelativeTime(dateValue, updateInterval = 1000) {
-  const [time, setTime] = useState(() => formatRelativeTime(dateValue));
+  const [time, setTime] = useState("");
 
   useEffect(() => {
     setTime(formatRelativeTime(dateValue));

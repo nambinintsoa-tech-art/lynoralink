@@ -33,7 +33,6 @@ const BRAND = {
 const goldGradient = `linear-gradient(135deg, ${BRAND.goldLight} 0%, ${BRAND.gold} 100%)`;
 
 const ACCOUNT_PICKER_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
   /* ------------------------------- Scène ------------------------------- */
   /* Page neutre et discrète, comme l'écran de connexion Facebook, teintée */
