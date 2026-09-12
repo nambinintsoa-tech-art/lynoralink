@@ -80,7 +80,18 @@ function filterHiddenComments(comments = [], hiddenIds = []) {
     .filter((comment) => !hiddenIds.includes(String(comment.id)))
     .map((comment) => ({ ...comment, replies: filterHiddenComments(comment.replies || [], hiddenIds) }));
 }
-function normalizeMedia(raw) { if (!raw) return []; return Array.isArray(raw) ? raw : [raw]; }
+function normalizeMedia(raw) {
+  if (!raw) return [];
+  const values = Array.isArray(raw) ? raw : [raw];
+  return values.map((item) => {
+    if (typeof item === "string") return { url: item, type: "image" };
+    if (!item || typeof item !== "object") return item;
+    const url = item.url || item.mediaUrl || item.src || item.imageUrl || null;
+    const rawType = String(item.type || item.mediaType || "").toLowerCase();
+    const type = rawType.includes("video") || /\.(mp4|webm|mov|m4v)(?:$|[?#])/i.test(url || "") ? "video" : "image";
+    return { ...item, url, type };
+  }).filter((item) => item?.url || item?.label || item?.name);
+}
 function getCommentMedia(comment) {
   if (Array.isArray(comment?.media)) return comment.media.filter((item) => item && item.url);
   const mediaData = comment?.mediaData ?? comment?.media;
@@ -699,19 +710,26 @@ function MediaGallery({ items = [] }) {
         )}
       </div>
       {count > 1 && (
-        <div style={{ display: "flex", gap: 6, padding: "8px 0 0" }}>
+        <div style={{ display: "flex", gap: 8, padding: "8px 0 0", overflowX: "auto", scrollbarWidth: "thin" }}>
           {items.map((item, index) => (
-            <button key={index} onClick={() => setActiveIndex(index)} style={{ flex: 1, height: 48, padding: 0, border: index === activeIndex ? `2px solid ${C.navy800}` : `1px solid ${LI_BORDER}`, borderRadius: 8, overflow: "hidden", background: LI_HOVER, cursor: "pointer", opacity: index === activeIndex ? 1 : 0.7 }}>
+            <button
+              key={index}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+              aria-label={`Afficher le média ${index + 1}`}
+              aria-current={index === activeIndex ? "true" : undefined}
+              style={{ flex: "0 0 76px", width: 76, height: 56, boxSizing: "border-box", padding: 0, border: index === activeIndex ? `2px solid ${C.navy800}` : `1px solid ${LI_BORDER}`, borderRadius: 8, overflow: "hidden", background: "#000", cursor: "pointer", opacity: index === activeIndex ? 1 : 0.7 }}
+            >
               {item?.url ? (
                 item.type === "video" ? (
                   <span style={{ position: "relative", display: "block", width: "100%", height: "100%", background: "#000" }}>
-                    <video src={item.url} preload="metadata" muted playsInline aria-hidden="true" tabIndex={-1} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} />
+                    <video src={item.url} preload="metadata" muted playsInline aria-hidden="true" tabIndex={-1} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", pointerEvents: "none" }} />
                     <span aria-hidden="true" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
                       <Play size={9} fill="currentColor" strokeWidth={0} />
                     </span>
                   </span>
                 ) : (
-                  <img src={item.url} alt={item.label} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center", display: "block" }} />
+                  <img src={item.url} alt={item.label || `Média ${index + 1}`} style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center center", display: "block" }} />
                 )
               ) : (
                 <div style={{ width: "100%", height: "100%", background: navyGrad }} />
@@ -1084,19 +1102,17 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 5,
-                    padding: "4px 8px",
-                    borderRadius: 999,
-                    background: "linear-gradient(135deg, #0F3352 0%, #1B5386 100%)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    color: "#ffffff",
+                    padding: 0,
+                    background: "transparent",
+                    border: "none",
+                    color: C.navy900,
                     fontSize: 10,
                     fontWeight: 800,
                     whiteSpace: "nowrap",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
                     lineHeight: 1,
                   }}
                 >
-                  <FontAwesomeIcon icon={faPenNib} style={{ fontSize: 10, color: "#ffffff" }} />
+                  <FontAwesomeIcon icon={faPenNib} style={{ fontSize: 10, color: C.navy900 }} />
                   <span>Auteur</span>
                 </span>
               )}
@@ -1299,7 +1315,10 @@ export default function PostViewerPreview({
 
   /* --- Données dérivées (logique inchangée) --- */
   const viewerPost = isJobPost && jobEngagement ? { ...post, ...jobEngagement } : post;
-  const media = normalizeMedia(viewerPost?.media);
+  const mediaSource = Array.isArray(viewerPost?.media) && viewerPost.media.length > 0
+    ? viewerPost.media
+    : (viewerPost?.mediaUrl || viewerPost?.imageUrl || viewerPost?.image || viewerPost?.coverUrl);
+  const media = normalizeMedia(mediaSource);
   const comments = Array.isArray(viewerPost?.comments)
     ? (isJobPost ? decorateJobComments(viewerPost.comments, currentUser?.id) : viewerPost.comments)
     : [];

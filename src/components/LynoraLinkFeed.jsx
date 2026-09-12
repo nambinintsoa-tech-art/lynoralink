@@ -3502,7 +3502,11 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   useEffect(() => {
     if (!session?.user?.id || typeof window === "undefined") return undefined;
-    const stream = new EventSource("/api/realtime", { withCredentials: true });
+    let active = true;
+    let stream = null;
+    let reconnectTimer = null;
+    let reconnectDelay = 1000;
+
     const handleRealtime = (event) => {
       try {
         const payload = JSON.parse(event.data);
@@ -3514,13 +3518,28 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         // ignore malformed SSE payloads
       }
     };
-    stream.addEventListener("realtime", handleRealtime);
-    stream.addEventListener("message", handleRealtime);
-    stream.onerror = () => {
-      stream.close();
+
+    const connect = () => {
+      if (!active) return;
+      stream = new EventSource("/api/realtime", { withCredentials: true });
+      stream.addEventListener("realtime", handleRealtime);
+      stream.addEventListener("message", handleRealtime);
+      stream.onopen = () => { reconnectDelay = 1000; };
+      stream.onerror = () => {
+        stream?.close();
+        stream = null;
+        if (!active) return;
+        reconnectTimer = window.setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      };
     };
+
+    connect();
     return () => {
-      stream.close();
+      active = false;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      stream?.close();
+      stream = null;
     };
   }, [session?.user?.id, view]);
 

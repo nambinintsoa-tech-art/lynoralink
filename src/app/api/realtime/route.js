@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { registerRealtimeClient, unregisterRealtimeClient, broadcastRealtimeEvent } from "@/lib/realtime";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
