@@ -1168,7 +1168,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
         if (!mounted) return;
         setPosts(Array.isArray(data.posts) ? data.posts : []);
       })
-      .catch(() => { if (mounted) setPosts([]); });
+      .catch(() => { if (mounted) setPosts([]); })
       .finally(() => { if (mounted) setPostsLoading(false); });
     return () => { mounted = false; };
   }, [profileUserId, targetUserId, sessionUser?.id, sessionStatus]);
