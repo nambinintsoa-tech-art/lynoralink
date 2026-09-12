@@ -10,7 +10,17 @@ export default function FeedShell({ initialPosts }) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const [initialSearch, setInitialSearch] = useState("");
+  const [sessionLoadingTimedOut, setSessionLoadingTimedOut] = useState(false);
   const requestedView = searchParams.get("view") || "feed";
+
+  useEffect(() => {
+    if (status !== "loading") {
+      setSessionLoadingTimedOut(false);
+      return undefined;
+    }
+    const timeoutId = window.setTimeout(() => setSessionLoadingTimedOut(true), 8000);
+    return () => window.clearTimeout(timeoutId);
+  }, [status]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -22,7 +32,7 @@ export default function FeedShell({ initialPosts }) {
     }
   }, []);
 
-  if (status === "loading") return <FeedLoadingShell view={requestedView} />;
+  if (status === "loading" && !sessionLoadingTimedOut) return <FeedLoadingShell view={requestedView} />;
 
   return (
     <LynoraLinkFeed
