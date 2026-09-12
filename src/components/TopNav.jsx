@@ -574,7 +574,7 @@ export const TopNav = forwardRef(function TopNav({
             gap: isCompact ? 12 : 16,
             padding: isCompact ? "6px 10px" : "10px 24px",
           }}
-        >4
+        >
           {/* Gauche: Logo + Recherche */}
           <div style={{ display: "flex", alignItems: "center", gap: isCompact ? 8 : 12, flexShrink: 0 }}>
             {/* Logo */}
