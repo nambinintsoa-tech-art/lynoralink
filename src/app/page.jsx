@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccountPicker from "@/components/AccountPicker";
@@ -14,6 +14,7 @@ export default function HomePage() {
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [showStartupSplash, setShowStartupSplash] = useState(true);
   const [authTransition, setAuthTransition] = useState(null);
+  const hasShownSplashRef = useRef(false);
 
   const handleRemoveAccount = (account) => {
     if (account.id === session?.user?.id) return;
@@ -96,13 +97,14 @@ export default function HomePage() {
     };
   }, [status, session?.user?.id, session?.user?.name, session?.user?.email, session?.user?.image, session?.user?.plan, session?.user?.title]);
 
-  if (showStartupSplash) {
+  if (showStartupSplash && !hasShownSplashRef.current) {
     return (
       <SplashScreen
         duration={2600}
         tagline="Le réseau professionnel nouvelle génération"
         isReady={status !== "loading"}
         onFinish={() => {
+          hasShownSplashRef.current = true;
           setShowStartupSplash(false);
         }}
       />
