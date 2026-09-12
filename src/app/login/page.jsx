@@ -28,6 +28,14 @@ function getLoginDeviceId() {
   return generated;
 }
 
+function withTimeout(promise, timeoutMs) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
+
 function LoginPageContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -60,11 +68,19 @@ function LoginPageContent() {
     setLoading(true);
     setLoadingMessage(twoFactorStep ? "Vérification du code sécurisé..." : "Vérification de vos identifiants...");
     if (!twoFactorStep) {
-      const challenge = await fetchBackendApi("/api/auth/2fa/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      }).then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => ({})) }));
+      let challenge;
+      try {
+        challenge = await withTimeout(fetchBackendApi("/api/auth/2fa/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }).then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => ({})) })), 20000);
+      } catch {
+        setLoading(false);
+        setLoadingMessage("");
+        setError("Le service de connexion met trop de temps à répondre. Réessayez dans un instant.");
+        return;
+      }
       if (!challenge.ok) {
         setLoading(false);
         setLoadingMessage("");
@@ -80,13 +96,21 @@ function LoginPageContent() {
       }
     }
     setLoadingMessage("Ouverture de votre session sécurisée...");
-    const res = await signIn("credentials", {
-      email,
-      password,
-      otp: twoFactorStep ? twoFactorCode : undefined,
-      remember: rememberMe,
-      redirect: false,
-    });
+    let res;
+    try {
+      res = await withTimeout(signIn("credentials", {
+        email,
+        password,
+        otp: twoFactorStep ? twoFactorCode : undefined,
+        remember: rememberMe,
+        redirect: false,
+      }), 20000);
+    } catch {
+      setLoading(false);
+      setLoadingMessage("");
+      setError("La connexion a expiré. Vérifiez votre connexion puis réessayez.");
+      return;
+    }
     if (res?.error) {
       setLoading(false);
       setLoadingMessage("");
