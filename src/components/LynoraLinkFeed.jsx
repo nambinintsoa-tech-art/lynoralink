@@ -48,6 +48,7 @@ import AccountSwitchTransition from "./AccountSwitchTransition";
 import LogoutTransition from "./LogoutTransition";
 import RelativeTime from "./RelativeTime";
 import { NetworkOpeningSkeleton } from "./Reseau";
+import SuggestionRail from "./SuggestionRail";
 import {
   FeedSkeleton,
   ComposerSkeleton,
@@ -6358,6 +6359,23 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                     dismissedIds={dismissedSuggestionIds}
                                   />
                                 </div>
+                              )}
+                              {index === 0 && (
+                                <section className="lynora-suggestion-rail-mobile">
+                                  <SuggestionRail
+                                    suggestions={personSuggestions || []}
+                                    pageSuggestions={pageSuggestions || []}
+                                    suggestedGroups={sidebarGroups || []}
+                                    onConnect={connectUser}
+                                    onFollowPage={followPage}
+                                    onJoinGroup={joinGroupFromFeed}
+                                    onOpenProfile={(profileId) => openUserProfile?.(profileId)}
+                                    isPageMode={activeAccount === "company"}
+                                    connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
+                                    followedPageIds={followedPageIds}
+                                    currentUserId={session?.user?.id}
+                                  />
+                                </section>
                               )}
                               {index === 5 && showGroupSuggestions && (
                                 <div className="lynora-feed-inline-suggestions">
