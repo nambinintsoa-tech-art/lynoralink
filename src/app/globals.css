@@ -796,8 +796,9 @@ html[data-device-preview] .lynora-feed-page {
   }
 
   .auth-page-shell {
+    width: 100% !important;
     min-height: 100dvh;
-    max-width: 480px !important;
+    max-width: none !important;
     flex-direction: column !important;
     align-items: flex-start !important;
     justify-content: flex-start !important;
@@ -817,8 +818,12 @@ html[data-device-preview] .lynora-feed-page {
     flex: none;
     max-width: none;
     border-radius: 0 !important;
+    border: 0 !important;
     border-left: 0 !important;
     border-right: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
     padding: 24px 16px !important;
     display: flex;
     flex-direction: column;

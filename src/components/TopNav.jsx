@@ -423,7 +423,7 @@ export const TopNav = forwardRef(function TopNav({
       ]
     : inactiveCompanyPages.map((page) => ({ ...page, type: "company", displayName: page.displayName || page.name || "Page entreprise" }));
 
-  const isCompact = containerWidth === 0 || containerWidth < COMPACT_BREAKPOINT;
+  const isCompact = containerWidth > 0 && containerWidth < COMPACT_BREAKPOINT;
 
   useEffect(() => {
     if (!menuOpen) {
