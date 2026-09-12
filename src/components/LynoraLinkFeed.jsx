@@ -878,9 +878,11 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
 /*  SECTION SUGGESTIONS POUR LE FEED PRINCIPAL                         */
 /* ------------------------------------------------------------------ */
 function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onConnect, onCancel, onDismiss, onNavigate, onOpenProfile }) {
+  const connectedIdSet = new Set((Array.isArray(connectedIds) ? connectedIds : []).map((id) => String(id)));
   const visibleSuggestions = (Array.isArray(suggestions) ? suggestions : []).filter((suggestion) => {
     const suggestionId = suggestion?.id;
-    return !connectedIds.includes(suggestionId) && !connectedIds.includes(String(suggestionId));
+    if (!suggestionId && suggestion?.userId) return !connectedIdSet.has(String(suggestion.userId));
+    return !connectedIdSet.has(String(suggestionId));
   });
   const displayedSuggestions = visibleSuggestions.slice(0, 10);
   const trackRef = useRef(null);
@@ -1063,9 +1065,10 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onCo
 }
 
 function GroupSuggestionsRail({ groups, currentUserId, onJoinGroup, onNavigate, compactGrid = false, onDismiss, dismissedIds = [] }) {
+  const dismissedIdSet = new Set((Array.isArray(dismissedIds) ? dismissedIds : []).map((id) => String(id)));
   const displayedGroups = groups
     .filter((group) => !normalizeMembersList(group?.members).some((member) => String(member?.id) === String(currentUserId)))
-    .filter((group) => !dismissedIds.includes(group.id))
+    .filter((group) => !dismissedIdSet.has(String(group.id)))
     .slice(0, 6);
 
   const openGroup = (groupId) => {
@@ -1153,7 +1156,9 @@ function MobileFeedShortcuts({ activeView, onNavigate }) {
 }
 
 function PageSuggestionsGrid({ pages, followedPageIds, onFollowPage, onNavigate, onDismiss, dismissedIds = [] }) {
-  const displayedPages = pages.filter((page) => !dismissedIds.includes(page.id)).slice(0, 10);
+  const dismissedIdSet = new Set((Array.isArray(dismissedIds) ? dismissedIds : []).map((id) => String(id)));
+  const followedIdSet = new Set((Array.isArray(followedPageIds) ? followedPageIds : []).map((id) => String(id)));
+  const displayedPages = pages.filter((page) => !dismissedIdSet.has(String(page.id)) && !followedIdSet.has(String(page.id))).slice(0, 10);
   const trackRef = useRef(null);
 
   const openPage = (pageId) => {

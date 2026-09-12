@@ -1458,11 +1458,9 @@ h3,
   max-width: min(92vw, 520px);
 }
 
-@media (max-width: 767px) {
-  .lynora-feed-inline-suggestions {
-    display: none !important;
-  }
-}
+/* Previously the inline suggestions were hidden on small screens.
+   Show inline suggestions on all viewports so desktop and mobile
+   share the same rendering logic. */
 
 @media (max-width: 560px) {
   .lynora-toast-provider {
