@@ -158,8 +158,8 @@ const CREATE_POST_MODAL_CSS = `
       max-width: none !important;
       min-width: 100vw !important;
       margin: 0 !important;
-      height: 100dvh !important;
-      min-height: 100dvh !important;
+      height: calc(100dvh - env(safe-area-inset-top)) !important;
+      min-height: calc(100dvh - env(safe-area-inset-top)) !important;
       max-height: none !important;
       border-radius: 0 !important;
       border: none !important;
@@ -168,6 +168,7 @@ const CREATE_POST_MODAL_CSS = `
       box-shadow: none !important;
       overflow: visible !important;
       padding-bottom: env(safe-area-inset-bottom);
+      margin-top: env(safe-area-inset-top) !important;
       background: var(--app-surface) !important;
     }
     .cpm-panel *:not([style*="border-radius"]) {

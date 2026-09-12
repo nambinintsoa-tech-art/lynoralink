@@ -488,7 +488,7 @@ export default function ArticleViewerPreview({
   return (
     <>
       {/* ── OVERLAY FOND ── */}
-      <div className="article-viewer-overlay" style={{ position: "fixed", inset: 0, background: C.navy50, zIndex: 1100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div className="article-viewer-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: C.navy50, zIndex: 1100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
 
         {/* ── TOPBAR STICKY ── */}
         <div className="article-viewer-topbar" style={{ position: "sticky", top: 0, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.line}`, zIndex: 10 }}>
@@ -829,9 +829,12 @@ export default function ArticleViewerPreview({
         @media (max-width: 640px) {
           .article-viewer-overlay {
             width: 100vw !important;
-            height: 100dvh !important;
+            height: calc(100dvh - env(safe-area-inset-top)) !important;
             padding: 0 !important;
+            padding-top: env(safe-area-inset-top) !important;
             overflow-x: hidden !important;
+            margin-top: 0 !important;
+            top: 0 !important;
           }
           .article-viewer-topbar {
             padding-top: env(safe-area-inset-top) !important;

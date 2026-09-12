@@ -138,7 +138,7 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="auth-page-root relative flex min-h-screen items-center justify-center overflow-hidden bg-[#081827] font-inter">
+    <div className="auth-page-root relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#081827] via-[#0f3352] to-[#1b5386] font-inter">
       <div className="auth-page-atmosphere absolute inset-0" />
 
       <div className="auth-page-shell relative z-10 flex w-full max-w-6xl items-center justify-center gap-12 px-4">

@@ -574,7 +574,7 @@ export const TopNav = forwardRef(function TopNav({
             gap: isCompact ? 12 : 16,
             padding: isCompact ? "6px 10px" : "10px 24px",
           }}
-        >
+        >4
           {/* Gauche: Logo + Recherche */}
           <div style={{ display: "flex", alignItems: "center", gap: isCompact ? 8 : 12, flexShrink: 0 }}>
             {/* Logo */}
@@ -729,7 +729,7 @@ export const TopNav = forwardRef(function TopNav({
               {menuOpen && (
                 <>
                   {isCompact && (
-                    <div className="tn-profile-menu-backdrop" style={{ position: "fixed", inset: 0, zIndex: 39, background: "var(--app-surface)" }} onClick={() => setMenuOpen(false)} />
+                    <div className="tn-profile-menu-backdrop tn-backdrop-safe-area" style={{ position: "fixed", zIndex: 39, background: "var(--app-surface)" }} onClick={() => setMenuOpen(false)} />
                   )}
                   <div
                     role="menu"
@@ -753,6 +753,7 @@ export const TopNav = forwardRef(function TopNav({
                         <X size={20} />
                       </button>
                     )}
+                    {!isCompact && <div style={{ height: 3, background: goldGrad }} />}
                     {profileLoading || profileMenuLoading ? <ProfileMenuSkeleton /> : <>
                     <button
                       type="button"
@@ -760,19 +761,19 @@ export const TopNav = forwardRef(function TopNav({
                       className="tn-profile-card"
                       style={{
                         width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "16px",
-                        background: navyGrad, border: "none", cursor: "pointer", textAlign: "left",
+                        background: C.white, border: `1px solid ${C.border}`, borderBottom: "none", borderBottomLeftRadius: 0, borderBottomRightRadius: 0, cursor: "pointer", textAlign: "left",
                       }}
                     >
                       <Avatar initials={getInitials(profile.name)} imgUrl={profileAvatar} size={42} ring online={profile.showOnlineStatus !== false} />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                          <div style={{ minWidth: 0, flex: 1, fontSize: 14, lineHeight: 1.25, fontWeight: 700, color: C.white, whiteSpace: "normal", overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, wordBreak: "break-word" }}>{profile.name || (isPageMode ? "Page entreprise" : "Compte classique")}</div>
-                          {isPageMode && profile.isPremium && <FaCrown size={12} color={C.gold300} title="Page Premium" aria-label="Page Premium" />}
+                          <div style={{ minWidth: 0, flex: 1, fontSize: 14, lineHeight: 1.25, fontWeight: 700, color: C.ink, whiteSpace: "normal", overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, wordBreak: "break-word" }}>{profile.name || (isPageMode ? "Page entreprise" : "Compte classique")}</div>
+                          {isPageMode && profile.isPremium && <FaCrown size={12} color={C.gold600} title="Page Premium" aria-label="Page Premium" />}
                         </div>
-                        <div style={{ fontSize: 11.5, lineHeight: 1.35, color: "rgba(228,236,243,0.75)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", wordBreak: "break-word", marginTop: 3 }}>{profile.title || (isPageMode ? "Page entreprise" : "Membre LynoraLink")}</div>
+                        <div style={{ fontSize: 11.5, lineHeight: 1.35, color: C.muted, display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", wordBreak: "break-word", marginTop: 3 }}>{profile.title || (isPageMode ? "Page entreprise" : "Membre LynoraLink")}</div>
                       </div>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", flexShrink: 0 }}>
-                        <ChevronDown size={13} color={C.gold300} style={{ transform: "rotate(-90deg)" }} />
+                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: C.navy50, flexShrink: 0 }}>
+                        <ChevronDown size={13} color={C.navy800} style={{ transform: "rotate(-90deg)" }} />
                       </span>
                     </button>
                     <div className="tn-profile-menu-section" style={{ padding: "6px 0" }}>
