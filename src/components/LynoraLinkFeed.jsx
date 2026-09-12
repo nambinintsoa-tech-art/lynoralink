@@ -1207,7 +1207,7 @@ function PageSuggestionsGrid({ pages, followedPageIds, onFollowPage, onNavigate,
           <ArrowRight size={16} strokeWidth={2.2} />
         </button>
 
-        <div ref={trackRef} className="feed-page-suggestions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 180px))", justifyContent: "space-between", gap: 10, width: "100%", maxWidth: "100%", margin: 0, overflow: "visible", padding: "0 0 8px", scrollBehavior: "smooth", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        <div ref={trackRef} className="feed-page-suggestions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, width: "100%", maxWidth: "100%", margin: 0, overflow: "visible", padding: "0 0 8px", scrollBehavior: "smooth", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
         {displayedPages.map((page) => {
           const isOwnPage = page.isOwn;
           const isFollowed = !isOwnPage && followedPageIds.includes(page.id);
@@ -1227,8 +1227,8 @@ function PageSuggestionsGrid({ pages, followedPageIds, onFollowPage, onNavigate,
                 overflow: "hidden",
                 transition: "all 0.2s ease",
                 minWidth: 0,
-                width: 180,
-                maxWidth: 180,
+                width: "100%",
+                maxWidth: "none",
                 flex: "none",
                 justifySelf: "stretch",
                 boxShadow: "0 2px 8px rgba(15,51,82,0.05)",

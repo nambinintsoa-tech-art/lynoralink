@@ -616,36 +616,22 @@ function ViewerVideo({ src, label, style = {} }) {
         style={{ width: "100%", height: "auto", objectFit: "contain", display: "block", pointerEvents: "none" }}
       />
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.12)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 8, zIndex: 2 }}>
-        {previewing && (
-          <div
-            className="pv-video-muted"
-            aria-hidden="true"
-            style={{
-              display: "flex", alignItems: "center", gap: 4,
-              background: "rgba(0,0,0,0.65)", color: "#fff",
-              padding: "3px 8px", borderRadius: 999,
-              fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
-              pointerEvents: "none",
-            }}
-          >
-            <VolumeX size={12} /> Muet
-          </div>
-        )}
-        <button
-          type="button"
-          aria-label={isMuted ? "Activer le son" : "Couper le son"}
-          onClick={toggleMute}
+      {previewing && (
+        <div
+          className="pv-video-muted"
+          aria-hidden="true"
           style={{
-            width: 28, height: 28, borderRadius: "50%", border: "none",
-            background: "rgba(0,0,0,0.62)", color: "#fff", display: "flex",
-            alignItems: "center", justifyContent: "center", cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            position: "absolute", top: 10, left: 10, zIndex: 2,
+            display: "flex", alignItems: "center", gap: 4,
+            background: "rgba(0,0,0,0.65)", color: "#fff",
+            padding: "3px 8px", borderRadius: 999,
+            fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
+            pointerEvents: "none",
           }}
         >
-          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-        </button>
-      </div>
+          <VolumeX size={12} /> Muet
+        </div>
+      )}
       <button
         type="button"
         aria-label="Lecture plein écran"
