@@ -174,6 +174,18 @@ function normalizeMembersList(members) {
   }
   return [];
 }
+
+function isGroupMember(group, userId) {
+  if (!group || userId == null) return false;
+  const normalizedUserId = String(userId);
+  if (String(group.ownerId) === normalizedUserId) return true;
+
+  const members = [
+    ...normalizeMembersList(group.members),
+    ...(Array.isArray(group.memberIds) ? group.memberIds : []),
+  ];
+  return members.some((member) => String(member?.id ?? member) === normalizedUserId);
+}
 const APP_NAME = "LynoraLink";
 
 /* ------------------------------------------------------------------ */
@@ -1067,7 +1079,7 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onCo
 function GroupSuggestionsRail({ groups, currentUserId, onJoinGroup, onNavigate, compactGrid = false, onDismiss, dismissedIds = [] }) {
   const dismissedIdSet = new Set((Array.isArray(dismissedIds) ? dismissedIds : []).map((id) => String(id)));
   const displayedGroups = groups
-    .filter((group) => !normalizeMembersList(group?.members).some((member) => String(member?.id) === String(currentUserId)))
+    .filter((group) => !isGroupMember(group, currentUserId))
     .filter((group) => !dismissedIdSet.has(String(group.id)))
     .slice(0, 6);
 
@@ -1562,7 +1574,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
     return () => window.clearInterval(rotationTimer);
   }, [displayedAds.length, displayedAds.map((ad) => ad.id).join(",")]);
   const suggestedGroups = groups
-    .filter((group) => !normalizeMembersList(group?.members).some((member) => String(member?.id) === String(currentUserId)))
+    .filter((group) => !isGroupMember(group, currentUserId))
     .slice(0, 3);
   const displaySuggestions = (Array.isArray(suggestions) ? suggestions : [])
     .filter((suggestion) => !isPageMode || suggestion.type === "company")
@@ -6369,16 +6381,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                 <section className="lynora-suggestion-rail-mobile">
                                   <SuggestionRail
                                     suggestions={personSuggestions || []}
-                                    pageSuggestions={pageSuggestions || []}
-                                    suggestedGroups={sidebarGroups || []}
                                     onConnect={connectUser}
-                                    onFollowPage={followPage}
-                                    onJoinGroup={joinGroupFromFeed}
                                     onOpenProfile={(profileId) => openUserProfile?.(profileId)}
                                     isPageMode={activeAccount === "company"}
                                     connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
-                                    followedPageIds={followedPageIds}
-                                    currentUserId={session?.user?.id}
                                   />
                                 </section>
                               )}
