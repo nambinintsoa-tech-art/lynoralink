@@ -19,6 +19,7 @@ import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
 import ProfileHoverPreview from "./ProfileHoverPreview";
 import { fetchBackendApi } from "@/lib/backend-api";
+import VideoControls from "./VideoControls";
 
 /* ==================================================================
  *  1. DESIGN TOKENS  (identité LynoraLink conservée : navy + or)
@@ -451,6 +452,9 @@ function ViewerVideo({ src, label, style = {} }) {
   const [started, setStarted] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [duration, setDuration] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [isMuted, setIsMuted] = useState(true);
   const [isMobileView, setIsMobileView] = useState(false);
   const durationLabel = formatVideoDuration(duration);
@@ -469,8 +473,13 @@ function ViewerVideo({ src, label, style = {} }) {
   useEffect(() => {
     const node = videoRef.current;
     if (!node) return;
-    node.muted = isMuted || isMobileView;
+    node.muted = isMuted;
   }, [isMuted, isMobileView]);
+
+  useEffect(() => {
+    const node = videoRef.current;
+    if (node) node.playbackRate = playbackRate;
+  }, [playbackRate]);
 
   const toggleMute = (event) => {
     event?.stopPropagation?.();
@@ -487,6 +496,36 @@ function ViewerVideo({ src, label, style = {} }) {
     requestVideoFullscreen(videoRef.current);
   };
 
+  const togglePlay = (event) => {
+    event?.stopPropagation?.();
+    const node = videoRef.current;
+    if (!node) return;
+    if (node.paused) node.play().catch(() => {});
+    else node.pause();
+  };
+
+  const seek = (time) => {
+    const node = videoRef.current;
+    if (!node) return;
+    node.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const controls = (
+    <VideoControls
+      duration={duration}
+      currentTime={currentTime}
+      isPlaying={isPlaying}
+      isMuted={isMuted}
+      playbackRate={playbackRate}
+      onTogglePlay={togglePlay}
+      onToggleMute={toggleMute}
+      onSeek={seek}
+      onPlaybackRateChange={(rate) => setPlaybackRate(rate)}
+      onFullscreen={toggleFullscreen}
+    />
+  );
+
   if (!src) {
     return (
       <div style={{ width: "100%", height: "100%", background: navyGrad, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "rgba(255,255,255,0.9)", padding: 16, textAlign: "center" }}>
@@ -498,15 +537,23 @@ function ViewerVideo({ src, label, style = {} }) {
 
   if (isMobileView || started) {
     return (
-      <video
-        src={src}
-        controls={started && !isMobileView}
-        autoPlay
-        muted={isMobileView}
-        playsInline
-        aria-label={label || "Vid\u00e9o"}
-        style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "none", objectFit: "contain", display: "block", background: "transparent", margin: "0 auto", ...style }}
-      />
+      <div style={{ position: "relative", width: "100%", overflow: "hidden" }}>
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          muted={isMuted}
+          playsInline
+          aria-label={label || "Vid\\u00e9o"}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+          style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "none", objectFit: "contain", display: "block", background: "transparent", margin: "0 auto", ...style }}
+        />
+        {controls}
+      </div>
     );
   }
 
@@ -535,7 +582,7 @@ function ViewerVideo({ src, label, style = {} }) {
       className="pv-video-stage"
       role="button"
       tabIndex={0}
-      aria-label={label || "Lire la vid\u00e9o"}
+      aria-label={label || "Lire la vidéo"}
       onClick={handleActivate}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleActivate(e); }

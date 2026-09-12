@@ -1193,7 +1193,7 @@ export default function Reseau({
                     const done = connectedIds.includes(s.id);
                     const pending = pendingRequestIds.includes(s.id);
                     const incomingInvitation = !isCompany
-                      ? invitations.find((invitation) => (invitation.userId || invitation.id) === s.id)
+                      ? invitations.find((invitation) => String(invitation.userId || invitation.id) === String(s.id))
                       : null;
                     const incomingAccepted = incomingInvitation && acceptedInvitationIds.includes(incomingInvitation.id);
                     const avatarUrl = s.avatarUrl || s.image || s.logoUrl || s.photoUrl || null;

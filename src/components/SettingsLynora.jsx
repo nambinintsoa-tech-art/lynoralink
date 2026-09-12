@@ -772,10 +772,61 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
   /* ---- Loading state ---- */
   if (loading) {
     return (
-      <div style={{ width: '100%', maxWidth: 1128, margin: '0 auto', padding: '24px 16px', fontFamily: "-apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif", background: COLORS.bg, minHeight: '100vh' }}>
-        <div style={{ height: 32, width: 200, borderRadius: 6, background: '#E5E7EB', marginBottom: 8 }} />
-        <div style={{ height: 16, width: 400, borderRadius: 6, background: '#E5E7EB', marginBottom: 24 }} />
-        <div style={{ background: '#fff', borderRadius: 8, border: `1px solid ${COLORS.border}`, height: 400 }} />
+      <div className="st-settings-root" style={{ width: '100%', minHeight: '100vh', background: COLORS.bg, fontFamily: "-apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif", color: COLORS.textPrimary }}>
+        {showTopNav && <div style={{ height: 64, background: COLORS.cardBg, borderBottom: `1px solid ${COLORS.border}` }} />}
+        <div className="st-settings-page st-settings-skeleton-page" style={{ width: '100%', maxWidth: 1128, margin: '0 auto', padding: showTopNav ? '32px 16px' : '24px 16px' }} aria-label="Chargement des paramètres" aria-busy="true">
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ width: 220, height: 28, borderRadius: 7, background: '#E5E7EB', marginBottom: 9 }} />
+            <div style={{ width: 410, maxWidth: '80%', height: 14, borderRadius: 5, background: '#E5E7EB' }} />
+          </div>
+          <div className="st-settings-shell" style={{ display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr)', gap: 24, alignItems: 'start' }}>
+            <div className="st-settings-sidebar" style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, boxShadow: '0 2px 8px rgba(15,51,82,0.06)' }}>
+              <div style={{ width: '42%', height: 11, borderRadius: 4, background: '#E5E7EB', margin: '5px 10px 12px' }} />
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', marginBottom: 4, borderRadius: 8, background: index === 0 ? '#F3F6F8' : 'transparent' }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 5, background: '#E5E7EB', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ width: `${48 + (index % 3) * 12}%`, height: 12, borderRadius: 4, background: '#E5E7EB', marginBottom: 6 }} />
+                    <div style={{ width: '78%', height: 9, borderRadius: 3, background: '#F0F1F2' }} />
+                  </div>
+                  <div style={{ width: 7, height: 7, borderRight: '2px solid #D1D5DB', borderTop: '2px solid #D1D5DB', transform: 'rotate(45deg)' }} />
+                </div>
+              ))}
+            </div>
+            <div className="st-settings-main" style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(15,51,82,0.06)' }}>
+              <div style={{ padding: '18px 20px', borderBottom: `1px solid ${COLORS.border}` }}>
+                <div style={{ width: '34%', height: 18, borderRadius: 5, background: '#E5E7EB', marginBottom: 9 }} />
+                <div style={{ width: '62%', height: 11, borderRadius: 4, background: '#F0F1F2' }} />
+              </div>
+              <div style={{ padding: 20 }}>
+                <div className="st-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 18, marginBottom: 22 }}>
+                  {[0, 1, 2, 3].map((field) => (
+                    <div key={field}>
+                      <div style={{ width: `${44 + (field % 2) * 15}%`, height: 11, borderRadius: 4, background: '#E5E7EB', marginBottom: 8 }} />
+                      <div style={{ height: 42, borderRadius: 8, background: '#F4F6F8', border: `1px solid ${COLORS.border}` }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ height: 86, borderRadius: 8, background: '#F4F6F8', border: `1px solid ${COLORS.border}`, marginBottom: 20 }} />
+                <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {[0, 1, 2].map((row) => (
+                    <div key={row} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingBottom: row < 2 ? 14 : 0, borderBottom: row < 2 ? `1px solid ${COLORS.border}` : 'none' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ width: `${52 + row * 8}%`, height: 13, borderRadius: 4, background: '#E5E7EB', marginBottom: 7 }} />
+                        <div style={{ width: `${68 - row * 8}%`, height: 10, borderRadius: 4, background: '#F0F1F2' }} />
+                      </div>
+                      <div style={{ width: 44, height: 24, borderRadius: 12, background: '#D5DBE1', flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px', borderTop: `1px solid ${COLORS.border}` }}>
+                <div style={{ width: 100, height: 38, borderRadius: 24, background: '#F0F1F2' }} />
+                <div style={{ width: 128, height: 38, borderRadius: 24, background: '#D9E1E8' }} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

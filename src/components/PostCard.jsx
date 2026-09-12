@@ -69,6 +69,7 @@ import { fetchBackendApi } from "@/lib/backend-api";
 import CreatePostModal from "./CreatePostModal";
 import { CommentSkeleton } from "@/components/Skeleton";
 import ProfileHoverPreview from "./ProfileHoverPreview";
+import VideoControls from "./VideoControls";
 
 /* ── Tokens ──────────────────────────────────────────────────────────── */
 const C = {
@@ -645,6 +646,9 @@ function VideoTile({
   const [playing, setPlaying] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [duration, setDuration] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [isMuted, setIsMuted] = useState(true);
   const [isMobileView, setIsMobileView] = useState(false);
 
@@ -670,8 +674,13 @@ function VideoTile({
   useEffect(() => {
     const node = videoRef.current;
     if (!node) return;
-    node.muted = isMuted || isMobileView;
+    node.muted = isMuted;
   }, [isMuted, isMobileView]);
+
+  useEffect(() => {
+    const node = videoRef.current;
+    if (node) node.playbackRate = playbackRate;
+  }, [playbackRate]);
 
   const toggleMute = (event) => {
     event?.stopPropagation?.();
@@ -687,6 +696,36 @@ function VideoTile({
     if (!videoRef.current) return;
     requestVideoFullscreen(videoRef.current);
   };
+
+  const togglePlay = (event) => {
+    event?.stopPropagation?.();
+    const node = videoRef.current;
+    if (!node) return;
+    if (node.paused) node.play().catch(() => {});
+    else node.pause();
+  };
+
+  const seek = (time) => {
+    const node = videoRef.current;
+    if (!node) return;
+    node.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const controls = (
+    <VideoControls
+      duration={duration}
+      currentTime={currentTime}
+      isPlaying={isPlaying}
+      isMuted={isMuted}
+      playbackRate={playbackRate}
+      onTogglePlay={togglePlay}
+      onToggleMute={toggleMute}
+      onSeek={seek}
+      onPlaybackRateChange={(rate) => setPlaybackRate(rate)}
+      onFullscreen={toggleFullscreen}
+    />
+  );
 
   /* Sans URL : repli dégradé marine + icône or (identique à la galerie) */
   if (!src) {
@@ -711,33 +750,46 @@ function VideoTile({
   /* Repli sans visionneuse : lecteur natif en place (comme un commentaire Facebook) */
   if (playing) {
     return (
-      <video
-        ref={videoRef}
-        src={src}
-        controls
-        autoPlay
-        muted={isMuted}
-        playsInline
-        aria-label={label || "Vidéo"}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
-        style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "transparent", ...style }}
-      />
+      <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          muted={isMuted}
+          playsInline
+          aria-label={label || "Vidéo"}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+          style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "transparent", ...style }}
+        />
+        {controls}
+      </div>
     );
   }
 
   if (isMobileView) {
     return (
-      <video
-        ref={videoRef}
-        src={src}
-        autoPlay
-        muted={isMuted || isMobileView}
-        loop
-        playsInline
-        preload="metadata"
-        aria-label={label || "Vidéo"}
-        style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "transparent", ...style }}
-      />
+      <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          muted={isMuted}
+          loop
+          playsInline
+          preload="metadata"
+          aria-label={label || "Vidéo"}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          style={{ width: "100%", height: "100%", maxHeight: maxHeight ?? undefined, objectFit, display: "block", background: "transparent", ...style }}
+        />
+        {controls}
+      </div>
     );
   }
 

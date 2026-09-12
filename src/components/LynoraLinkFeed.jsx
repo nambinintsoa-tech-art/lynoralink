@@ -887,7 +887,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
 /* ------------------------------------------------------------------ */
 /*  SECTION SUGGESTIONS POUR LE FEED PRINCIPAL                         */
 /* ------------------------------------------------------------------ */
-function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onConnect, onCancel, onDismiss, onNavigate, onOpenProfile }) {
+function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, incomingInvitations = [], onConnect, onCancel, onConfirm, onDismiss, onNavigate, onOpenProfile }) {
   const connectedIdSet = new Set((Array.isArray(connectedIds) ? connectedIds : []).map((id) => String(id)));
   const visibleSuggestions = (Array.isArray(suggestions) ? suggestions : []).filter((suggestion) => {
     const suggestionId = suggestion?.id;
@@ -930,6 +930,9 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onCo
           const isCompany = s.type === "company";
           const isConnected = connectedIds.includes(s.id);
           const isPending = pendingRequestIds.includes(s.id);
+          const incomingInvitation = !isCompany
+            ? incomingInvitations.find((invitation) => String(invitation.userId || invitation.id) === String(s.id))
+            : null;
           const avatarUrl = s.avatarUrl || s.image || s.logoUrl || s.photoUrl || null;
           const coverUrl = s.coverUrl || s.cover || s.bannerUrl || s.backgroundImage || null;
           const openProfile = () => !isCompany && onOpenProfile?.(s.userId ?? s.id);
@@ -1015,7 +1018,7 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onCo
 
               <div style={{ display: "flex", gap: 6, padding: "0 8px 8px", flexDirection: "column" }}>
                 <button
-                  onClick={() => isPending ? onCancel(s.id) : onConnect(s.id)}
+                  onClick={() => incomingInvitation ? onConfirm?.(incomingInvitation.id) : (isPending ? onCancel(s.id) : onConnect(s.id))}
                   disabled={isConnected}
                   style={{
                     flex: 1,
@@ -1028,8 +1031,8 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onCo
                     padding: "6px 8px",
                     borderRadius: 8,
                     border: "none",
-                    background: isConnected ? C.navy50 : isPending ? C.white : C.gold600,
-                    color: isConnected ? C.muted : isPending ? C.danger : C.white,
+                    background: isConnected ? C.navy50 : incomingInvitation ? C.gold600 : isPending ? C.white : C.gold600,
+                    color: isConnected ? C.muted : incomingInvitation ? C.white : isPending ? C.danger : C.white,
                     cursor: isConnected ? "default" : "pointer",
                     transition: "all 0.2s ease",
                   }}
@@ -1038,6 +1041,8 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, onCo
                 >
                   {isConnected ? (
                     <><Check size={10} /> {isCompany ? "Suivi" : "Connecté"}</>
+                  ) : incomingInvitation ? (
+                    <><Check size={10} /> Confirmer</>
                   ) : isPending ? (
                     <><X size={10} /> Annuler</>
                   ) : (
@@ -1507,7 +1512,7 @@ const SidebarAdCard = React.memo(function SidebarAdCard({ ad, index, onAdClick, 
 
 /*  SIDEBAR DROITE — SUGGESTIONS + ACTUALITÉS + GROUPES RECOMMANDÉS    */
 /* ------------------------------------------------------------------ */
-function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, onConnect, onCancel, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, onMessage, accountMode = "personal", birthdays = [] }) {
+function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, incomingInvitations = [], onConnect, onCancel, onConfirm, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, onMessage, accountMode = "personal", birthdays = [] }) {
   const isPageMode = accountMode === "company";
   const [joiningGroupId, setJoiningGroupId] = useState(null);
   const openSuggestions = () => onNavigate?.(isPageMode ? "company-grid" : "network", { tab: "suggestions" });
@@ -1600,6 +1605,9 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
               const isCompany = s.type === "company";
               const isConnected = connectedIds.includes(s.id);
               const isPending = pendingRequestIds.includes(s.id);
+              const incomingInvitation = !isCompany
+                ? incomingInvitations.find((invitation) => String(invitation.userId || invitation.id) === String(s.id))
+                : null;
               const avatarUrl = s.avatarUrl || s.image || s.logoUrl || s.photoUrl || null;
               const openProfile = () => !isCompany && onOpenProfile?.(s.userId ?? s.id);
 
@@ -1635,7 +1643,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
                     </div>
                   </div>
                   <button
-                    onClick={() => isPending ? onCancel(s.id) : onConnect(s.id)}
+                    onClick={() => incomingInvitation ? onConfirm?.(incomingInvitation.id) : (isPending ? onCancel(s.id) : onConnect(s.id))}
                     disabled={isConnected}
                     style={{
                       display: "inline-flex",
@@ -1645,15 +1653,15 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
                       padding: "6px 10px",
                       borderRadius: 999,
                       border: "1px solid rgba(15,51,82,0.12)",
-                      background: isConnected ? C.navy50 : isPending ? C.white : C.gold600,
-                      color: isConnected ? C.muted : isPending ? C.danger : C.white,
+                      background: isConnected ? C.navy50 : incomingInvitation ? C.gold600 : isPending ? C.white : C.gold600,
+                      color: isConnected ? C.muted : incomingInvitation ? C.white : isPending ? C.danger : C.white,
                       fontSize: 10,
                       fontWeight: 700,
                       cursor: isConnected ? "default" : "pointer",
                       flexShrink: 0,
                     }}
                   >
-                    {isConnected ? (isPageMode ? "Suivi" : "Connecté") : isPending ? "Annuler" : (isPageMode ? "Suivre" : "Se connecter")}
+                    {isConnected ? (isPageMode ? "Suivi" : "Connecté") : incomingInvitation ? "Confirmer" : isPending ? "Annuler" : (isPageMode ? "Suivre" : "Se connecter")}
                   </button>
                 </div>
               );
@@ -2819,7 +2827,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [selectedTrend, setSelectedTrend] = useState(null);
   const [showLogoutTransition, setShowLogoutTransition] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [feedContentReady, setFeedContentReady] = useState(Array.isArray(initialPosts));
+  const [feedContentReady, setFeedContentReady] = useState(Array.isArray(initialPosts) && initialPosts.length > 0);
   const [feedLoadError, setFeedLoadError] = useState("");
   const [unreadPublications, setUnreadPublications] = useState(0);
   const feedSeenAtRef = useRef(0);
@@ -3327,7 +3335,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [view]);
 
   useEffect(() => {
-    setFeedContentReady(Array.isArray(initialPosts));
+    setFeedContentReady(Array.isArray(initialPosts) && initialPosts.length > 0);
   }, [initialPosts]);
 
   useEffect(() => {
@@ -6181,8 +6189,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                         suggestions={(activeAccount === "company" ? pageSuggestions : networkSuggestions).filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
                         connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
                         pendingRequestIds={pendingSuggestionIds}
+                        incomingInvitations={invitations}
                         onConnect={connectSuggestion}
                         onCancel={cancelConnectionRequest}
+                        onConfirm={acceptInvitation}
                         onDismiss={dismissSuggestion}
                         onNavigate={navigate}
                         onOpenProfile={openUserProfile}
@@ -6459,8 +6469,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   followedPageIds={followedPageIds}
                   onOpenProfile={openUserProfile}
                   pendingRequestIds={pendingSuggestionIds}
+                  incomingInvitations={invitations}
                   onConnect={connectSuggestion}
                   onCancel={cancelConnectionRequest}
+                  onConfirm={acceptInvitation}
                   onFollowPage={followPage}
                   onJoinGroup={joinGroupFromFeed}
                   onNavigate={navigate}

@@ -178,11 +178,11 @@ function ProfileMenuSkeleton() {
 
   return (
     <div aria-label="Chargement du profil et du menu" aria-busy="true" style={{ background: C.white }}>
-      <div style={{ padding: "16px", background: navyGrad, display: "flex", alignItems: "center", gap: 11 }}>
-        <SkeletonAvatar size={42} style={{ background: "rgba(255,255,255,0.22)" }} />
+      <div style={{ padding: "16px", background: C.white, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 11 }}>
+        <SkeletonAvatar size={42} style={{ background: C.navy50 }} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-          <Skeleton width="68%" height={14} radius={5} style={{ background: "rgba(255,255,255,0.28)" }} />
-          <Skeleton width="84%" height={11} radius={4} style={{ background: "rgba(255,255,255,0.18)" }} />
+          <Skeleton width="68%" height={14} radius={5} style={{ background: C.navy50 }} />
+          <Skeleton width="84%" height={11} radius={4} style={{ background: C.navy50 }} />
         </div>
       </div>
       <div style={{ padding: "11px 16px 6px" }}>

@@ -974,6 +974,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const [visualFocusOpen, setVisualFocusOpen] = useState(false);
   const [postModalMode, setPostModalMode] = useState('post');
   const [posts, setPosts] = useState(INITIAL_POSTS);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [friendsTotal, setFriendsTotal] = useState(0);
@@ -1160,6 +1161,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
     const userId = profileUserId || targetUserId || sessionUser?.id || profile.id;
     if (!userId) return;
     let mounted = true;
+    setPostsLoading(true);
     fetchBackendApi(`/api/posts?limit=20&userId=${encodeURIComponent(userId)}`, { cache: 'no-store' })
       .then((res) => res.ok ? res.json() : { posts: [] })
       .then((data) => {
@@ -1167,6 +1169,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
         setPosts(Array.isArray(data.posts) ? data.posts : []);
       })
       .catch(() => { if (mounted) setPosts([]); });
+      .finally(() => { if (mounted) setPostsLoading(false); });
     return () => { mounted = false; };
   }, [profileUserId, targetUserId, sessionUser?.id, sessionStatus]);
 
@@ -1581,6 +1584,23 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
                     }} />
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {postsLoading && feedPosts.length === 0 && Array.from({ length: 2 }).map((_, index) => (
+                      <div key={`profile-post-skeleton-${index}`} className="lynora-profile-post-skeleton" style={{ padding: 16, background: 'var(--app-surface)', border: '1px solid var(--app-border)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }} aria-hidden="true">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--app-border)' }} />
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                            <div style={{ width: '32%', height: 13, borderRadius: 5, background: 'var(--app-border)' }} />
+                            <div style={{ width: '22%', height: 10, borderRadius: 5, background: 'var(--app-border)' }} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ width: '92%', height: 12, borderRadius: 5, background: 'var(--app-border)' }} />
+                          <div style={{ width: '78%', height: 12, borderRadius: 5, background: 'var(--app-border)' }} />
+                          <div style={{ width: '58%', height: 12, borderRadius: 5, background: 'var(--app-border)' }} />
+                        </div>
+                        <div style={{ width: '100%', height: 220, marginTop: 14, borderRadius: 10, background: 'var(--app-bg)' }} />
+                      </div>
+                    ))}
                     {feedPosts.map(post => (
                       <FeedPostCardComponent key={post.id} post={post} currentUser={currentProfileUser}
                         onToggleLike={() => togglePostLike(post.id)} onSelectReaction={selectPostReaction} onToggleBookmark={() => {}}
@@ -1588,6 +1608,7 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
                         onReplyComment={addReply} onToggleCommentLike={(commentId) => toggleCommentLike(post.id, commentId)} onShare={() => {}} isOwn={isOwner}
                         onOpenArticle={(p) => setOpenArticleId(p.id)} onOpenPost={(p) => setOpenPostId(p.id)} />
                     ))}
+                    {!postsLoading && feedPosts.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: 'var(--app-muted)', background: 'var(--app-surface)', border: '1px solid var(--app-border)', borderRadius: 12 }}>Aucune publication pour le moment.</div>}
                   </div>
                 </>
               )}
