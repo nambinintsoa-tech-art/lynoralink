@@ -33,8 +33,14 @@ function parseJson(value, fallback) {
   }
 }
 
+function normalizeTags(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((tag) => String(tag || "").trim().replace(/^#+/, "").replace(/\s+/g, "-").slice(0, 28)).filter(Boolean))].slice(0, 8);
+}
+
 function normalizeVisibility(value) {
   if (value === "Relations" || value === "Réseau" || value === "connections") return "connections";
+  if (value === "Abonnés" || value === "Followers" || value === "followers") return "followers";
   if (value === "Privé" || value === "private") return "private";
   return "public";
 }
@@ -64,11 +70,15 @@ export async function GET(req) {
         select: { userAId: true, userBId: true },
       })).map((connection) => connection.userAId === session.user.id ? connection.userBId : connection.userAId)
     : [];
+  const followedCompanyPageIds = session?.user?.id
+    ? parseJson((await prisma.userSetting.findUnique({ where: { userId_key: { userId: session.user.id, key: "followedCompanyPages" } } }))?.value, [])
+    : [];
   const visibilityRules = [{ visibility: { in: ["public", "Public", "PUBLIC"] } }];
   if (session?.user?.id) {
     visibilityRules.push(
       { authorId: session.user.id },
       ...(connectedAuthorIds.length ? [{ authorId: { in: connectedAuthorIds }, visibility: "connections" }] : []),
+      ...(followedCompanyPageIds.length ? [{ companyPageId: { in: followedCompanyPageIds.map(String) }, visibility: "followers" }] : []),
     );
   }
   const where = {
@@ -265,6 +275,7 @@ export async function GET(req) {
       body: p.body,
       mood: parseJson(p.mood, null),
       identifiedUsers: parseJson(p.identifiedUsers, []),
+      tags: parseJson(p.tags, []),
       visibility: p.visibility,
       commentsLocked: Boolean(p.commentsLocked),
       commentatorsLimit: Number(p.commentatorsLimit || 0),
@@ -334,7 +345,7 @@ export async function POST(req) {
   }
 
   const body = await req.json();
-  const { text, isArticle, headline, excerpt, articleBody, media, presentation, mood, identifiedUsers, visibility, companyPageId, isSponsored, commentsLocked, commentatorsLimit } = body;
+  const { text, isArticle, headline, excerpt, articleBody, media, presentation, mood, identifiedUsers, tags, visibility, companyPageId, isSponsored, commentsLocked, commentatorsLimit } = body;
   const mediaList = Array.isArray(media) ? media : media ? [media] : [];
   const mediaItem = mediaList[0] || null;
   const hasText = typeof text === "string" && text.trim().length > 0;
@@ -383,6 +394,7 @@ export async function POST(req) {
             image: user?.image || user?.avatarUrl || null,
           })).filter((user) => user.id && user.name))
         : null,
+      tags: JSON.stringify(normalizeTags(tags)),
       visibility: normalizeVisibility(visibility),
       commentsLocked: Boolean(commentsLocked),
       commentatorsLimit: normalizedCommentatorsLimit,

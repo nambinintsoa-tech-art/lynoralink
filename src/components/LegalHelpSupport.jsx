@@ -547,8 +547,8 @@ export default function LegalHelpSupport({ onBack, onOpenAssistant, initialTab =
   }, []);
 
   return (
-    <div className="lhs-root lhs-root-safe-area" style={{ fontFamily: INTER, background: C.navy50, minHeight: "100dvh", width: "100%" }}>
-      <div className="lhs-content" style={{ maxWidth: 1180, width: "100%", margin: "0 auto", padding: "28px 24px 64px", display: "flex", flexDirection: "column", gap: 22 }}>
+    <div className="lhs-root lhs-root-safe-area" style={{ fontFamily: INTER, background: C.navy50, minHeight: "100svh", width: "100%" }}>
+      <div className="lhs-content" style={{ maxWidth: 1180, width: "100%", margin: "0 auto", padding: "28px 24px calc(64px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 22 }}>
         {onBack && (
           <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.navy800, fontWeight: 700, fontSize: 12.5, padding: 0, alignSelf: "flex-start" }}>
             <ArrowLeft size={15} /> Retour au fil

@@ -453,8 +453,17 @@ html[data-density="comfortable"] .lynora-feed-page { --feed-card-gap: 12px; }
 @media (max-width: 760px) {
   .lhs-root-safe-area {
     padding-top: env(safe-area-inset-top) !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
+    padding-bottom: 0 !important;
+    min-height: 100svh !important;
     min-height: 100dvh !important;
+    box-sizing: border-box !important;
+  }
+
+  .lhs-content {
+    min-height: 100svh !important;
+    min-height: 100dvh !important;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
   }
 }
 

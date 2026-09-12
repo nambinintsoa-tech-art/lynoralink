@@ -2407,7 +2407,7 @@ function AIAssistantPage({ onBack, actions, context, userName }) {
 function TrendPage({ tag, posts, onBack, onToggleLike, onToggleBookmark, onAddComment, onShare, onOpenArticle, onOpenPost, currentUser }) {
   const keyword = tag.replace("#", "").toLowerCase();
   const matches = posts.filter((p) => {
-    const haystack = `${p.text || ""} ${p.headline || ""} ${p.excerpt || ""} ${p.body || ""}`.toLowerCase();
+    const haystack = `${p.text || ""} ${p.headline || ""} ${p.excerpt || ""} ${p.body || ""} ${(p.tags || []).join(" ")}`.toLowerCase();
     return haystack.includes(keyword) || keyword.split(/(?=[A-Z])/).some((w) => haystack.includes(w.toLowerCase()));
   });
 
@@ -2822,6 +2822,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [showLogoutTransition, setShowLogoutTransition] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [feedContentReady, setFeedContentReady] = useState(Array.isArray(initialPosts));
+  const [feedLoadError, setFeedLoadError] = useState("");
   const [unreadPublications, setUnreadPublications] = useState(0);
   const feedSeenAtRef = useRef(0);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -3408,6 +3409,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       if (!Array.isArray(initialPosts) || initialPosts.length === 0) {
         setFeedContentReady(false);
       }
+      setFeedLoadError("");
+      let timedOut = false;
+      const timeoutId = window.setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
 
       try {
         const response = await fetchBackendApi("/api/posts?feedOnly=true", {
@@ -3423,11 +3427,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       } catch (error) {
         if (error.name !== "AbortError") {
           console.error("Erreur de chargement du feed:", error);
+          if (!controller.signal.aborted) setFeedLoadError("Le feed est momentanément indisponible. Vérifiez votre connexion puis réessayez.");
+        } else if (timedOut) {
+          setFeedLoadError("Le chargement du feed a expiré. Vérifiez votre connexion puis réessayez.");
         }
       } finally {
-        if (!controller.signal.aborted) {
-          setFeedContentReady(true);
-        }
+        window.clearTimeout(timeoutId);
+        if (!controller.signal.aborted || timedOut) setFeedContentReady(true);
       }
     };
 
@@ -5298,7 +5304,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setSidebarToast({ message: "Publication modifiée", icon: Check });
   };
 
-  const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, visibility, reelSound, commentsLocked, commentatorsLimit }) => {
+  const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, tags, visibility, reelSound, commentsLocked, commentatorsLimit }) => {
     const isArticle = mode === "article";
     const isReel = mode === "reel";
     const postMedia = Array.isArray(media) ? media : [];
@@ -5373,6 +5379,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       commentatorsLimit: Number(commentatorsLimit) || 0,
       mood,
       identifiedUsers,
+      tags: Array.isArray(tags) ? tags : [],
       visibility,
       reelSound: null,
       videoUrl: null,
@@ -5409,6 +5416,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         media: newPost.media,
         mood,
         identifiedUsers,
+        tags: Array.isArray(tags) ? tags : [],
         visibility,
         commentsLocked: Boolean(commentsLocked),
         commentatorsLimit: Number(commentatorsLimit) || 0,
@@ -6042,6 +6050,14 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
               </div>
 
               <div className="lynora-feed-main" style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+                {feedLoadError && (
+                  <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", border: `1px solid ${C.line}`, borderRadius: 10, background: C.navy50, color: C.muted, fontSize: 12.5 }}>
+                    <span>{feedLoadError}</span>
+                    <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("lynoralink:posts-updated"))} style={{ flexShrink: 0, border: "none", borderRadius: 7, padding: "6px 10px", background: C.navy800, color: C.white, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      Réessayer
+                    </button>
+                  </div>
+                )}
                 <MobileFeedShortcuts activeView={view} onNavigate={navigate} />
                   <CompanyComposer onOpen={(mode) => openCompanyComposer(mode, null)} avatarUrl={activeProfileAvatar} initials={activeProfile.initials || CURRENT_USER.avatar} />
                 
@@ -6399,20 +6415,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                     compactGrid
                                     onDismiss={dismissSuggestion}
                                     dismissedIds={dismissedSuggestionIds}
-                                  />
-                                </div>
-                              )}
-                              {((index === 2) || (visibleFeedPosts.length < 3 && index === visibleFeedPosts.length - 1)) && personSuggestions.length > 0 && (
-                                <div className="lynora-feed-inline-suggestions">
-                                  <SuggestionsSection
-                                    suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
-                                    connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
-                                    pendingRequestIds={pendingSuggestionIds}
-                                    onConnect={connectSuggestion}
-                                    onCancel={cancelConnectionRequest}
-                                    onDismiss={dismissSuggestion}
-                                    onNavigate={navigate}
-                                    onOpenProfile={openUserProfile}
                                   />
                                 </div>
                               )}

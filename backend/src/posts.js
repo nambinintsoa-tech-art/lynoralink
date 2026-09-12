@@ -22,6 +22,11 @@ function authError(reply) {
   return reply.code(401).send({ error: "Non authentifié" });
 }
 
+function normalizeTags(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((tag) => String(tag || "").trim().replace(/^#+/, "").replace(/\s+/g, "-").slice(0, 28)).filter(Boolean))].slice(0, 8);
+}
+
 async function findPost(id, reply) {
   const post = await prisma.post.findUnique({ where: { id } });
   if (!post) reply.code(404).send({ error: "Publication introuvable" });
@@ -75,11 +80,19 @@ export async function registerPostRoutes(app) {
     const connectedAuthorIds = connectedAuthors.map((connection) =>
       connection.userAId === userId ? connection.userBId : connection.userAId,
     );
+    const followedCompanyPages = userId
+      ? await prisma.userSetting.findUnique({ where: { userId_key: { userId, key: "followedCompanyPages" } } })
+      : null;
+    let followedCompanyPageIds = [];
+    try { followedCompanyPageIds = JSON.parse(followedCompanyPages?.value || "[]"); } catch {}
     const visibilityRules = [{ visibility: { in: ["public", "Public", "PUBLIC"] } }];
     if (userId) {
       visibilityRules.push({ authorId: userId });
       if (connectedAuthorIds.length) {
         visibilityRules.push({ authorId: { in: connectedAuthorIds }, visibility: "connections" });
+      }
+      if (followedCompanyPageIds.length) {
+        visibilityRules.push({ companyPageId: { in: followedCompanyPageIds.map(String) }, visibility: "followers" });
       }
     }
 
@@ -218,6 +231,7 @@ export async function registerPostRoutes(app) {
           shares: post._count?.shares || 0,
           isArticle: post.isArticle,
           commentsLocked: Boolean(post.commentsLocked),
+          tags: (() => { try { return post.tags ? JSON.parse(post.tags) : []; } catch { return []; } })(),
           commentatorsLimit: Number(post.commentatorsLimit || 0),
           presentation: (() => { try { return post.presentation ? JSON.parse(post.presentation) : {}; } catch { return {}; } })(),
           text: post.text,
@@ -261,7 +275,8 @@ export async function registerPostRoutes(app) {
         mediaType: media[0]?.type ? String(media[0].type) : null,
         mood: body.mood ? String(body.mood).slice(0, 80) : null,
         identifiedUsers: body.identifiedUsers ? JSON.stringify(body.identifiedUsers) : null,
-        visibility: ["public", "connections"].includes(body.visibility) ? body.visibility : "public",
+        visibility: ["public", "connections", "followers"].includes(body.visibility) ? body.visibility : "public",
+        tags: JSON.stringify(normalizeTags(body.tags)),
         commentsLocked: Boolean(body.commentsLocked),
         commentatorsLimit: normalizedCommentatorsLimit,
         status: "published",
@@ -362,7 +377,8 @@ export async function registerPostRoutes(app) {
     const body = request.body || {};
     const hasCommentsSettings = Object.prototype.hasOwnProperty.call(body, "commentsLocked") || Object.prototype.hasOwnProperty.call(body, "commentatorsLimit");
     if (typeof body.text === "string") data.text = body.text.trim();
-    if (["public", "connections"].includes(body.visibility)) data.visibility = body.visibility;
+    if (["public", "connections", "followers"].includes(body.visibility)) data.visibility = body.visibility;
+    if (Object.prototype.hasOwnProperty.call(body, "tags")) data.tags = JSON.stringify(normalizeTags(body.tags));
     const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
     const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
     if (hasMedia) {

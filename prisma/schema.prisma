@@ -182,6 +182,7 @@ model Post {
   commentatorsLimit Int      @default(0)
   mood            String?
   identifiedUsers String?
+  tags            String?
   visibility      String      @default("public")
   status          String      @default("published")
   reported        Boolean     @default(false)

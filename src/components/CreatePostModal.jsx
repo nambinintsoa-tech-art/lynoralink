@@ -847,6 +847,7 @@ const RichArticleEditor = React.forwardRef(function RichArticleEditor(
 /* ------------------------------------------------------------------ */
 const VISIBILITY_OPTIONS = [
   { id: "Public", label: "Public", desc: "Tout le monde sur LynoraLink", icon: Globe },
+  { id: "Abonnés", label: "Abonnés", desc: "Les abonnés de votre page", icon: Users },
   { id: "Relations", label: "Relations uniquement", desc: "Vos relations directes", icon: Users },
   { id: "Privé", label: "Privé", desc: "Visible par vous seul", icon: Lock },
 ];
@@ -2675,6 +2676,15 @@ export default function CreatePostModal({
                   <span title="Identifier des personnes" style={{ display: "flex" }}>
                     <IdentifierPicker value={identifiedUsers} onChange={setIdentifiedUsers} />
                   </span>
+                  <button
+                    type="button"
+                    title="Ajouter des hashtags"
+                    aria-label="Ajouter des hashtags"
+                    onClick={() => setShowTagsInput((open) => !open)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", border: "none", background: showTagsInput ? C.navy800 : C.gold600, color: C.white, cursor: "pointer", boxShadow: "0 4px 12px rgba(15,51,82,0.16)" }}
+                  >
+                    <Hash size={17} />
+                  </button>
                 </div>
               </div>
             </div>

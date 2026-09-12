@@ -5,8 +5,14 @@ import { prisma } from "@/lib/prisma";
 
 function normalizeVisibility(value) {
   if (value === "Relations" || value === "Réseau" || value === "connections") return "connections";
+  if (value === "Abonnés" || value === "Followers" || value === "followers") return "followers";
   if (value === "Privé" || value === "private") return "private";
   return "public";
+}
+
+function normalizeTags(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((tag) => String(tag || "").trim().replace(/^#+/, "").replace(/\s+/g, "-").slice(0, 28)).filter(Boolean))].slice(0, 8);
 }
 
 export async function PATCH(req, { params }) {
@@ -20,13 +26,14 @@ export async function PATCH(req, { params }) {
   const hasText = Object.prototype.hasOwnProperty.call(body, "text");
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const hasVisibility = Object.prototype.hasOwnProperty.call(body, "visibility");
+  const hasTags = Object.prototype.hasOwnProperty.call(body, "tags");
   const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
   const hasCommentsSettings = Object.prototype.hasOwnProperty.call(body, "commentsLocked") || Object.prototype.hasOwnProperty.call(body, "commentatorsLimit");
   const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
   const normalizedCommentatorsLimit = Number.isFinite(Number(body.commentatorsLimit)) && Number(body.commentatorsLimit) >= 0
     ? Math.max(0, Math.min(1000, Math.floor(Number(body.commentatorsLimit))))
     : 0;
-  if (!id || (!hasText && !hasVisibility && !hasMedia && !hasCommentsSettings)) {
+  if (!id || (!hasText && !hasVisibility && !hasTags && !hasMedia && !hasCommentsSettings)) {
     return NextResponse.json({ error: "Aucune donnée à mettre à jour." }, { status: 400 });
   }
 
@@ -41,6 +48,7 @@ export async function PATCH(req, { params }) {
     data: {
       ...(hasText ? { text } : {}),
       ...(hasVisibility ? { visibility: normalizeVisibility(body.visibility) } : {}),
+      ...(hasTags ? { tags: JSON.stringify(normalizeTags(body.tags)) } : {}),
       ...(hasMedia ? {
         mediaData: media.length ? JSON.stringify(media) : null,
         mediaUrl: media[0]?.url || null,
@@ -51,7 +59,7 @@ export async function PATCH(req, { params }) {
         commentatorsLimit: normalizedCommentatorsLimit,
       } : {}),
     },
-    select: { id: true, text: true, visibility: true, updatedAt: true, mediaUrl: true, mediaType: true, mediaData: true, commentsLocked: true, commentatorsLimit: true },
+    select: { id: true, text: true, visibility: true, tags: true, updatedAt: true, mediaUrl: true, mediaType: true, mediaData: true, commentsLocked: true, commentatorsLimit: true },
   });
 
   return NextResponse.json({ post: { ...updatedPost, ...(hasMedia ? { media } : {}) } });
