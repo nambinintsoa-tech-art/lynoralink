@@ -948,17 +948,29 @@ export default function AccountPicker({
     const res = await signIn("credentials", {
       email: accountEmail,
       password,
+      callbackUrl: "/feed",
       redirect: false,
     });
-    setPasswordLoading(false);
 
     if (res?.ok) {
+      const sessionResponse = await fetch("/api/auth/session", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!sessionResponse.ok) {
+        setPasswordLoading(false);
+        setPasswordError("La session n'a pas pu être ouverte. Réessayez.");
+        return;
+      }
       setPasswordModalOpen(false);
       setPassword("");
       finalizeSelection(pendingAccountId, true);
+      setPasswordLoading(false);
+      window.location.replace("/feed");
       return;
     }
 
+    setPasswordLoading(false);
     setPasswordError("Mot de passe incorrect.");
   };
 

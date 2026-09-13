@@ -2971,13 +2971,16 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     return () => { mounted = false; };
   }, [session?.user?.id]);
   const [activeAccount, setActiveAccount] = useState("personal");
-  const [accountReady, setAccountReady] = useState(true);
+  const [accountReady, setAccountReady] = useState(false);
   useEffect(() => {
     if (!session?.user?.id) {
       setAccountReady(true);
       return;
     }
-    if (companyLoading) return;
+    if (companyLoading) {
+      setAccountReady(false);
+      return;
+    }
     let mounted = true;
     const applyAccount = (serverAccount) => {
       if (!mounted) return;
@@ -6080,7 +6083,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 <MobileFeedShortcuts activeView={view} onNavigate={navigate} />
                   <CompanyComposer onOpen={(mode) => openCompanyComposer(mode, null)} avatarUrl={activeProfileAvatar} initials={activeProfile.initials || CURRENT_USER.avatar} />
                 
-                <Story
+                {accountReady ? <Story
                   accountMode={activeAccount}
                   currentUser={{
                     name: activeProfile.name || CURRENT_USER.name,
@@ -6170,7 +6173,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     return "Action enregistrée";
                   }}
                   style={{ width: "100%" }}
-                />
+                /> : <SkeletonStoryRail count={6} spacing={14} showAddButton background={C.surface} />}
                 
                 {visibleFeedPosts.length === 0 ? (
                   <>

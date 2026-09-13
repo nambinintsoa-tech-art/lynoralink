@@ -16,6 +16,12 @@ export default function HomePage() {
   const [authTransition, setAuthTransition] = useState(null);
   const hasShownSplashRef = useRef(false);
 
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.id) {
+      router.replace("/feed");
+    }
+  }, [router, session?.user?.id, status]);
+
   const handleRemoveAccount = (account) => {
     if (account.id === session?.user?.id) return;
     if (!window.confirm(`Supprimer ${account.name} de cet appareil ?`)) return;
@@ -111,6 +117,14 @@ export default function HomePage() {
     );
   }
 
+  if (status === "authenticated" && session?.user?.id) {
+    return (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#5C7690" }}>
+        Ouverture de votre espace…
+      </div>
+    );
+  }
+
   if (status === "loading" || (status === "authenticated" && isLoadingAccounts) || (status === "authenticated" && !accounts.length)) {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#5C7690" }}>
@@ -126,7 +140,7 @@ export default function HomePage() {
         currentUserEmail={session?.user?.email || ""}
         onRemoveAccount={handleRemoveAccount}
         canRemoveAccount={(account) => account.id !== session?.user?.id}
-        onContinue={() => router.push("/feed")}
+        onContinue={() => router.replace("/feed")}
         onAddAccount={() => setAuthTransition("login")}
         onRegister={() => setAuthTransition("register")}
         onSignOut={() => signOut({ callbackUrl: "/" })}
