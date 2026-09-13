@@ -1801,15 +1801,17 @@ export default function Story({
         prev.map((g) => ({
           ...g,
           items: g.items.map((it) => (it.id === optimisticItem.id ? {
-            ...it,
-            id: data.id,
-            companyPageId: accountMode === "company" ? currentUser.id : null,
-            type: data.type || it.type,
-            mediaUrl: data.image ?? it.mediaUrl,
-            text: data.text ?? it.text,
-            bg: data.bg ?? it.bg,
-            privacy: data.privacy || payload.audience || "network",
-            createdAt: data.createdAt || it.createdAt,
+            ...normalizeItem({
+              ...it,
+              id: data.id,
+              companyPageId: accountMode === "company" ? currentUser.id : null,
+              type: data.type || it.type,
+              image: data.image ?? it.mediaUrl,
+              text: data.text ?? it.text,
+              bg: data.bg ?? it.bg,
+              privacy: data.privacy || payload.audience || "network",
+              createdAt: data.createdAt || it.createdAt,
+            }),
           } : it)),
         }))
       );

@@ -3294,7 +3294,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
     }
 
-    if (["feed", "profile", "settings", "network", "company", "saved", "my-posts", "my-articles", "groups", "pages", "trend", "abonnement"].includes(nextView)) {
+    if (["feed", "profile", "settings", "network", "company", "saved", "my-posts", "my-articles", "groups", "pages", "ai-assistant", "trend", "abonnement"].includes(nextView)) {
       setView(nextView);
     }
   }, [searchParams, pageCatalog, companyData, view]);

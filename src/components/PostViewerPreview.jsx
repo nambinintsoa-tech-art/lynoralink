@@ -422,9 +422,10 @@ function Avatar({ initials, size = 44, imgUrl = null, gradient = navyGrad, class
 }
 
 function ReactionIcon({ reaction = LIKE_REACTION, selected = false, size = 22 }) {
+  const resolvedReaction = typeof reaction === "string" ? reactionByKey(reaction) || LIKE_REACTION : reaction || LIKE_REACTION;
   return (
     <span style={{ width: size + 10, height: size + 10, borderRadius: "50%", border: selected ? `2px solid ${C.gold600}` : `1px solid ${C.line}`, background: selected ? "rgba(217,165,54,0.18)" : "#F8FBFF", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <img src={reaction.src} alt={reaction.label} style={{ width: size, height: size, objectFit: "contain", borderRadius: 6 }} />
+      <img src={resolvedReaction.src} alt={resolvedReaction.label} style={{ width: size, height: size, objectFit: "contain", borderRadius: 6 }} />
     </span>
   );
 }
