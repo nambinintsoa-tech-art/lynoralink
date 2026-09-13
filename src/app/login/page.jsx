@@ -10,6 +10,8 @@ import BrandName from "@/components/BrandName";
 import { fetchBackendApi } from "@/lib/backend-api";
 import { useEffect } from "react";
 
+const AUTH_CONNECTION_MESSAGE = "Nous ne parvenons pas à joindre le service pour le moment. Vérifiez votre connexion Internet, puis réessayez.";
+
 const getSafeRedirectTarget = (value) => {
   if (!value) return "/feed";
   const nextValue = value.trim();
@@ -78,7 +80,7 @@ function LoginPageContent() {
       } catch {
         setLoading(false);
         setLoadingMessage("");
-        setError("Le service de connexion met trop de temps à répondre. Réessayez dans un instant.");
+        setError(AUTH_CONNECTION_MESSAGE);
         return;
       }
       if (!challenge.ok) {
@@ -108,7 +110,7 @@ function LoginPageContent() {
     } catch {
       setLoading(false);
       setLoadingMessage("");
-      setError("La connexion a expiré. Vérifiez votre connexion puis réessayez.");
+      setError(AUTH_CONNECTION_MESSAGE);
       return;
     }
     if (res?.error) {
@@ -264,7 +266,7 @@ function LoginPageContent() {
                 Mot de passe oublié ?
               </Link>
 
-              {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+              {error && <p className={error === AUTH_CONNECTION_MESSAGE ? "rounded-lg border border-[#F1D990] bg-[#FFF9E8] px-3 py-2 text-xs font-medium text-navy800" : "text-xs font-medium text-red-600"} role="alert">{error}</p>}
               {loading && (
                 <div className="rounded-xl border border-[#F1D990] bg-[#FFF9E8] px-3 py-3" role="status" aria-live="polite">
                   <style>{`@keyframes login-progress-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(280%); } }`}</style>

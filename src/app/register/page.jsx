@@ -9,6 +9,8 @@ import { getPasswordRequirements } from "@/lib/passwordPolicy";
 import { fetchBackendApi } from "@/lib/backend-api";
 import VerificationCodeInput from "@/components/VerificationCodeInput";
 
+const AUTH_CONNECTION_MESSAGE = "Nous ne parvenons pas à joindre le service pour le moment. Vérifiez votre connexion Internet, puis réessayez.";
+
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: "", title: "", birthDate: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,7 @@ export default function RegisterPage() {
         }
         window.location.href = "/welcome";
       } catch {
-        setError("Impossible de confirmer votre adresse email.");
+        setError(AUTH_CONNECTION_MESSAGE);
       } finally {
         setLoading(false);
       }
@@ -132,7 +134,7 @@ export default function RegisterPage() {
       setVerificationEmail(form.email.trim());
       setVerificationStep(true);
     } catch {
-      setError("Le serveur est momentanément indisponible. Réessayez dans quelques instants.");
+      setError(AUTH_CONNECTION_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -319,7 +321,7 @@ export default function RegisterPage() {
                 </label>
               </div>}
 
-              {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+              {error && <p className={error === AUTH_CONNECTION_MESSAGE ? "rounded-lg border border-[#F1D990] bg-[#FFF9E8] px-3 py-2 text-xs font-medium text-navy800" : "text-xs font-medium text-red-600"} role="alert">{error}</p>}
               {success && <p className="text-xs font-medium text-green-600">{success}</p>}
               {success && (
                 <button type="button" onClick={handleResend} disabled={resending} className="text-xs font-semibold text-navy800 underline disabled:opacity-60">
