@@ -4343,7 +4343,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       setView("feed");
 
       if (view === "feed") {
-        setFeedContentReady(false);
         refreshFeedContent().finally(() => setFeedContentReady(true));
         window.history.replaceState({}, "", "/feed");
         return;

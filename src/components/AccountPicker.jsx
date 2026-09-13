@@ -898,10 +898,6 @@ export default function AccountPicker({
 
     if (shouldContinue || rememberMeEnabled) {
       onContinue?.(id);
-
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/feed")) {
-        window.location.assign("/feed");
-      }
     }
   };
 
@@ -960,9 +956,6 @@ export default function AccountPicker({
       setPasswordModalOpen(false);
       setPassword("");
       finalizeSelection(pendingAccountId, true);
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/feed")) {
-        window.location.assign("/feed");
-      }
       return;
     }
 

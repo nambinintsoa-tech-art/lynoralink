@@ -9,7 +9,7 @@ import NativePushNotificationManager from "./NativePushNotificationManager";
 
 export default function Providers({ children, session }) {
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} refetchOnWindowFocus={false} refetchWhenOffline={false}>
       <ToastProvider>
         <BrowserNotificationManager />
         <NativePushNotificationManager />

@@ -752,7 +752,7 @@ export const TopNav = forwardRef(function TopNav({
                         onClick={() => setMenuOpen(false)}
                         aria-label="Fermer le menu profil"
                         className="tn-profile-menu-close"
-                        style={{ position: "absolute", top: 12, right: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: 10, background: "rgba(255,255,255,0.12)", color: C.white, cursor: "pointer" }}
+                        style={{ position: "absolute", top: 12, right: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}`, borderRadius: 10, background: C.navy50, color: C.navy800, cursor: "pointer" }}
                       >
                         <X size={20} />
                       </button>

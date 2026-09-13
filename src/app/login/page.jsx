@@ -13,9 +13,9 @@ import { useEffect } from "react";
 const AUTH_CONNECTION_MESSAGE = "Nous ne parvenons pas à joindre le service pour le moment. Vérifiez votre connexion Internet, puis réessayez.";
 
 const getSafeRedirectTarget = (value) => {
-  if (!value) return "/feed";
+  if (!value || value === "/") return "/feed";
   const nextValue = value.trim();
-  if (!nextValue.startsWith("/")) return "/feed";
+  if (!nextValue.startsWith("/") || nextValue === "/") return "/feed";
   return nextValue;
 };
 
