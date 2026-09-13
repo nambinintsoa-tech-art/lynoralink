@@ -409,6 +409,7 @@ export const TopNav = forwardRef(function TopNav({
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [containerWidth, setContainerWidth] = useState(0);
+  const [hasMeasured, setHasMeasured] = useState(false);
   const headerRef = useRef(null);
   const profileMenuRef = useRef(null);
   const inputRef = useRef(null);
@@ -479,6 +480,7 @@ export const TopNav = forwardRef(function TopNav({
     const measure = () => {
       const rect = el.getBoundingClientRect();
       setContainerWidth(rect.width);
+      setHasMeasured(true);
       document.documentElement.style.setProperty("--lynora-scrollbar-width", `${Math.max(0, window.innerWidth - document.documentElement.clientWidth)}px`);
       document.documentElement.style.setProperty("--lynora-header-offset", `${rect.height}px`);
     };
@@ -486,6 +488,7 @@ export const TopNav = forwardRef(function TopNav({
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setContainerWidth(entry.contentRect.width);
+        setHasMeasured(true);
         document.documentElement.style.setProperty("--lynora-scrollbar-width", `${Math.max(0, window.innerWidth - document.documentElement.clientWidth)}px`);
         document.documentElement.style.setProperty("--lynora-header-offset", `${entry.target.getBoundingClientRect().height}px`);
       }
@@ -559,6 +562,7 @@ export const TopNav = forwardRef(function TopNav({
           right: 0,
           zIndex: 60,
           isolation: "isolate",
+          visibility: hasMeasured ? "visible" : "hidden",
           fontFamily: "'Inter', sans-serif",
           background: C.white,
           borderBottom: `1px solid ${C.border}`,

@@ -245,6 +245,15 @@ function normalizeMedia(raw) {
   return Array.isArray(raw) ? raw : [raw];
 }
 
+function getVideoPoster(src, explicitPoster = null) {
+  const poster = explicitPoster || null;
+  if (poster) return poster;
+  if (!src || typeof src !== "string" || !/\/video\/upload\//i.test(src)) return null;
+  return src
+    .replace(/\/video\/upload\//i, "/video/upload/so_0,f_jpg,q_auto/")
+    .replace(/\.(mp4|webm|mov|m4v)(?=($|[?#]))/i, ".jpg");
+}
+
 function sponsoredTarget(post) {
   const rawWebsite = String(post.website || "").trim();
   if (rawWebsite) {
@@ -633,6 +642,7 @@ function requestVideoFullscreen(node) {
 
 function VideoTile({
   src,
+  poster = null,
   label,
   size = "md",
   interactive = true,
@@ -754,6 +764,7 @@ function VideoTile({
         <video
           ref={videoRef}
           src={src}
+          poster={getVideoPoster(src, poster)}
           autoPlay
           muted={isMuted}
           playsInline
@@ -776,7 +787,7 @@ function VideoTile({
         <video
           ref={videoRef}
           src={src}
-          autoPlay
+          poster={getVideoPoster(src, poster)}
           muted={isMuted}
           loop
           playsInline
@@ -847,6 +858,7 @@ function VideoTile({
         ref={videoRef}
         className="pc-video-frame"
         src={src}
+        poster={getVideoPoster(src, poster)}
         preload="metadata"
         muted={isMuted}
         playsInline
@@ -982,6 +994,7 @@ function MediaGallery({ items, onOpenPost }) {
         <VideoTile
           key={index}
           src={item.url}
+          poster={getVideoPoster(item.url, item.poster || item.thumbnail || item.thumbnailUrl || item.posterUrl)}
           label={item.label}
           size={opts.size || (style.objectFit ? "lg" : "md")}
           hoverPreview={Boolean(opts.hoverPreview)}
@@ -1031,6 +1044,7 @@ function MediaGallery({ items, onOpenPost }) {
           width: "100%",
           minHeight: SINGLE_MEDIA_MIN_HEIGHT,
           maxHeight: SINGLE_MEDIA_MAX_HEIGHT,
+          aspectRatio: single?.type === "video" ? "16 / 9" : undefined,
           background: singleBg,
           display: "flex",
           alignItems: "center",
@@ -1755,6 +1769,7 @@ function CommentItem({ comment, currentUser, onToggleLike, onToggleCommentReacti
                       /* Vidéo de commentaire façon Facebook : vignette + lecture en place */
                       <VideoTile
                         src={m.url}
+                        poster={getVideoPoster(m.url, m.poster || m.thumbnail || m.thumbnailUrl || m.posterUrl)}
                         label={m.label}
                         objectFit="cover"
                         maxHeight={120}
@@ -2250,6 +2265,7 @@ function CommentSection({ post, currentUser, onAddComment, onReplyComment, onTog
               {media.type === "video" ? (
                 <VideoTile
                   src={media.url}
+                  poster={getVideoPoster(media.url, media.poster || media.thumbnail || media.thumbnailUrl || media.posterUrl)}
                   label={media.label}
                   size="sm"
                   interactive={false}

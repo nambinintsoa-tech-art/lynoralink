@@ -99,6 +99,15 @@ function normalizeMedia(raw) {
     return { ...item, url, type };
   }).filter((item) => item?.url || item?.label || item?.name);
 }
+
+function getVideoPoster(src, explicitPoster = null) {
+  const poster = explicitPoster || null;
+  if (poster) return poster;
+  if (!src || typeof src !== "string" || !/\/video\/upload\//i.test(src)) return null;
+  return src
+    .replace(/\/video\/upload\//i, "/video/upload/so_0,f_jpg,q_auto/")
+    .replace(/\.(mp4|webm|mov|m4v)(?=($|[?#]))/i, ".jpg");
+}
 function getCommentMedia(comment) {
   if (Array.isArray(comment?.media)) return comment.media.filter((item) => item && item.url);
   const mediaData = comment?.mediaData ?? comment?.media;
@@ -447,7 +456,7 @@ function requestVideoFullscreen(node) {
   }
 }
 
-function ViewerVideo({ src, label, style = {} }) {
+function ViewerVideo({ src, poster = null, label, style = {} }) {
   const videoRef = useRef(null);
   const [started, setStarted] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -537,10 +546,11 @@ function ViewerVideo({ src, label, style = {} }) {
 
   if (isMobileView || started) {
     return (
-      <div style={{ position: "relative", width: "100%", overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", height: "100%", aspectRatio: "16 / 9", overflow: "hidden" }}>
         <video
           ref={videoRef}
           src={src}
+          poster={getVideoPoster(src, poster)}
           autoPlay
           muted={isMuted}
           playsInline
@@ -550,7 +560,7 @@ function ViewerVideo({ src, label, style = {} }) {
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
-          style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "none", objectFit: "contain", display: "block", background: "transparent", margin: "0 auto", ...style }}
+          style={{ width: "100%", maxWidth: "100%", height: "100%", maxHeight: "none", objectFit: "contain", display: "block", background: "transparent", margin: "0 auto", ...style }}
         />
         {controls}
       </div>
@@ -592,7 +602,8 @@ function ViewerVideo({ src, label, style = {} }) {
       style={{
         position: "relative",
         width: "100%",
-        height: "auto",
+        height: "100%",
+        aspectRatio: "16 / 9",
         maxHeight: "none",
         background: isMobileView ? "transparent" : "#000",
         overflow: "visible",
@@ -607,13 +618,14 @@ function ViewerVideo({ src, label, style = {} }) {
         ref={videoRef}
         className="pv-video-frame"
         src={src}
+        poster={getVideoPoster(src, poster)}
         preload="metadata"
         muted={isMuted}
         playsInline
         aria-hidden="true"
         tabIndex={-1}
         onLoadedMetadata={(e) => setDuration(e.currentTarget?.duration)}
-        style={{ width: "100%", height: "auto", objectFit: "contain", display: "block", pointerEvents: "none" }}
+        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", pointerEvents: "none" }}
       />
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "rgba(4,10,24,0.12)", pointerEvents: "none" }} />
       {previewing && (
@@ -753,7 +765,7 @@ function MediaGallery({ items = [] }) {
       background: "#000",
       margin: "0 auto",
     };
-    if (item.type === "video") return <ViewerVideo key={index} src={item.url} label={item.label} />;
+    if (item.type === "video") return <ViewerVideo key={index} src={item.url} poster={item.poster || item.thumbnail || item.thumbnailUrl || item.posterUrl} label={item.label} />;
     return <img key={index} src={item.url} alt={item.label || `M\u00e9dia ${index + 1}`} style={mediaStyle} />;
   };
   return (
@@ -765,6 +777,7 @@ function MediaGallery({ items = [] }) {
           minHeight: 0,
           height: "auto",
           maxHeight: "none",
+          aspectRatio: currentItem?.type === "video" ? "16 / 9" : undefined,
           background: "#000",
           display: "flex",
           alignItems: "center",
@@ -2138,8 +2151,9 @@ export default function PostViewerPreview({
           }
           /* Média plein cadre */
           .post-viewer-media { min-height: 0 !important; max-height: none !important; height: auto !important; overflow: visible !important; border-radius: 0 !important; }
-          .post-viewer-media img, .post-viewer-media video { width: 100% !important; max-width: 100% !important; max-height: none !important; height: auto !important; object-fit: contain !important; }
-          .post-viewer-media .pv-video-stage { height: auto !important; max-height: none !important; border-radius: 0 !important; }
+          .post-viewer-media img { width: 100% !important; max-width: 100% !important; max-height: none !important; height: auto !important; object-fit: contain !important; }
+          .post-viewer-media video { width: 100% !important; max-width: 100% !important; max-height: none !important; height: 100% !important; object-fit: contain !important; }
+          .post-viewer-media .pv-video-stage { height: 100% !important; max-height: none !important; border-radius: 0 !important; }
           .post-viewer-media .pv-video-stage .pv-video-frame,
           .post-viewer-media .pv-video-stage video {
             width: 100% !important;
