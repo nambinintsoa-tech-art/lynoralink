@@ -164,6 +164,26 @@ const STYLE_CSS = `
   .lynora-skeleton-menu > * { width: 100% !important; height: 48px !important; border-radius: 0 !important; }
   .lynora-skeleton-group-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
 }
+@media (min-width: 769px) and (max-width: 1024px) {
+  .lynora-groups-grid-skeleton .lynora-skeleton-groups-shell {
+    height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+    min-height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+  }
+  .lynora-groups-grid-skeleton .lynora-skeleton-groups-sidebar {
+    display: flex !important;
+    flex: 0 0 360px !important;
+    width: 360px !important;
+    height: calc(100dvh - var(--lynora-header-offset, 0px)) !important;
+    padding: 18px 12px 24px !important;
+    overflow-y: auto !important;
+  }
+  .lynora-groups-grid-skeleton .lynora-skeleton-groups-content {
+    width: calc(100% - 360px) !important;
+    padding: 20px 28px 64px !important;
+    overflow-y: auto !important;
+  }
+  .lynora-groups-grid-skeleton .lynora-skeleton-menu { display: none !important; }
+}
 @media (max-width: 560px) {
   .lyn-shimmer,
   .lyn-pulse {

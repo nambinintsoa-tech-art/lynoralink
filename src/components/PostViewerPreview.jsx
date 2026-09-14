@@ -190,6 +190,29 @@ function FileViewerBanner({ post }) {
   const fileUrl = file?.url || file?.fileUrl || post?.fileUrl;
   const fileName = file?.name || file?.fileName || post?.fileName || "Fichier partag\u00e9";
   const fileSize = file?.size || post?.fileSize || file?.mimeType || "Document partag\u00e9 par le groupe";
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = async () => {
+    if (!fileUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const downloadPath = post?.groupId && file?.id
+        ? `/api/groups/${encodeURIComponent(post.groupId)}/files/${encodeURIComponent(file.id)}/download`
+        : fileUrl;
+      const response = await fetchBackendApi(downloadPath);
+      if (!response.ok) throw new Error("download failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div style={{ margin: "0 16px 16px", padding: "28px 24px 22px", display: "flex", flexDirection: "column", alignItems: "center", gap: 13, border: `1px solid ${LI_BORDER}`, borderRadius: 12, background: "linear-gradient(145deg, #F7FAFC 0%, var(--app-bg) 100%)", textAlign: "center" }}>
@@ -200,7 +223,7 @@ function FileViewerBanner({ post }) {
         <div style={{ color: LI_TEXT, fontSize: 16, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fileName}</div>
         <div style={{ marginTop: 5, color: LI_SECONDARY, fontSize: 13 }}>{fileSize}</div>
       </div>
-      {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={fileName} aria-label={`T\u00e9l\u00e9charger ${fileName}`} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 9, background: C.navy800, color: C.white, fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}><Download size={16} /> T\u00e9l\u00e9charger</a>}
+      {fileUrl && <button type="button" onClick={handleDownload} disabled={downloading} aria-label={`T\u00e9l\u00e9charger ${fileName}`} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", border: "none", borderRadius: 9, background: C.navy800, color: C.white, fontSize: 12.5, fontWeight: 700, cursor: downloading ? "wait" : "pointer" }}><Download size={16} /> {downloading ? "T\u00e9l\u00e9chargement..." : "T\u00e9l\u00e9charger"}</button>}
     </div>
   );
 }

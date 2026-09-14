@@ -529,16 +529,40 @@ function EventBanner({ post, onJoinEvent, onOpenEvent }) {
   );
 }
 
-function FileBanner({ post, onOpenPost }) {
+function FileBanner({ post, onOpenPost, group }) {
   const file = post.file || post.attachment || post;
   const fileUrl = file.url || file.fileUrl || post.fileUrl;
   const fileName = file.name || file.fileName || post.fileName || "Fichier partagé";
   const fileSize = file.size || post.fileSize;
+  const [downloading, setDownloading] = useState(false);
   const canOpen = Boolean(onOpenPost);
   const handleKeyDown = (event) => {
     if (!canOpen || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     onOpenPost(post);
+  };
+  const handleDownload = async (event) => {
+    event.stopPropagation();
+    if (!fileUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const downloadPath = group?.id && file?.id
+        ? `/api/groups/${encodeURIComponent(group.id)}/files/${encodeURIComponent(file.id)}/download`
+        : fileUrl;
+      const response = await fetchBackendApi(downloadPath);
+      if (!response.ok) throw new Error("download failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -558,10 +582,10 @@ function FileBanner({ post, onOpenPost }) {
         <div style={{ marginTop: 4, color: C.muted, fontSize: 12 }}>{fileSize || file.mimeType || "Document partagé par le groupe"}</div>
       </div>
       {fileUrl && (
-        <a href={fileUrl} target="_blank" rel="noreferrer" download={fileName} aria-label={`Télécharger ${fileName}`} onClick={(event) => event.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 2, padding: "8px 12px", borderRadius: 9, background: C.white, color: C.navy800, fontSize: 12, fontWeight: 700, textDecoration: "none", boxShadow: `0 2px 8px ${C.navy800}12` }}>
+        <button type="button" onClick={handleDownload} disabled={downloading} aria-label={`Télécharger ${fileName}`} style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 2, padding: "8px 12px", border: "none", borderRadius: 9, background: C.white, color: C.navy800, fontSize: 12, fontWeight: 700, cursor: downloading ? "wait" : "pointer", boxShadow: `0 2px 8px ${C.navy800}12` }}>
           <Download size={16} />
-          Télécharger
-        </a>
+          {downloading ? "Téléchargement..." : "Télécharger"}
+        </button>
       )}
     </div>
   );
@@ -3838,7 +3862,7 @@ export default function PostCard({
         ) : isFilePost(post) ? (
           <>
             <PostText text={post.text || post.fileDescription || post.file?.description || post.attachment?.description} />
-            <FileBanner post={post} onOpenPost={onOpenPost} />
+            <FileBanner post={post} onOpenPost={onOpenPost} group={group} />
             {mediaItems.length > 0 && (
               <div style={{ padding: "0 0 4px" }}>
                 <MediaGallery items={mediaItems} onOpenPost={onOpenPost ? () => onOpenPost(post) : null} />
