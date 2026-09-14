@@ -1512,7 +1512,7 @@ const SidebarAdCard = React.memo(function SidebarAdCard({ ad, index, onAdClick, 
 
 /*  SIDEBAR DROITE — SUGGESTIONS + ACTUALITÉS + GROUPES RECOMMANDÉS    */
 /* ------------------------------------------------------------------ */
-function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, incomingInvitations = [], onConnect, onCancel, onConfirm, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, onMessage, accountMode = "personal", birthdays = [] }) {
+function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, incomingInvitations = [], onConnect, onCancel, onConfirm, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, onMessage, accountMode = "personal", birthdays = [], networkLoading = false }) {
   const isPageMode = accountMode === "company";
   const [joiningGroupId, setJoiningGroupId] = useState(null);
   const openSuggestions = () => onNavigate?.(isPageMode ? "company-grid" : "network", { tab: "suggestions" });
@@ -1576,6 +1576,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
     }, 30000);
     return () => window.clearInterval(rotationTimer);
   }, [displayedAds.length, displayedAds.map((ad) => ad.id).join(",")]);
+  if (networkLoading) return <RightSidebarSkeleton />;
   const suggestedGroups = groups
     .filter((group) => !isGroupMember(group, currentUserId))
     .slice(0, 3);
@@ -3471,8 +3472,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [initialPosts]);
 
   // Réseau
-  const [connections, setConnections] = useState(MY_CONNECTIONS);
-  const [invitations, setInvitations] = useState(PENDING_INVITATIONS);
+  const [connections, setConnections] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [networkBadgeDismissed, setNetworkBadgeDismissed] = useState(false);
   const [groupBadgeDismissed, setGroupBadgeDismissed] = useState(false);
   const [companyBadgeDismissed, setCompanyBadgeDismissed] = useState(false);
@@ -3782,6 +3783,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const loadRelations = async () => {
       try {
         await fetchRelations();
+        await fetchSuggestions();
         if (!active) return;
       } catch (error) {
         // fallback to empty lists if the API is unavailable
@@ -3938,7 +3940,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setMessagesLoading(true);
     fetchMessages().finally(() => setMessagesLoading(false));
     const messagesInterval = setInterval(fetchMessages, 30000);
-    fetchSuggestions();
     fetchCompanyPages();
     fetchFollowedPages();
     fetchGroups();
@@ -6474,6 +6475,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   pageSuggestions={pageSuggestions}
                   accountMode={activeAccount}
                   connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
+                  networkLoading={networkLoading}
                   followedPageIds={followedPageIds}
                   onOpenProfile={openUserProfile}
                   pendingRequestIds={pendingSuggestionIds}

@@ -29,7 +29,7 @@ function TriggerAction({ icon, label, color, onClick }) {
       onMouseEnter={(event) => { event.currentTarget.style.background = C.navy50; }}
       onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
     >
-      <FontAwesomeIcon icon={icon} style={{ fontSize: 19, color }} />
+      <FontAwesomeIcon icon={icon} style={{ width: 19, height: 19, flex: "0 0 19px", fontSize: 19, color }} />
       {label}
     </button>
   );
