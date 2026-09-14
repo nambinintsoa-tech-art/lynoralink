@@ -9,14 +9,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  if (status === "loading") {
-    return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#EFF4F9", color: "#5C7488" }}>
-        Chargement du tableau de bord...
-      </div>
-    );
-  }
-
   const profile = {
     id: session?.user?.id || null,
     name: session?.user?.name || "Utilisateur",
@@ -66,9 +58,16 @@ export default function DashboardPage() {
               router.push(`/feed?view=feed&search=${encodeURIComponent(query.trim())}`);
             }
           }}
+          profileLoading={status === "loading"}
         />
         <div style={{ background: "#EFF4F9", paddingTop: "var(--lynora-header-offset)" }}>
-          <UserDashboard profile={profile} />
+          {status === "loading" ? (
+            <div aria-busy="true" style={{ minHeight: "calc(100vh - var(--lynora-header-offset))", display: "grid", placeItems: "center", color: "#5C7488" }}>
+              Chargement du tableau de bord...
+            </div>
+          ) : (
+            <UserDashboard profile={profile} />
+          )}
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
   }, []);
 
   return (
-    <div className="lynora-skeleton-feed-shell" style={{ minHeight: "100dvh", paddingTop: profileView ? 0 : "var(--lynora-header-offset, 96px)", background: "#EFF4F9" }}>
+    <div className="lynora-skeleton-feed-shell" style={{ minHeight: "100dvh", background: "#EFF4F9" }}>
       <TopNav
         profile={profile}
         view="feed"

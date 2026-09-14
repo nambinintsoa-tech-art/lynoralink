@@ -562,7 +562,7 @@ export const TopNav = forwardRef(function TopNav({
           right: 0,
           zIndex: 60,
           isolation: "isolate",
-          visibility: hasMeasured ? "visible" : "hidden",
+          visibility: "visible",
           fontFamily: "'Inter', sans-serif",
           background: C.white,
           borderBottom: `1px solid ${C.border}`,

@@ -1242,26 +1242,44 @@ export function GroupsGridSkeleton({ count = 6 }) {
       <div className="lynora-skeleton-groups-shell" style={{ display: "flex", width: "100%", minHeight: "100dvh" }}>
         <aside className="lynora-skeleton-groups-sidebar" style={{ width: 360, flexShrink: 0, padding: "18px 12px", background: C.white, borderRight: `1px solid ${C.line}`, boxSizing: "border-box" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <Skeleton width={110} height={25} radius={7} />
+            <Skeleton width={112} height={29} radius={7} />
             <Skeleton width={32} height={32} radius={16} />
           </div>
           <Skeleton width="100%" height={40} radius={20} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
-            {[1, 2, 3].map((item) => <Skeleton key={item} width="100%" height={40} radius={10} />)}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 16 }}>
+            {[1, 2, 3].map((item) => (
+              <div key={item} style={{ display: "flex", alignItems: "center", gap: 12, height: 52, padding: "10px 12px", boxSizing: "border-box" }}>
+                <Skeleton width={32} height={32} radius={16} />
+                <Skeleton width={`${42 + item * 8}%`} height={13} radius={5} />
+              </div>
+            ))}
           </div>
           <Skeleton width="100%" height={40} radius={8} style={{ marginTop: 12 }} />
-          <Skeleton width={150} height={14} radius={5} style={{ margin: "22px 4px 10px" }} />
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <Skeleton width={166} height={15} radius={5} style={{ margin: "22px 4px 10px" }} />
+          {[1, 2, 3].map((item) => (
+            <div key={item} style={{ display: "flex", alignItems: "center", gap: 12, height: 56, padding: "8px 4px", boxSizing: "border-box" }}>
               <SkeletonAvatar size={40} radius={8} />
-              <Skeleton width="65%" height={12} radius={5} />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="78%" height={12} radius={5} />
+                <Skeleton width="52%" height={9} radius={4} style={{ marginTop: 7 }} />
+              </div>
+            </div>
+          ))}
+          <Skeleton width={166} height={15} radius={5} style={{ margin: "14px 4px 10px" }} />
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} style={{ display: "flex", alignItems: "center", gap: 12, height: 56, padding: "8px 4px", boxSizing: "border-box" }}>
+              <SkeletonAvatar size={40} radius={8} />
+              <div style={{ flex: 1 }}>
+                <Skeleton width={`${58 + (item % 3) * 10}%`} height={12} radius={5} />
+                <Skeleton width="48%" height={9} radius={4} style={{ marginTop: 7 }} />
+              </div>
             </div>
           ))}
         </aside>
 
         <main className="lynora-skeleton-groups-content" style={{ flex: 1, minWidth: 0, width: "100%", padding: "20px 28px 64px", boxSizing: "border-box" }}>
           <div className="lynora-skeleton-groups-feed" style={{ width: "100%", maxWidth: 700, margin: 0 }}>
-            <div className="lynora-skeleton-menu"><Skeleton width={150} height={42} radius={8} /></div>
+            <div className="lynora-skeleton-menu"><Skeleton width="100%" height={48} radius={0} /></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ padding: 16, border: `1px solid ${C.line}`, borderRadius: 8, background: C.white }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>

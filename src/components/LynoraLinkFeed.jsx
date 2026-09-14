@@ -3413,6 +3413,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
   useEffect(() => {
     const controller = new AbortController();
+    const handleOffline = () => setFeedLoadError("Connexion Internet interrompue. Vérifiez votre réseau puis cliquez sur Réessayer.");
 
     const loadPosts = async () => {
       if (!Array.isArray(initialPosts) || initialPosts.length === 0) {
@@ -3436,9 +3437,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       } catch (error) {
         if (error.name !== "AbortError") {
           console.error("Erreur de chargement du feed:", error);
-          if (!controller.signal.aborted) setFeedLoadError("Le feed est momentanément indisponible. Vérifiez votre connexion puis réessayez.");
+          if (!controller.signal.aborted) {
+            setFeedLoadError(window.navigator.onLine
+              ? "Le feed est momentanément indisponible. Vérifiez votre connexion puis réessayez."
+              : "Connexion Internet interrompue. Vérifiez votre réseau puis cliquez sur Réessayer.");
+          }
         } else if (timedOut) {
-          setFeedLoadError("Le chargement du feed a expiré. Vérifiez votre connexion puis réessayez.");
+          setFeedLoadError("La connexion au serveur a expiré. Vérifiez votre réseau puis cliquez sur Réessayer.");
         }
       } finally {
         window.clearTimeout(timeoutId);
@@ -3453,10 +3458,12 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         loadPosts();
       }
     };
+    window.addEventListener("offline", handleOffline);
     window.addEventListener("lynoralink:posts-updated", handlePostsUpdated);
     window.addEventListener("lynoralink:sync", handleRealtimeSync);
     loadPosts();
     return () => {
+      window.removeEventListener("offline", handleOffline);
       window.removeEventListener("lynoralink:posts-updated", handlePostsUpdated);
       window.removeEventListener("lynoralink:sync", handleRealtimeSync);
       controller.abort();
