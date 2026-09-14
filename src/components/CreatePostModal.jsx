@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useImperativeHandle, useInsertionEffect, useMemo, useRef, useState } from "react";
 import {
   X, Globe, ChevronDown, MessageSquare, Pencil, Bold, Italic, Heading1, Heading2,
   Quote, List, ListOrdered, Link2, Code2, Minus, Highlighter, AlignLeft,
@@ -83,6 +83,12 @@ const CREATE_POST_MODAL_CSS = `
 
   .cpm-icon-btn { transition: background 150ms ease, color 150ms ease; }
   .cpm-icon-btn:hover { background: ${C.navy50}; }
+  .cpm-mode-tab > svg,
+  .cpm-media-opt > svg,
+  .cpm-icon-btn > svg,
+  .cpm-close-btn > svg { width: 17px; height: 17px; flex: 0 0 17px; }
+  .cpm-mode-tab > svg { width: 15px; height: 15px; flex-basis: 15px; }
+  .cpm-media-opt > svg { width: 17px; height: 17px; flex-basis: 17px; }
 
   .cpm-chip { transition: background 150ms ease, color 150ms ease, transform 150ms ease; }
   .cpm-chip:hover { transform: translateY(-1px); }
@@ -1545,7 +1551,7 @@ export default function CreatePostModal({
   const estMinutes = Math.max(1, Math.round(words / 200));
   const isUploading = media.some((m) => m.status === "uploading");
 
-  useEffect(() => {
+  useInsertionEffect(() => {
     if (typeof document === "undefined") return undefined;
     const styleTag = document.createElement("style");
     styleTag.setAttribute("data-create-post-modal", "true");

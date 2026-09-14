@@ -36,7 +36,7 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
   }, []);
 
   return (
-    <div className="lynora-skeleton-feed-shell" style={{ minHeight: "100dvh", background: "#EFF4F9" }}>
+    <div className="lynora-skeleton-feed-shell" style={{ minHeight: "100dvh", paddingTop: "var(--lynora-header-offset, 96px)", background: "#EFF4F9" }}>
       <TopNav
         profile={profile}
         view="feed"
@@ -51,13 +51,13 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
         }}
       />
 
-      {loadingView === "profile" || loadingView === "settings" ? <main aria-hidden="true" className="lynora-profile-loading-main" style={{ maxWidth: 1400, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 16px 24px", pointerEvents: "none" }}><ProfileSkeleton /></main>
-        : loadingView === "network" ? <main aria-hidden="true" style={{ maxWidth: 1000, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><NetworkSkeleton /></main>
-          : loadingView === "groups" ? <main aria-hidden="true" style={{ paddingTop: "var(--lynora-header-offset, 96px)", pointerEvents: "none" }}><GroupsGridSkeleton /></main>
-            : loadingView === "company" ? <main aria-hidden="true" style={{ maxWidth: 1400, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><CompanySkeleton /></main>
-              : loadingView === "abonnement" ? <main aria-hidden="true" style={{ maxWidth: 1200, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><SubscriptionSkeleton /></main>
-                : loadingView === "messages" ? <main aria-hidden="true" style={{ maxWidth: 900, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><MessagesSkeleton /></main>
-                  : loadingView === "notifications" ? <main aria-hidden="true" style={{ maxWidth: 520, margin: "0 auto", padding: "calc(var(--lynora-header-offset, 96px) + 24px) 20px 60px", pointerEvents: "none" }}><NotificationsSkeleton /></main>
+      {loadingView === "profile" || loadingView === "settings" ? <main aria-hidden="true" className="lynora-profile-loading-main" style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px", pointerEvents: "none" }}><ProfileSkeleton /></main>
+        : loadingView === "network" ? <main aria-hidden="true" style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 20px 60px", pointerEvents: "none" }}><NetworkSkeleton /></main>
+          : loadingView === "groups" ? <main aria-hidden="true" style={{ pointerEvents: "none" }}><GroupsGridSkeleton /></main>
+            : loadingView === "company" ? <main aria-hidden="true" style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 20px 60px", pointerEvents: "none" }}><CompanySkeleton /></main>
+              : loadingView === "abonnement" ? <main aria-hidden="true" style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 60px", pointerEvents: "none" }}><SubscriptionSkeleton /></main>
+                : loadingView === "messages" ? <main aria-hidden="true" style={{ maxWidth: 900, margin: "0 auto", padding: "24px 20px 60px", pointerEvents: "none" }}><MessagesSkeleton /></main>
+                  : loadingView === "notifications" ? <main aria-hidden="true" style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px 60px", pointerEvents: "none" }}><NotificationsSkeleton /></main>
                     : <div aria-hidden="true" style={{ maxWidth: 1400, width: "100%", margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0, 1fr) 320px", gap: 32, alignItems: "start", padding: "28px 20px 60px", pointerEvents: "none" }} className="lynora-grid lynora-feed-container lynora-skeleton-feed-grid">
         <aside aria-label="Chargement de la navigation latérale" style={{ minWidth: 0 }}>
           <LeftSidebarSkeleton />
