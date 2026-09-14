@@ -39,14 +39,14 @@ export default function AccountDeletionPage() {
         <section style={sectionStyle}>
           <h2 style={{ margin: "0 0 12px", fontSize: 21 }}>Impossible d&apos;accéder à votre compte ?</h2>
           <p style={{ margin: 0, color: "#526B82", fontSize: 15, lineHeight: 1.7 }}>
-            Contactez notre équipe à <a href="mailto:support@lynoralink.com" style={{ color: "#1B5386", fontWeight: 700 }}>support@lynoralink.com</a> depuis l&apos;adresse e-mail associée au compte. Indiquez votre nom et l&apos;adresse e-mail du compte afin que nous puissions vérifier la demande.
+            Contactez notre équipe à <a href="mailto:contact@lynoralink.com" style={{ color: "#1B5386", fontWeight: 700 }}>contact@lynoralink.com</a> depuis l&apos;adresse e-mail associée au compte. Indiquez votre nom et l&apos;adresse e-mail du compte afin que nous puissions vérifier la demande.
           </p>
         </section>
 
         <section style={sectionStyle}>
           <h2 style={{ margin: "0 0 12px", fontSize: 21 }}>Account deletion instructions</h2>
           <p style={{ margin: 0, color: "#526B82", fontSize: 15, lineHeight: 1.7 }}>
-            To permanently delete your LynoraLink account, sign in, open <strong>Settings &gt; Data</strong>, select <strong>Delete my account</strong>, and confirm with your current password. This permanently removes your profile, posts, connections, messages, and associated account data. If you cannot sign in, email <a href="mailto:support@lynoralink.com" style={{ color: "#1B5386", fontWeight: 700 }}>support@lynoralink.com</a> from the email address linked to your account.
+            To permanently delete your LynoraLink account, sign in, open <strong>Settings &gt; Data</strong>, select <strong>Delete my account</strong>, and confirm with your current password. This permanently removes your profile, posts, connections, messages, and associated account data. If you cannot sign in, email <a href="mailto:contact@lynoralink.com" style={{ color: "#1B5386", fontWeight: 700 }}>contact@lynoralink.com</a> from the email address linked to your account.
           </p>
         </section>
 
