@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, X } from "lucide-react";
+import { appUrl } from "@/lib/app-url";
 
 /**
  * AccountPicker — LynoraLink
@@ -1250,7 +1251,7 @@ export default function AccountPicker({
                   className="ll-link-btn"
                   onClick={() =>
                     window.location.assign(
-                      `/reset-password?email=${encodeURIComponent(pendingAccountEmail || currentUserEmail)}`
+                      appUrl(`/reset-password?email=${encodeURIComponent(pendingAccountEmail || currentUserEmail)}`)
                     )
                   }
                 >

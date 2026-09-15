@@ -8,6 +8,7 @@ import { Eye, EyeOff, Loader2, Mail, Zap, Users, TrendingUp } from "lucide-react
 import LogoBadge from "@/components/LogoBadge";
 import BrandName from "@/components/BrandName";
 import { fetchBackendApi } from "@/lib/backend-api";
+import { appUrl } from "@/lib/app-url";
 import { useEffect } from "react";
 
 const AUTH_CONNECTION_MESSAGE = "Nous ne parvenons pas à joindre le service pour le moment. Vérifiez votre connexion Internet, puis réessayez.";
@@ -260,7 +261,7 @@ function LoginPageContent() {
                 />
               )}
               <Link
-                href={`/reset-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`}
+                href={appUrl(`/reset-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`)}
                 className="self-end text-xs font-semibold text-navy700 hover:text-navy900"
               >
                 Mot de passe oublié ?
