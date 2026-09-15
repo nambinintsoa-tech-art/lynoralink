@@ -12,6 +12,7 @@ import {
 import ReactionPicker from "./ReactionPicker";
 import { SkeletonStoryRail } from "./StorySkeleton";
 import { fetchBackendApi } from "@/lib/backend-api";
+import { useRelativeTime } from "@/hooks/useRelativeTime";
 
 /* ================================================================== *
  *  STORY — Composant professionnel réutilisable                         *
@@ -95,15 +96,6 @@ const STORY_PRIVACY_OPTIONS = [
   { id: "close", label: "Contacts proches", description: "Votre cercle proche", icon: Lock },
   { id: "private", label: "Moi uniquement", description: "Personne d'autre", icon: Eye },
 ];
-
-function timeAgo(ts) {
-  const diffMin = Math.floor((Date.now() - ts) / 60000);
-  if (diffMin < 1) return "a l'instant";
-  if (diffMin < 60) return `${diffMin} min`;
-  const h = Math.floor(diffMin / 60);
-  if (h < 24) return `${h} h`;
-  return `${Math.floor(h / 24)} j`;
-}
 
 function uid(prefix = "id") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -858,6 +850,7 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
 
   const group = groups[groupIndex];
   const item = group?.items[itemIndex];
+  const storyTime = useRelativeTime(item?.createdAt);
   const isOwn = group?.user.id === currentUserId;
   const isVideo = item?.type === "video";
   const itemReactions = reactionsMap?.[item?.id] || item?.reactions || {};
@@ -1229,7 +1222,7 @@ function StoryViewer({ groups, startGroupIndex, currentUserId, onClose, onMarkSe
                 {isOwn ? "Votre story" : group.user.name}
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", fontWeight: 400, marginTop: 1 }}>
-                {timeAgo(item.createdAt)}
+                {storyTime}
               </div>
             </div>
 

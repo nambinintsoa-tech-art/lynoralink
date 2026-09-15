@@ -112,6 +112,7 @@ function playPostPublishedSound() {
 
 function playNotificationSound(kind = "notification") {
   if (typeof window === "undefined") return;
+  if (!window.__lynoraAudioUnlocked) return;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
 
@@ -142,6 +143,7 @@ function playNotificationSound(kind = "notification") {
 
 function unlockNotificationAudio() {
   if (typeof window === "undefined") return;
+  window.__lynoraAudioUnlocked = true;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
   try {
