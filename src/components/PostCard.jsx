@@ -63,6 +63,7 @@ import { faThumbsUp, faFaceSmile } from '@fortawesome/free-solid-svg-icons';
 import ReactionPicker from "@/components/ReactionPicker";
 import Emojipicker from "@/components/Emojipicker";
 import RelativeTime from "@/components/RelativeTime";
+import { appUrl } from "@/lib/app-url";
 import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
 import { fetchBackendApi } from "@/lib/backend-api";
@@ -2856,7 +2857,7 @@ function ShareModal({ post, group = null, onClose, onRepost }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
-  const postUrl = typeof window === "undefined" ? "" : `${window.location.origin}/feed?post=${post.id}`;
+  const postUrl = appUrl(`/feed?post=${post.id}`);
   const shareText = post?.text || post?.headline || "Découvrez cette publication sur LynoraLink.";
   const sharedAttachments = [
     ...(post?.isArticle || post?.headline ? [{ type: "article", url: postUrl, name: post.headline || "Article LynoraLink", title: post.headline || "Article LynoraLink", text: post.excerpt || shareText, thumbnail: post.coverUrl || null }] : []),

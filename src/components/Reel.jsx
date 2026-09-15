@@ -17,6 +17,7 @@ import EnterpriseBadge from "@/components/EnterpriseBadge";
 import PremiumBadge from "@/components/PremiumBadge";
 import ProfileHoverPreview from "@/components/ProfileHoverPreview";
 import { ShareModal } from "@/components/PostViewerPreview";
+import { appUrl } from "@/lib/app-url";
 import { ReelCommentsSkeleton, ReelSkeleton } from "@/components/Skeleton";
 import { normalizeReelPayload } from "@/lib/reels";
 import { backendApiUrl, fetchBackendApi } from "@/lib/backend-api";
@@ -543,7 +544,7 @@ const ReelSlide = React.memo(function ReelSlide({ reel, active, nearby, muted, c
 
   const handleCopyReelLink = useCallback(async () => {
     const shareUrl = typeof window !== "undefined"
-      ? `${window.location.origin}/feed?reel=${encodeURIComponent(reel?.id || "")}`
+      ? appUrl(`/feed?reel=${encodeURIComponent(reel?.id || "")}`)
       : `reel:${reel?.id || ""}`;
     try {
       if (navigator?.clipboard && window.isSecureContext) {
@@ -1873,7 +1874,7 @@ export default function Reel({ reels: reelsProp, onClose, onOpenComments, onOpen
             text: shareReel.caption,
             media: shareReel.videoUrl ? [{ type: "video", url: shareReel.videoUrl, name: "Reel LynoraLink" }] : [],
           }}
-          shareUrl={typeof window === "undefined" ? "" : `${window.location.origin}/feed?reel=${encodeURIComponent(shareReel.id)}`}
+          shareUrl={appUrl(`/feed?reel=${encodeURIComponent(shareReel.id)}`)}
           onClose={() => setShareReel(null)}
           onRepost={() => handleReelRepost(shareReel.id)}
         />

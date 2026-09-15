@@ -19,6 +19,7 @@ import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
 import ProfileHoverPreview from "./ProfileHoverPreview";
 import { fetchBackendApi } from "@/lib/backend-api";
+import { appUrl } from "@/lib/app-url";
 import VideoControls from "./VideoControls";
 
 /* ==================================================================
@@ -979,7 +980,7 @@ export function ShareModal({ post, onClose, onRepost, shareUrl: shareUrlOverride
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
-  const postUrl = shareUrlOverride || (typeof window === "undefined" ? "" : `${window.location.origin}/feed?post=${encodeURIComponent(post.id)}${post?.isArticle || post?.headline ? "&article=1" : ""}`);
+  const postUrl = shareUrlOverride || appUrl(`/feed?post=${encodeURIComponent(post.id)}${post?.isArticle || post?.headline ? "&article=1" : ""}`);
   const shareText = post?.text || post?.headline || "D\u00e9couvrez cette publication sur LynoraLink.";
   const sharedAttachments = [
     ...(post?.isArticle || post?.headline ? [{
@@ -1582,7 +1583,7 @@ export default function PostViewerPreview({
   };
 
   const handleSendPost = async () => {
-    const url = `${window.location.origin}/feed?post=${post.id}`;
+    const url = appUrl(`/feed?post=${post.id}`);
     const shareData = {
       title: post?.headline || `Publication de ${post?.author || "LynoraLink"}`,
       text: post?.text || post?.excerpt || "D\u00e9couvrez cette publication sur LynoraLink.",
@@ -2341,7 +2342,7 @@ export default function PostViewerPreview({
               >
                 <MoreHorizontal size={22} />
               </button>
-              {moreMenuOpen && <MoreMenu isOwn={isOwn} onEdit={() => { setMoreMenuOpen(false); }} onDelete={() => { setMoreMenuOpen(false); }} onReport={() => { setMoreMenuOpen(false); }} onCopyLink={() => { navigator.clipboard?.writeText(`${window.location.origin}/feed?post=${post.id}`); setMoreMenuOpen(false); }} onClose={() => setMoreMenuOpen(false)} />}
+              {moreMenuOpen && <MoreMenu isOwn={isOwn} onEdit={() => { setMoreMenuOpen(false); }} onDelete={() => { setMoreMenuOpen(false); }} onReport={() => { setMoreMenuOpen(false); }} onCopyLink={() => { navigator.clipboard?.writeText(appUrl(`/feed?post=${post.id}`)); setMoreMenuOpen(false); }} onClose={() => setMoreMenuOpen(false)} />}
             </div>
           </div>
 
