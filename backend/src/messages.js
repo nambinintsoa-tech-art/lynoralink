@@ -33,7 +33,9 @@ export async function registerMessageRoutes(app) {
         messages: {
           where: { deletions: { none: { userId } } },
           orderBy: { createdAt: "asc" },
-          include: { reactions: { select: { userId: true, reaction: true } } },
+          include: {
+            reactions: { select: { userId: true, reaction: true } },
+          },
         },
       },
       orderBy: { updatedAt: "desc" },
@@ -47,20 +49,32 @@ export async function registerMessageRoutes(app) {
       try { return [setting.userId, JSON.parse(setting.value || "{}")]; } catch { return [setting.userId, {}]; }
     }));
 
-    return reply.send({ conversations: conversations.map((conversation) => {
+    const payload = await Promise.all(conversations.map(async (conversation) => {
       const other = conversation.userAId === userId ? conversation.userB : conversation.userA;
       const page = conversation.pageId ? pages.get(conversation.pageId) : null;
       const name = conversation.isGroup
         ? conversation.groupName || conversation.members.map((member) => member.user.name).filter(Boolean).join(", ") || "Groupe"
         : page?.name || page?.displayName || other?.name || "Utilisateur";
+      const messageIds = conversation.messages.flatMap((message) => {
+        const parsed = parseAttachments(message.mediaData);
+        return !Array.isArray(parsed) && parsed?.replyTo?.id ? [String(parsed.replyTo.id)] : [];
+      });
+      const parentMessages = messageIds.length
+        ? await prisma.message.findMany({
+            where: { id: { in: messageIds }, conversationId: conversation.id },
+            select: { id: true, text: true, senderId: true, createdAt: true, deletedForEveryone: true },
+          })
+        : [];
+      const parentById = new Map(parentMessages.map((parent) => [String(parent.id), parent]));
       const messages = conversation.messages.map((message) => {
         const media = parseMessageMedia(message.mediaData);
-        const replyTo = media.replyTo ? {
-          id: media.replyTo.id,
-          text: media.replyTo.text || "",
-          from: media.replyTo.senderId === userId ? "me" : "them",
-          time: media.replyTo.createdAt ? formatTime(media.replyTo.createdAt) : "",
-          deletedForEveryone: Boolean(media.replyTo.deletedForEveryone),
+        const parent = media.replyTo?.id ? (parentById.get(String(media.replyTo.id)) || media.replyTo) : null;
+        const replyTo = parent ? {
+          id: parent.id,
+          text: parent.text || "",
+          from: parent.senderId === userId ? "me" : "them",
+          time: parent.createdAt ? formatTime(parent.createdAt) : "",
+          deletedForEveryone: Boolean(parent.deletedForEveryone),
         } : null;
         return {
           id: message.id,
@@ -96,7 +110,8 @@ export async function registerMessageRoutes(app) {
         messages,
         lastMessage: lastMessage ? { id: lastMessage.id, text: lastMessage.text, time: lastMessage.time } : null,
       };
-    }) });
+    }));
+    return reply.send({ conversations: payload });
   });
 
   app.post("/v1/messages", async (request, reply) => {
