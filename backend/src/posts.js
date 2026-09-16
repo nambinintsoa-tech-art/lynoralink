@@ -101,11 +101,12 @@ export async function registerPostRoutes(app) {
       posts = await prisma.post.findMany({
         where: {
           status: "published",
+          ...(query.postId ? { id: String(query.postId) } : {}),
           ...(!query.companyPageId ? { isSponsored: false } : {}),
           ...(query.userId ? { authorId: String(query.userId) } : {}),
           ...(query.companyPageId ? { companyPageId: String(query.companyPageId) } : {}),
           ...(query.mediaOnly === "true" ? { mediaData: { not: null } } : {}),
-          ...(query.feedOnly === "true" ? { createdAt: { gte: feedSince } } : {}),
+          ...(query.feedOnly === "true" && !query.postId ? { createdAt: { gte: feedSince } } : {}),
           AND: [{ OR: visibilityRules }],
         },
         orderBy: { createdAt: "desc" },

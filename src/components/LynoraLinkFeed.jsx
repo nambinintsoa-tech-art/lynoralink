@@ -2811,6 +2811,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [composerCompanyId, setComposerCompanyId] = useState(null);
   const [openArticleId, setOpenArticleId] = useState(null);
   const [openPostId, setOpenPostId] = useState(null);
+  const requestedPostIdRef = useRef(null);
   const [openPostOverride, setOpenPostOverride] = useState(null);
   const [reelsOpen, setReelsOpen] = useState(false);
   const [reelModalItems, setReelModalItems] = useState(null);
@@ -3307,6 +3308,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (!postId) return;
     const targetPost = posts.find((post) => String(post.id) === String(postId));
     if (targetPost) {
+      requestedPostIdRef.current = null;
       setView("feed");
       const requestedArticle = searchParams?.get("article") === "1";
       if (requestedArticle || targetPost.isArticle || targetPost.headline) {
@@ -3316,7 +3318,18 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         setOpenArticleId(null);
         setOpenPostId(targetPost.id);
       }
+      return;
     }
+    if (requestedPostIdRef.current === String(postId)) return;
+    requestedPostIdRef.current = String(postId);
+    fetchBackendApi(`/api/posts?postId=${encodeURIComponent(postId)}&limit=1`, { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (Array.isArray(data?.posts) && data.posts.length) {
+          setPosts((current) => mergeOptimisticPosts(current, data.posts));
+        }
+      })
+      .catch(() => {});
   }, [searchParams, posts]);
 
   useEffect(() => {
