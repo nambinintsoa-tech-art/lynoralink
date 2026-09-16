@@ -21,7 +21,8 @@ export async function registerUploadRoutes(app) {
     if (!part) return reply.code(400).send({ error: "Aucun fichier fourni" });
     if (part.mimetype && !ALLOWED_MIME_TYPES.has(part.mimetype)) return reply.code(415).send({ error: "Type de fichier non autorisé" });
     if (part.file.truncated) return reply.code(413).send({ error: "Fichier trop volumineux. Taille maximale: 25 Mo." });
-    const type = String(request.query?.type || (part.mimetype?.startsWith("video/") ? "video" : "image"));
+    const formType = part.fields?.type?.value;
+    const type = String(request.query?.type || formType || (part.mimetype?.startsWith("video/") ? "video" : "image"));
     const resourceType = type === "video" ? "video" : type === "image" ? "image" : "raw";
     try {
       const result = await new Promise((resolve, reject) => { const stream = cloudinary.uploader.upload_stream({ folder: "lynoralink", resource_type: resourceType }, (error, value) => error ? reject(error) : resolve(value)); part.file.pipe(stream); });

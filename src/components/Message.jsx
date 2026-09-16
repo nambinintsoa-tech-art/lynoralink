@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSmile } from '@fortawesome/free-solid-svg-icons';
 import { Room, RoomEvent } from "livekit-client";
 import { fetchBackendApi } from "@/lib/backend-api";
+import { APP_ORIGIN } from "@/lib/app-url";
 
 /* ------------------------------------------------------------------ */
 /*  TOKENS — identiques à LynoraLinkFeed.jsx pour rester cohérent      */
@@ -178,6 +179,17 @@ function getAttachmentDisplayUrl(attachment) {
   return getAttachmentProxyUrl(attachment);
 }
 
+function normalizeSharedLink(value) {
+  if (!value || typeof value !== "string") return value;
+  try {
+    const parsed = new URL(value, APP_ORIGIN);
+    if (["www.lynoralink.com", "lynoralink.com"].includes(parsed.hostname.toLowerCase())) {
+      return `${APP_ORIGIN}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {}
+  return value;
+}
+
 function getAttachmentFileKind(attachment) {
   const name = attachment?.name || "";
   const mime = attachment?.mime || "";
@@ -265,6 +277,7 @@ function AttachmentPreview({ attachment, onOpen }) {
   const FileTypeIcon = isPdf ? FileText : /(?:sheet|excel)|\.xlsx?$/i.test(`${attachment?.mime || ""} ${attachment?.name || ""}`) ? FileSpreadsheet : /(?:powerpoint|presentation)|\.pptx?$/i.test(`${attachment?.mime || ""} ${attachment?.name || ""}`) ? Presentation : File;
   const fileExtension = attachment?.name?.includes(".") ? attachment.name.split(".").pop().toUpperCase() : (isPdf ? "PDF" : "FICHIER");
   const fileColor = fileKind === "pdf" ? "#C24444" : fileKind === "spreadsheet" ? "#2E9E5B" : fileKind === "presentation" ? "#D87532" : fileKind === "word" || fileKind === "open-document" ? "#2C6BA0" : C.navy800;
+  const sharedLink = normalizeSharedLink(attachment?.url);
 
 
   const openPdfDirectly = (e) => {
@@ -307,13 +320,13 @@ function AttachmentPreview({ attachment, onOpen }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 12, background: "rgba(255,255,255,0.8)", border: `1px solid ${C.line}` }}>
       {isArticle ? (
-        <a href={attachment.url} target="_blank" rel="noreferrer" style={{ display: "flex", gap: 10, alignItems: "center", color: C.ink, textDecoration: "none" }}>
+        <a href={sharedLink} target="_blank" rel="noreferrer" style={{ display: "flex", gap: 10, alignItems: "center", color: C.ink, textDecoration: "none" }}>
           {attachment.thumbnail ? <img src={attachment.thumbnail} alt="" style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 8 }} /> : <BookOpen size={20} color={C.navy800} />}
           <span style={{ minWidth: 0 }}><strong style={{ display: "block", fontSize: 12.5 }}>{attachment.title || attachment.name}</strong><span style={{ display: "block", fontSize: 11, color: C.muted }}>Article partagé</span></span>
         </a>
       ) : isLink ? (
-        <a href={attachment.url} target="_blank" rel="noreferrer" style={{ display: "flex", gap: 8, alignItems: "center", color: C.navy800, fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>
-          <Link2 size={16} />{attachment.name || attachment.url}
+        <a href={sharedLink} target="_blank" rel="noreferrer" style={{ display: "flex", gap: 8, alignItems: "center", color: C.navy800, fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>
+          <Link2 size={16} />{attachment.name || sharedLink}
         </a>
       ) : isImage ? (
         <button type="button" onClick={() => onOpen(attachment)} title="Ouvrir" style={{ padding: 0, border: 0, background: "transparent", cursor: "pointer", display: "block" }}><img src={attachment.url} alt={attachment.name} style={{ width: "100%", maxWidth: 220, maxHeight: 140, objectFit: "cover", borderRadius: 10, display: "block" }} /></button>
