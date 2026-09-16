@@ -26,6 +26,11 @@ function showBrowserNotification({ title, body, icon, url }) {
   };
 }
 
+function updateBrowserTabTitle(unreadCount) {
+  if (typeof document === "undefined") return;
+  document.title = unreadCount > 0 ? `(${unreadCount > 99 ? "99+" : unreadCount}) LynoraLink` : "LynoraLink";
+}
+
 function latestIncomingMessages(data) {
   return (Array.isArray(data?.conversations) ? data.conversations : []).flatMap((conversation) => {
     const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
@@ -48,6 +53,7 @@ export default function BrowserNotificationManager() {
       initialized.current = false;
       seenNotifications.current.clear();
       seenMessages.current.clear();
+      updateBrowserTabTitle(0);
       return undefined;
     }
 
@@ -63,6 +69,10 @@ export default function BrowserNotificationManager() {
       const messagesData = messagesResponse?.ok ? await messagesResponse.json().catch(() => ({})) : {};
       const notifications = Array.isArray(notificationsData.notifications) ? notificationsData.notifications : [];
       const messages = latestIncomingMessages(messagesData);
+      const unreadMessageCount = (Array.isArray(messagesData.conversations) ? messagesData.conversations : [])
+        .reduce((total, conversation) => total + Math.max(0, Number(conversation.unread) || 0), 0);
+      const unreadCount = notifications.filter((item) => !item.read).length + unreadMessageCount;
+      updateBrowserTabTitle(unreadCount);
 
       if (!initialized.current) {
         notifications.forEach((item) => remember(seenNotifications.current, item.id));
