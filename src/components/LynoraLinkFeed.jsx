@@ -4161,7 +4161,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setView(targetView);
     ignoreRouteSyncRef.current = true;
     const nextRoute = targetView === "feed" ? "/feed" : `/feed?view=${encodeURIComponent(targetView)}`;
-    window.dispatchEvent(new Event("lynora:navigation-start"));
     window.history.replaceState({}, "", nextRoute);
 
     if (type === "messages") {

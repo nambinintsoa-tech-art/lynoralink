@@ -4,6 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const GOLD = "linear-gradient(90deg, #F6D374 0%, #D9A536 100%)";
+const OVERLAY_VIEWS = new Set(["messages", "notifications"]);
+
+function isOverlayTransition(currentUrl, nextUrl) {
+  const current = new URL(currentUrl, window.location.href);
+  const next = new URL(nextUrl, window.location.href);
+  if (current.pathname !== next.pathname) return false;
+  return OVERLAY_VIEWS.has(current.searchParams.get("view") || "feed")
+    || OVERLAY_VIEWS.has(next.searchParams.get("view") || "feed");
+}
 
 export default function NavigationProgress() {
   const pathname = usePathname();
@@ -31,7 +40,10 @@ export default function NavigationProgress() {
       }, 0);
     };
 
-    const handlePopState = scheduleStart;
+    const handlePopState = () => {
+      if (isOverlayTransition(previousLocation.current, window.location.href)) return;
+      scheduleStart();
+    };
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
     const handleNavigationStart = scheduleStart;
@@ -46,7 +58,7 @@ export default function NavigationProgress() {
       const currentUrl = window.location.href;
       const nextUrl = args[2] ? new URL(args[2], window.location.href).href : window.location.href;
       const result = originalPushState.apply(this, args);
-      if (nextUrl !== currentUrl) {
+      if (nextUrl !== currentUrl && !isOverlayTransition(currentUrl, nextUrl)) {
         window.dispatchEvent(new Event("lynora:navigation-start"));
       }
       return result;
@@ -55,7 +67,7 @@ export default function NavigationProgress() {
       const currentUrl = window.location.href;
       const nextUrl = args[2] ? new URL(args[2], window.location.href).href : window.location.href;
       const result = originalReplaceState.apply(this, args);
-      if (nextUrl !== currentUrl) {
+      if (nextUrl !== currentUrl && !isOverlayTransition(currentUrl, nextUrl)) {
         window.dispatchEvent(new Event("lynora:navigation-start"));
       }
       return result;
