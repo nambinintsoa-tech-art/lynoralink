@@ -1937,8 +1937,8 @@ export default function CreatePostModal({
         className="cpm-panel"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: isArticle ? 720 : 552, maxHeight: "90vh", background: C.white, borderRadius: 12,
-          display: "flex", flexDirection: "column", overflow: "visible", boxShadow: "0 32px 80px rgba(15,51,82,0.42), 0 2px 0 rgba(255,255,255,0.6) inset",
+          width: "100%", maxWidth: isArticle ? 720 : 552, maxHeight: "90vh", background: C.white, borderRadius: 18,
+          display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 32px 80px rgba(15,51,82,0.42), 0 2px 0 rgba(255,255,255,0.6) inset",
           position: "relative", fontFamily: "'Inter', sans-serif", border: `1px solid rgba(15,51,82,0.06)`,
         }}
       >
