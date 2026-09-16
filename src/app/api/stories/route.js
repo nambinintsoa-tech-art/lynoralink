@@ -23,6 +23,14 @@ function timeAgo(date) {
   return `Il y a ${days}j`;
 }
 
+function normalizePrivacy(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["network", "relations", "réseau", "reseau", "connections"].includes(normalized)) return "connections";
+  if (["close", "abonnés", "abonnes", "followers"].includes(normalized)) return "followers";
+  if (["private", "privé", "prive"].includes(normalized)) return "private";
+  return "public";
+}
+
 export async function GET(request) {
   try {
     const session = await getServerSession(authOptions);
@@ -63,13 +71,21 @@ export async function GET(request) {
       select: { userAId: true, userBId: true },
     });
     const connectedIds = new Set(connections.map((connection) => connection.userAId === user.id ? connection.userBId : connection.userAId));
+    const followedPagesSetting = await prisma.userSetting.findUnique({ where: { userId_key: { userId: user.id, key: "followedCompanyPages" } }, select: { value: true } });
+    let followedPageIds = [];
+    try { followedPageIds = JSON.parse(followedPagesSetting?.value || "[]"); } catch {}
     
     // Récupère les stories non expirées, groupées par utilisateur
     const stories = await prisma.story.findMany({
       where: {
         expiresAt: { gt: now },
         companyPageId: accountMode === "company" ? user.id : null,
-        OR: [{ userId: profileScopeUserId || user.id }, { privacy: "network", userId: { in: [...connectedIds] } }, { privacy: "close", userId: { in: [...connectedIds] } }],
+        OR: [
+          { userId: profileScopeUserId || user.id },
+          { privacy: { in: ["public", "Public", "PUBLIC"] } },
+          { privacy: { in: ["connections", "network"] }, userId: { in: [...connectedIds] } },
+          { privacy: { in: ["followers", "close"] }, companyPageId: { in: followedPageIds.map(String) } },
+        ],
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -112,7 +128,7 @@ export async function GET(request) {
         text: story.text,
         image: story.image,
         bg: story.backgroundColor,
-        privacy: story.privacy,
+        privacy: normalizePrivacy(story.privacy),
         createdAt: story.createdAt.getTime(),
         seen: story.views.some((v) => v.userId === user.id),
         views: story.views.map((v) => ({
@@ -196,7 +212,7 @@ export async function POST(req) {
         text,
         image,
         type: type || "text",
-        privacy: ["network", "close", "private"].includes(privacy) ? privacy : "network",
+        privacy: normalizePrivacy(privacy),
         backgroundColor,
         expiresAt,
       },

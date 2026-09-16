@@ -5363,6 +5363,14 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     setSidebarToast({ message: "Publication modifiée", icon: Check });
   };
 
+  const deletePost = async (id) => {
+    const response = await fetchBackendApi(`/api/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Impossible de supprimer la publication");
+    setPosts((currentPosts) => currentPosts.filter((post) => post.id !== id));
+    setSidebarToast({ message: "Publication supprimée", icon: Check });
+  };
+
   const publish = ({ mode, text, articleTitle, articleExcerpt, media, presentation, mood, identifiedUsers, tags, visibility, reelSound, commentsLocked, commentatorsLimit }) => {
     const isArticle = mode === "article";
     const isReel = mode === "reel";
@@ -6292,6 +6300,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                   openConversationWithUser({ id: job.authorId, pageId: job.companyPageId, name: job.author, image: job.avatarUrl || null, avatarUrl: job.avatarUrl || null, initials: job.initials });
                                 }}
                                 onEditPost={editPost}
+                                onDelete={deletePost}
                                 onFollowPage={followPage}
                                 followedPageIds={followedPageIds}
                                 isCompanyAccount={activeAccount === "company"}

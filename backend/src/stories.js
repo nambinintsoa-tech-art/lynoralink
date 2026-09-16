@@ -3,17 +3,29 @@ import { prisma } from "./db.js";
 
 const reactions = new Set(["ok", "love", "triste", "hahaha", "colere", "waouh"]);
 
+function normalizePrivacy(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["network", "relations", "réseau", "reseau", "connections"].includes(normalized)) return "connections";
+  if (["close", "abonnés", "abonnes", "followers"].includes(normalized)) return "followers";
+  if (["private", "privé", "prive"].includes(normalized)) return "private";
+  return "public";
+}
+
 export async function registerStoryRoutes(app) {
   app.get("/v1/stories", async (request, reply) => {
     const userId = await getSessionUserId(request);
     if (!userId) return reply.code(401).send({ error: "Non authentifié" });
-    const stories = await prisma.story.findMany({ where: { expiresAt: { gt: new Date() } }, include: { author: { select: { id: true, name: true, image: true } }, reactions: true, views: { where: { userId }, select: { id: true } } }, orderBy: { createdAt: "asc" } });
+    const connections = await prisma.connection.findMany({ where: { status: "accepted", OR: [{ userAId: userId }, { userBId: userId }] }, select: { userAId: true, userBId: true } });
+    const connectedIds = connections.map((connection) => connection.userAId === userId ? connection.userBId : connection.userAId);
+    const followedSetting = await prisma.userSetting.findUnique({ where: { userId_key: { userId, key: "followedCompanyPages" } }, select: { value: true } });
+    let followedPageIds = []; try { followedPageIds = JSON.parse(followedSetting?.value || "[]"); } catch {}
+    const stories = await prisma.story.findMany({ where: { expiresAt: { gt: new Date() }, OR: [{ userId }, { privacy: { in: ["public", "Public", "PUBLIC"] } }, { privacy: { in: ["connections", "network"] }, userId: { in: connectedIds } }, { privacy: { in: ["followers", "close"] }, companyPageId: { in: followedPageIds.map(String) } }] }, include: { author: { select: { id: true, name: true, image: true } }, reactions: true, views: { where: { userId }, select: { id: true } } }, orderBy: { createdAt: "asc" } });
     return reply.send({ stories: stories.map((story) => ({ ...story, viewed: story.views.length > 0, views: undefined })) });
   });
   app.post("/v1/stories", async (request, reply) => {
     const userId = await getSessionUserId(request); if (!userId) return reply.code(401).send({ error: "Non authentifié" });
     const body = request.body || {}; if (!body.text && !body.image) return reply.code(400).send({ error: "Contenu requis" });
-    const story = await prisma.story.create({ data: { userId, text: String(body.text || ""), image: body.image || null, type: body.type || "text", backgroundColor: body.backgroundColor || null, privacy: body.privacy || "network", expiresAt: new Date(Date.now() + 86400000) } });
+    const story = await prisma.story.create({ data: { userId, text: String(body.text || ""), image: body.image || null, type: body.type || "text", backgroundColor: body.backgroundColor || null, privacy: normalizePrivacy(body.privacy), expiresAt: new Date(Date.now() + 86400000) } });
     return reply.code(201).send(story);
   });
   app.post("/v1/stories/:id/views", async (request, reply) => {

@@ -71,11 +71,16 @@ export async function DELETE(req, { params }) {
   const id = params?.id;
   const body = await req.json().catch(() => ({}));
   const mediaUrl = typeof body.mediaUrl === "string" ? body.mediaUrl : "";
-  if (!id || !mediaUrl) return NextResponse.json({ error: "Média invalide" }, { status: 400 });
+  if (!id) return NextResponse.json({ error: "Publication invalide" }, { status: 400 });
 
   const post = await prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true, mediaUrl: true, mediaData: true } });
   if (!post) return NextResponse.json({ error: "Publication introuvable" }, { status: 404 });
   if (post.authorId !== session.user.id) return NextResponse.json({ error: "Vous ne pouvez modifier que vos publications." }, { status: 403 });
+
+  if (!mediaUrl) {
+    await prisma.post.delete({ where: { id } });
+    return NextResponse.json({ ok: true, postId: id });
+  }
 
   let media = [];
   try { media = post.mediaData ? JSON.parse(post.mediaData) : []; } catch { media = []; }

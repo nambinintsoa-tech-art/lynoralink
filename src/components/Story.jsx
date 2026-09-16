@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import {
   Plus, X, Type, Image as ImageIcon, Upload, ChevronLeft, ChevronRight,
   Heart, Send, MoreHorizontal, Trash2, Eye, Flag, UserMinus, Loader2,
-  Volume2, VolumeX, Camera, Check, Users, Lock, SmilePlus, ChevronDown,
+  Volume2, VolumeX, Camera, Check, Users, Lock, Globe, SmilePlus, ChevronDown,
   ChevronUp, Sparkles, Zap, Share2, Bookmark, Copy, Play, Pause,
 } from "lucide-react";
 import ReactionPicker from "./ReactionPicker";
@@ -92,9 +92,10 @@ const STORY_REACTIONS = [
 ];
 
 const STORY_PRIVACY_OPTIONS = [
-  { id: "network", label: "Toutes mes relations", description: "Vos relations acceptees", icon: Users },
-  { id: "close", label: "Contacts proches", description: "Votre cercle proche", icon: Lock },
-  { id: "private", label: "Moi uniquement", description: "Personne d'autre", icon: Eye },
+  { id: "public", label: "Public", description: "Tout le monde sur LynoraLink", icon: Globe },
+  { id: "connections", label: "Relations", description: "Vos relations acceptees", icon: Users },
+  { id: "followers", label: "Abonnes", description: "Les abonnes de votre page", icon: Users },
+  { id: "private", label: "Prive", description: "Vous seul", icon: Lock },
 ];
 
 function uid(prefix = "id") {
@@ -182,7 +183,7 @@ function StoryPrivacyPicker({ value, onChange, variant = "grid" }) {
 
   /* Variante "grid" — comportement d'origine conservé (3 colonnes) */
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 7 }}>
       {STORY_PRIVACY_OPTIONS.map(({ id, label, description, icon: Icon }) => (
         <button key={id} type="button" onClick={() => onChange(id)} style={{ minWidth: 0, padding: "9px 6px", borderRadius: 11, border: `1.5px solid ${value === id ? C.navy800 : C.lineSoft}`, background: value === id ? navyGrad : C.white, color: value === id ? C.white : C.muted, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, cursor: "pointer", textAlign: "center" }}>
           <Icon size={14} />
@@ -360,7 +361,7 @@ function CreateStoryModal({ onClose, onGoUpload, onPublishText, currentUser }) {
   const [text, setText] = useState("");
   const [bgId, setBgId] = useState(STORY_BACKGROUNDS[0].id);
   const [fontSize, setFontSize] = useState(21);
-  const [audience, setAudience] = useState("network");
+  const [audience, setAudience] = useState("public");
   const bg = STORY_BACKGROUNDS.find((b) => b.id === bgId)?.css;
   const maxLen = 220;
 
@@ -548,7 +549,7 @@ function UploadModal({ onClose, onBack, onPublishMedia }) {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [caption, setCaption] = useState("");
-  const [audience, setAudience] = useState("network");
+  const [audience, setAudience] = useState("public");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -1783,7 +1784,7 @@ export default function Story({
           text: payload.text,
           image: payload.mediaUrl,
           type: payload.type,
-          privacy: payload.audience || "network",
+          privacy: payload.audience || "public",
           backgroundColor: payload.bg,
           account: accountMode,
         }),
@@ -1802,7 +1803,7 @@ export default function Story({
               image: data.image ?? it.mediaUrl,
               text: data.text ?? it.text,
               bg: data.bg ?? it.bg,
-              privacy: data.privacy || payload.audience || "network",
+              privacy: data.privacy || payload.audience || "public",
               createdAt: data.createdAt || it.createdAt,
             }),
           } : it)),

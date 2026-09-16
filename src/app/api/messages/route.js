@@ -117,6 +117,26 @@ function formatMessageTime(date) {
   return new Date(date).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function parseMessageMedia(value, userId) {
+  try {
+    const parsed = value ? JSON.parse(value) : null;
+    if (Array.isArray(parsed)) return { attachments: parsed, replyTo: null };
+    const parent = parsed?.replyTo;
+    return {
+      attachments: Array.isArray(parsed?.attachments) ? parsed.attachments : [],
+      replyTo: parent ? {
+        id: parent.id,
+        text: parent.text || "",
+        from: parent.senderId === userId ? "me" : "them",
+        time: parent.createdAt ? formatMessageTime(parent.createdAt) : "",
+        deletedForEveryone: Boolean(parent.deletedForEveryone),
+      } : null,
+    };
+  } catch {
+    return { attachments: [], replyTo: null };
+  }
+}
+
 async function getMessageSetting(userId, key, fallback) {
   const setting = await prisma.userSetting.findUnique({
     where: { userId_key: { userId, key: `messageSetting:${key}` } },
@@ -293,9 +313,7 @@ export async function GET(req) {
         authorImage: message.senderId === conversation.pageId ? pageImage : message.sender?.image || null,
         authorInitials: initials(message.senderId === conversation.pageId ? pageName : message.sender?.name || "Utilisateur"),
         text: message.text,
-        attachments: (() => {
-          try { return message.mediaData ? JSON.parse(message.mediaData) : []; } catch { return []; }
-        })(),
+        ...parseMessageMedia(message.mediaData, userId),
         time: formatMessageTime(message.createdAt),
         read: Boolean(message.readAt),
         reactions: message.reactions.map((item) => ({ emoji: item.reaction, from: item.userId === userId ? "me" : "them" })),
@@ -381,7 +399,7 @@ export async function POST(req) {
   }
 
   const body = await req.json();
-  const { conversationId, otherUserId, pageId, text, attachments = [], createOnly, groupName, participantIds } = body || {};
+  const { conversationId, otherUserId, pageId, text, attachments = [], replyTo: requestedReply, createOnly, groupName, participantIds } = body || {};
   let resolvedOtherUserId = otherUserId;
   const blockedIds = await getBlockedUserIds(prisma, session.user.id);
   if (resolvedOtherUserId && blockedIds.has(resolvedOtherUserId)) {
@@ -502,12 +520,24 @@ export async function POST(req) {
     where: { userId: session.user.id, key: `conversationDeleted:${conversation.id}` },
   });
 
+  const parentMessage = requestedReply?.id
+    ? await prisma.message.findFirst({
+        where: { id: String(requestedReply.id), conversationId: conversation.id },
+        select: { id: true, text: true, senderId: true, createdAt: true, deletedForEveryone: true },
+      })
+    : null;
+
   const message = await prisma.message.create({
     data: {
       conversationId: conversation.id,
       senderId: session.user.id,
       text: text.trim(),
-      mediaData: Array.isArray(attachments) && attachments.length ? JSON.stringify(attachments) : null,
+      mediaData: parentMessage || (Array.isArray(attachments) && attachments.length)
+        ? JSON.stringify({
+            attachments: Array.isArray(attachments) ? attachments : [],
+            replyTo: parentMessage,
+          })
+        : null,
     },
     include: { sender: { select: { id: true, name: true } } },
   });
@@ -604,9 +634,7 @@ export async function POST(req) {
       id: message.id,
       from: "me",
       text: message.text,
-      attachments: (() => {
-        try { return message.mediaData ? JSON.parse(message.mediaData) : []; } catch { return []; }
-      })(),
+      ...parseMessageMedia(message.mediaData, session.user.id),
       time: formatMessageTime(message.createdAt),
     },
     conversationId: conversation.id,

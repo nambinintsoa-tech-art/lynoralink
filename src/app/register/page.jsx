@@ -67,7 +67,7 @@ export default function RegisterPage() {
           setError(data.error || "Code de confirmation invalide.");
           return;
         }
-        window.location.href = "/welcome";
+        window.location.href = "/login?callbackUrl=%2Fwelcome";
       } catch {
         setError(AUTH_CONNECTION_MESSAGE);
       } finally {

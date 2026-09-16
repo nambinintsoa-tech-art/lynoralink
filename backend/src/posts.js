@@ -27,6 +27,14 @@ function normalizeTags(value) {
   return [...new Set(value.map((tag) => String(tag || "").trim().replace(/^#+/, "").replace(/\s+/g, "-").slice(0, 28)).filter(Boolean))].slice(0, 8);
 }
 
+function normalizeVisibility(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["relations", "réseau", "reseau", "connections"].includes(normalized)) return "connections";
+  if (["abonnés", "abonnes", "followers"].includes(normalized)) return "followers";
+  if (["privé", "prive", "private"].includes(normalized)) return "private";
+  return "public";
+}
+
 async function findPost(id, reply) {
   const post = await prisma.post.findUnique({ where: { id } });
   if (!post) reply.code(404).send({ error: "Publication introuvable" });
@@ -276,7 +284,7 @@ export async function registerPostRoutes(app) {
         mediaType: media[0]?.type ? String(media[0].type) : null,
         mood: body.mood ? String(body.mood).slice(0, 80) : null,
         identifiedUsers: body.identifiedUsers ? JSON.stringify(body.identifiedUsers) : null,
-        visibility: ["public", "connections", "followers"].includes(body.visibility) ? body.visibility : "public",
+        visibility: normalizeVisibility(body.visibility),
         tags: JSON.stringify(normalizeTags(body.tags)),
         commentsLocked: Boolean(body.commentsLocked),
         commentatorsLimit: normalizedCommentatorsLimit,
@@ -378,7 +386,7 @@ export async function registerPostRoutes(app) {
     const body = request.body || {};
     const hasCommentsSettings = Object.prototype.hasOwnProperty.call(body, "commentsLocked") || Object.prototype.hasOwnProperty.call(body, "commentatorsLimit");
     if (typeof body.text === "string") data.text = body.text.trim();
-    if (["public", "connections", "followers"].includes(body.visibility)) data.visibility = body.visibility;
+    if (body.visibility !== undefined) data.visibility = normalizeVisibility(body.visibility);
     if (Object.prototype.hasOwnProperty.call(body, "tags")) data.tags = JSON.stringify(normalizeTags(body.tags));
     const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
     const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
