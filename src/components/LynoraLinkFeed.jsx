@@ -517,6 +517,14 @@ function Card({ children, style = {}, onClick }) {
   );
 }
 
+function SidebarCard({ children, style = {}, onClick }) {
+  return (
+    <div onClick={onClick} style={{ ...style, background: "transparent", border: "none", borderRadius: 0, boxShadow: "none" }}>
+      {children}
+    </div>
+  );
+}
+
 function Switch({ checked, onChange }) {
   return (
     <button
@@ -733,7 +741,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* ---- Profile Card (LinkedIn dark style) ---- */}
-      <Card style={{ overflow: "hidden", border: "none" }}>
+      <SidebarCard style={{ overflow: "hidden" }}>
         {/* Dark gradient header with wave */}
         <div style={{
           height: 72,
@@ -819,7 +827,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
             Voir le profil
           </button>
         </div>
-      </Card>
+      </SidebarCard>
 
       {isPageAccount && (
         <button type="button" onClick={onOpenCampaign} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 14px", border: "none", borderRadius: 12, background: goldGrad, color: C.navy900, fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(217,165,54,0.22)" }}>
@@ -828,7 +836,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
       )}
 
       {/* ---- Mes raccourcis ---- */}
-      <Card style={{ padding: "12px 0" }}>
+      <SidebarCard style={{ padding: "12px 0" }}>
         <div style={{ padding: "0 16px 10px" }}>
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 14, color: C.ink }}>Mes raccourcis</span>
         </div>
@@ -880,7 +888,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
             Voir plus
           </button>
         )}
-      </Card>
+      </SidebarCard>
     </div>
   );
 }
@@ -911,7 +919,7 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, inco
   }
 
   return (
-    <Card style={{ padding: "18px 16px", overflow: "hidden" }}>
+    <SidebarCard style={{ padding: "18px 16px", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
         <UserPlus size={18} color={C.gold600} />
         <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Suggestions pour vous</span>
@@ -1077,7 +1085,7 @@ function SuggestionsSection({ suggestions, connectedIds, pendingRequestIds, inco
         })}
         </div>
       </div>
-    </Card>
+    </SidebarCard>
   );
 }
 
@@ -1107,7 +1115,7 @@ function GroupSuggestionsRail({ groups, currentUserId, onJoinGroup, onNavigate, 
   const isGridLayout = compactGrid;
 
   return (
-    <Card style={{ padding: "18px 16px", overflow: "hidden", position: "relative" }}>
+    <SidebarCard style={{ padding: "18px 16px", overflow: "hidden", position: "relative" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
         <Users2 size={18} color={C.gold600} />
         <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Groupes recommandés</span>
@@ -1148,7 +1156,7 @@ function GroupSuggestionsRail({ groups, currentUserId, onJoinGroup, onNavigate, 
           </div>
         ))}
       </div>
-    </Card>
+    </SidebarCard>
   );
 }
 
@@ -1193,7 +1201,7 @@ function PageSuggestionsGrid({ pages, followedPageIds, onFollowPage, onNavigate,
   if (displayedPages.length === 0) return null;
 
   return (
-    <Card style={{ padding: "18px 16px", overflow: "hidden" }}>
+    <SidebarCard style={{ padding: "18px 16px", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <Building2 size={18} color={C.gold600} />
         <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Pages suggérées</span>
@@ -1317,7 +1325,7 @@ function PageSuggestionsGrid({ pages, followedPageIds, onFollowPage, onNavigate,
         })}
         </div>
       </div>
-    </Card>
+    </SidebarCard>
   );
 }
 
@@ -1592,7 +1600,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* ---- 1. Suggestions pour vous (TOP) ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-        <Card style={{ padding: "14px 16px" }}>
+        <SidebarCard style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>{isPageMode ? "Pages à suivre" : "Suggestions pour vous"}</span>
             <button onClick={openSuggestions} style={{ background: "none", border: "none", color: "#0a66c2", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
@@ -1670,12 +1678,12 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
               );
             })}
           </div>
-        </Card>
+        </SidebarCard>
       </div>
 
       {!isPageMode && birthdaySummary && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-          <Card style={{ padding: 0, overflow: "hidden", background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,247,227,0.95) 100%)", border: "1px solid rgba(217, 165, 54, 0.28)", boxShadow: "0 12px 32px rgba(217,165,54,0.12)" }}>
+          <SidebarCard style={{ padding: 0, overflow: "hidden" }}>
             <div style={{ padding: "16px 16px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1709,13 +1717,13 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
                 ))}
               </div>
             </div>
-          </Card>
+          </SidebarCard>
         </div>
       )}
 
       {!isPageMode && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-          <Card style={{ padding: "14px 16px" }}>
+          <SidebarCard style={{ padding: "14px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Pages à suivre</span>
               <button onClick={() => onNavigate?.("company-grid", { tab: "discover" })} style={{ background: "none", border: "none", color: "#0a66c2", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
@@ -1753,12 +1761,12 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
                 );
               })}
             </div>
-          </Card>
+          </SidebarCard>
         </div>
       )}
 
       {/* ---- 2. Publicités sponsorisées (MIDDLE) ---- */}
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <SidebarCard style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Publicités sponsorisées</span>
           <button onClick={() => onNavigate && onNavigate("feed")} style={{ background: "none", border: "none", color: C.navy800, fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
@@ -1787,10 +1795,10 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
           <Info size={11} />
           Contenu mis en avant par LynoraLink
         </div>
-      </Card>
+      </SidebarCard>
 
       {/* ---- 3. Les groupes recommandés (BOTTOM) ---- */}
-      <Card style={{ padding: "14px 16px" }}>
+      <SidebarCard style={{ padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>Les groupes recommandés</span>
           <button onClick={() => onNavigate && onNavigate("groups")} style={{ background: "none", border: "none", color: "#0a66c2", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
@@ -1853,7 +1861,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
             </div>
           ))}
         </div>
-      </Card>
+      </SidebarCard>
     </div>
   );
 }
@@ -3807,8 +3815,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       }
     };
 
-    const fetchMessages = async () => {
-      if (document.hidden || messagesModalOpen) return; // Keep the open chat stable while it manages its own interactions.
+    const fetchMessages = async (force = false) => {
+      if (document.hidden || (messagesModalOpen && !force)) return; // Keep the open chat stable between explicit reloads.
       try {
         const res = await fetchBackendApi(`/api/messages?userId=${encodeURIComponent(session.user.id)}`, {
           credentials: "include",
@@ -3953,7 +3961,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
     loadRelations();
     setMessagesLoading(true);
-    fetchMessages().finally(() => setMessagesLoading(false));
+    fetchMessages(true).finally(() => setMessagesLoading(false));
     const messagesInterval = setInterval(fetchMessages, 30000);
     fetchCompanyPages();
     fetchFollowedPages();
@@ -4275,7 +4283,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [view, searchParams, networkInitialTab]);
 
   const navigate = (id, options = {}) => {
-    window.dispatchEvent(new Event("lynora:navigation-start"));
+    if (id !== "messages" && id !== "notifications") {
+      window.dispatchEvent(new Event("lynora:navigation-start"));
+    }
     setModalMode(null);
     setComposerCompanyId(null);
     if (id === "profile" || id === "feed") setTargetProfileId(null);
