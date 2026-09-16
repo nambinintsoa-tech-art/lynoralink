@@ -627,14 +627,18 @@ function ParentMessagePreview({ replyTo, isMine = false, compact = false }) {
   if (!replyTo) return null;
   return (
     <div
+      className="lynora-parent-message-preview"
+      aria-label="Message parent"
       style={{
         display: "flex",
         flexDirection: "column",
         gap: 2,
-        marginBottom: compact ? 0 : 7,
-        padding: compact ? "3px 0 3px 9px" : "5px 0 5px 9px",
+        marginBottom: compact ? 0 : 9,
+        padding: compact ? "3px 0 3px 9px" : "5px 0 8px 9px",
         borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.55)" : C.navy700}`,
+        borderBottom: compact ? "none" : `1px solid ${isMine ? "rgba(255,255,255,0.22)" : C.line}`,
         background: "transparent",
+        opacity: compact ? 0.72 : 0.62,
         minWidth: 0,
       }}
     >
