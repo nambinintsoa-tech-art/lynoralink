@@ -6464,8 +6464,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                                     suggestions={personSuggestions.filter((suggestion) => !dismissedSuggestionIds.includes(suggestion.id))}
                                     connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
                                     pendingRequestIds={pendingSuggestionIds}
+                                    incomingInvitations={invitations}
                                     onConnect={connectSuggestion}
                                     onCancel={cancelConnectionRequest}
+                                    onConfirm={acceptInvitation}
                                     onDismiss={dismissSuggestion}
                                     onNavigate={navigate}
                                     onOpenProfile={openUserProfile}
