@@ -9,7 +9,7 @@ function getLiveKitUrl() {
 }
 
 async function authorizedCall(callId, userId) {
-  return prisma.callSession.findFirst({ where: { id: callId, conversation: { OR: [{ userAId: userId }, { userBId: userId }, { members: { some: { userId } } }] } } });
+  return prisma.callSession.findFirst({ where: { id: callId, conversation: { OR: [{ userAId: userId }, { userBId: userId }, { members: { some: { userId } } }] } }, include: { caller: { select: { id: true, name: true, image: true } } } });
 }
 
 async function authorizedConversation(conversationId, userId) {
@@ -37,7 +37,7 @@ export async function registerCallRoutes(app) {
     }
     const call = request.query?.callId
       ? await authorizedCall(request.query.callId, userId)
-      : await prisma.callSession.findFirst({ where: { conversationId: request.query?.conversationId, callerId: { not: userId }, status: "ringing", createdAt: { gte: new Date(Date.now() - 30000) }, conversation: { OR: [{ userAId: userId }, { userBId: userId }, { members: { some: { userId } } }] } }, orderBy: { createdAt: "desc" } });
+      : await prisma.callSession.findFirst({ where: { conversationId: request.query?.conversationId, callerId: { not: userId }, status: "ringing", createdAt: { gte: new Date(Date.now() - 30000) }, conversation: { OR: [{ userAId: userId }, { userBId: userId }, { members: { some: { userId } } }] } }, include: { caller: { select: { id: true, name: true, image: true } } }, orderBy: { createdAt: "desc" } });
     return reply.send({ call: call ? { ...call, isCaller: call.callerId === userId } : null });
   });
 

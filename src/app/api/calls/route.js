@@ -20,6 +20,7 @@ async function authorizedCall(callId, id) {
         ],
       },
     },
+    include: { caller: { select: { id: true, name: true, image: true } } },
   });
 }
 
@@ -81,6 +82,7 @@ export async function GET(req) {
             ],
           },
         },
+        include: { caller: { select: { id: true, name: true, image: true } } },
         orderBy: { createdAt: "desc" },
       });
   return NextResponse.json({ call: call ? { ...call, isCaller: call.callerId === id } : null });

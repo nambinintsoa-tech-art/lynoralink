@@ -2243,7 +2243,7 @@ export function ChatModal({
   const [confirmAction, setConfirmAction] = useState(null); // "block" | "report" | "delete"
   const [activeCall, setActiveCall] = useState(null); // null | "voice" | "video"
   const [callSession, setCallSession] = useState(null);
-  const [incomingCall, setIncomingCall] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(() => initialIncomingCall?.id ? initialIncomingCall : null);
   const [callConnected, setCallConnected] = useState(false);
   const [callToast, setCallToast] = useState(null);
   const [actionToast, setActionToast] = useState(null);
@@ -2266,6 +2266,11 @@ export function ChatModal({
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const markCallConnected = useCallback(() => setCallConnected(true), []);
   useCallTone(Boolean(incomingCall || (activeCall && callStatus === "ringing")), Boolean(incomingCall));
+
+  const incomingCaller = incomingCall?.caller;
+  const incomingCallerName = incomingCaller?.name || conversation?.name || "Appel entrant";
+  const incomingCallerImage = incomingCaller?.image || conversation?.image || null;
+  const incomingCallerInitials = incomingCallerName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "U";
 
   useEffect(() => {
     if (initialIncomingCall?.id) setIncomingCall(initialIncomingCall);
@@ -3020,10 +3025,10 @@ export function ChatModal({
             }}
           >
             {/* halo flou en fond, façon avatar plein écran Messenger */}
-            {conv.image && (
+            {incomingCallerImage && (
               <div
                 style={{
-                  position: "absolute", inset: -20, backgroundImage: `url(${conv.image})`, backgroundSize: "cover",
+                  position: "absolute", inset: -20, backgroundImage: `url(${incomingCallerImage})`, backgroundSize: "cover",
                   backgroundPosition: "center", filter: "blur(38px) brightness(0.55)", transform: "scale(1.15)", zIndex: 0,
                 }}
               />
@@ -3032,11 +3037,11 @@ export function ChatModal({
               <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", opacity: .8, textTransform: "uppercase" }}>
                 {incomingCall.type === "video" ? "Appel vidéo entrant" : "Appel vocal entrant"}
               </div>
-              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 10 }}>{conv.name}</div>
+              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 10 }}>{incomingCallerName}</div>
             </div>
 
             <div className="lynora-incoming-avatar" style={{ position: "relative", zIndex: 1, borderRadius: "50%", animation: "lynoraIncomingPulse 1.6s ease-out infinite" }}>
-              <Avatar initials={conv.initials} imageUrl={conv.image} size={132} />
+              <Avatar initials={incomingCallerInitials} imageUrl={incomingCallerImage} size={132} />
             </div>
             <style>{`@keyframes lynoraIncomingPulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.35);} 70% { box-shadow: 0 0 0 26px rgba(255,255,255,0);} 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0);} }`}</style>
 
