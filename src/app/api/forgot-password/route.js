@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { sendPasswordResetEmail } from "@/lib/emailVerification";
+import { getBaseUrl, sendPasswordResetEmail } from "@/lib/emailVerification";
 
 const RESET_IDENTIFIER = "password-reset:";
 
@@ -31,7 +31,7 @@ export async function POST(req) {
   try {
     await sendPasswordResetEmail(normalizedEmail, token);
   } catch (error) {
-    const debugUrl = process.env.NODE_ENV !== "production" ? `${process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"}/reset-password?token=${encodeURIComponent(token)}` : null;
+    const debugUrl = process.env.NODE_ENV !== "production" ? `${getBaseUrl()}/reset-password?token=${encodeURIComponent(token)}` : null;
     return NextResponse.json(
       {
         ok: false,

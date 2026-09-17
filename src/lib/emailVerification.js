@@ -154,8 +154,15 @@ function buildEmailHtml({ title, message, actionLabel, actionUrl, code, expiry, 
   return `<!doctype html><html><body style="margin:0;background:#EFF4F9;font-family:Arial,Helvetica,sans-serif;color:#132433"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#EFF4F9;padding:32px 12px"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E3EAF1;border-radius:14px;overflow:hidden"><tr><td style="padding:20px 28px;background:#0F3352;color:#FFFFFF"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="vertical-align:middle"><img src="${baseUrl}/logo_lynora.svg" width="42" height="42" alt="LynoraLink" style="display:block;border:0;border-radius:50%" /></td><td style="padding-left:12px;vertical-align:middle;font-size:22px;font-weight:800;white-space:nowrap"><span style="color:#F6D374">Lynora</span><span style="color:#FFFFFF">Link</span></td></tr></table></td></tr><tr><td style="padding:32px 28px 34px"><h1 style="margin:0 0 14px;color:#0F3352;font-size:24px;line-height:1.25">${title}</h1><p style="margin:0;color:#5C7488;font-size:15px;line-height:1.65">${message}</p>${codeBlock}${action}<p style="margin:26px 0 0;color:#8CA0B3;font-size:12px;line-height:1.5">Ce message a été envoyé automatiquement par LynoraLink. ${expiry}</p></td></tr><tr><td style="padding:16px 28px;background:#F7FAFD;border-top:1px solid #E3EAF1;color:#8CA0B3;font-size:11px">LynoraLink · Le réseau qui vous relie</td></tr></table></td></tr></table></body></html>`;
 }
 
-function getBaseUrl() {
-  return process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+export function getBaseUrl() {
+  const configuredUrl = String(process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").trim();
+  try {
+    const url = new URL(configuredUrl);
+    if (["lynoralink.com", "www.lynoralink.com"].includes(url.hostname.toLowerCase())) url.hostname = "app.lynoralink.com";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return "http://localhost:3000";
+  }
 }
 
 export async function sendVerificationEmail(email, token) {

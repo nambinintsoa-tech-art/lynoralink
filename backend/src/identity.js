@@ -10,13 +10,25 @@ const validEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
 const MINIMUM_AGE = 16;
 const genericResetMessage = "Si un compte correspond à cette adresse, un lien de réinitialisation a été envoyé.";
 const genericRegistrationMessage = "Si un compte non confirmé correspond à cette adresse, un nouveau code vient d'être envoyé.";
+const DEFAULT_APP_URL = "https://app.lynoralink.com";
+
+function getAppUrl() {
+  const configuredUrl = String(process.env.APP_URL || DEFAULT_APP_URL).trim();
+  try {
+    const url = new URL(configuredUrl);
+    if (["lynoralink.com", "www.lynoralink.com"].includes(url.hostname.toLowerCase())) url.hostname = "app.lynoralink.com";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return DEFAULT_APP_URL;
+  }
+}
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 }
 
 function renderEmailHtml(subject, text) {
-  const logoUrl = process.env.EMAIL_LOGO_URL || `${process.env.APP_URL || "https://www.lynoralink.com"}/logo_lynora.svg`;
+  const logoUrl = process.env.EMAIL_LOGO_URL || `${getAppUrl()}/logo_lynora.svg`;
   const safeText = escapeHtml(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#1f6feb;font-weight:600;">$1</a>').replace(/\n/g, "<br>");
   const code = text.match(/\b\d{6}\b/)?.[0];
   const content = code
@@ -159,7 +171,7 @@ export async function registerIdentityRoutes(app) {
     await prisma.verificationToken.deleteMany({ where: { identifier: `password-reset:${email}` } });
     const token = crypto.randomBytes(32).toString("hex");
     await prisma.verificationToken.create({ data: { identifier: `password-reset:${email}`, token, expires: new Date(Date.now() + 1800000) } });
-    try { await sendEmail({ to: email, subject: "Réinitialisez votre mot de passe LynoraLink", text: `Réinitialisez votre mot de passe : ${(process.env.APP_URL || "http://localhost:3000")}/reset-password?token=${encodeURIComponent(token)}\n\nCe lien expire dans 30 minutes.` }); } catch { return reply.code(503).send({ ok: false, error: "Le lien de réinitialisation n'a pas pu être envoyé." }); }
+    try { await sendEmail({ to: email, subject: "Réinitialisez votre mot de passe LynoraLink", text: `Réinitialisez votre mot de passe : ${getAppUrl()}/reset-password?token=${encodeURIComponent(token)}\n\nCe lien expire dans 30 minutes.` }); } catch { return reply.code(503).send({ ok: false, error: "Le lien de réinitialisation n'a pas pu être envoyé." }); }
     return reply.send({ ok: true, message: genericResetMessage });
   });
 
