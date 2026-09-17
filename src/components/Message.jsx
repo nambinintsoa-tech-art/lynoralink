@@ -1918,16 +1918,19 @@ function LiveKitCallOverlay({ mode, conversation, status, elapsed, minimized, on
       setParticipants(nextParticipants);
       setTracks(next);
     };
+    const markCallConnected = () => {
+      setConnected(true);
+      onConnected?.();
+      fetchBackendApi("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "connect" }) }).catch(() => {});
+    };
     const onParticipantDisconnected = (participant) => {
       setParticipantToast(`${participant.name || "Participant"} a quitté`);
       setTimeout(() => setParticipantToast(""), 3500);
       refreshTracks();
     };
     const onConnectedRoom = () => {
-      setConnected(true);
-      onConnected?.();
-      fetchBackendApi("/api/calls", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: callSession.id, action: "connect" }) }).catch(() => {});
       refreshTracks();
+      if (room.remoteParticipants.size > 0) markCallConnected();
     };
     const onLocalTrackPublished = (publication) => {
       if (publication.source === "camera" && publication.track) setLocalVideoTrack(publication.track);
@@ -1955,7 +1958,10 @@ function LiveKitCallOverlay({ mode, conversation, status, elapsed, minimized, on
     room.on(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
     room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
     room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
-    room.on(RoomEvent.ParticipantConnected, refreshTracks);
+    room.on(RoomEvent.ParticipantConnected, () => {
+      markCallConnected();
+      refreshTracks();
+    });
     room.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
     connect();
     return () => { cancelled = true; room.removeAllListeners(); room.disconnect(); roomRef.current = null; setParticipants([]); setTracks([]); setLocalVideoTrack(null); setParticipantToast(""); };
@@ -2597,6 +2603,7 @@ export function ChatModal({
         if (!response.ok) return;
         const data = await response.json();
         const status = data.call?.status;
+        if (status === "connected") setCallConnected(true);
         if (["ended", "rejected", "missed"].includes(status)) {
           await endCall(status === "rejected" ? "rejected" : status === "missed" ? "missed" : "ended", true);
         }

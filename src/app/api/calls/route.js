@@ -95,7 +95,7 @@ export async function PATCH(req) {
   const data = {};
   if (action === "offer" && call.callerId === id) data.offer = JSON.stringify(value);
   else if (action === "answer" && call.callerId !== id) data.answer = JSON.stringify(value);
-  else if (action === "connect") data.status = "connected";
+  else if (action === "connect" && call.callerId !== id) data.status = "connected";
   else if (action === "candidate") {
     const field = call.callerId === id ? "callerCandidates" : "calleeCandidates";
     const candidates = JSON.parse(call[field] || "[]");

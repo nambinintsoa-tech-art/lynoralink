@@ -50,7 +50,7 @@ export async function registerCallRoutes(app) {
     const data = {};
     if (action === "offer" && call.callerId === userId) data.offer = JSON.stringify(value);
     else if (action === "answer" && call.callerId !== userId) data.answer = JSON.stringify(value);
-    else if (action === "connect") data.status = "connected";
+    else if (action === "connect" && call.callerId !== userId) data.status = "connected";
     else if (action === "candidate") {
       const field = call.callerId === userId ? "callerCandidates" : "calleeCandidates";
       let candidates = [];
