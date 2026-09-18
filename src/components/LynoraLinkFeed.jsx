@@ -741,7 +741,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* ---- Profile Card (LinkedIn dark style) ---- */}
-      <SidebarCard style={{ overflow: "hidden" }}>
+      <SidebarCard style={{ overflow: "hidden", borderRadius: 16, background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 2px 8px rgba(15,51,82,0.06)" }}>
         {/* Dark gradient header with wave */}
         <div style={{
           height: 72,
@@ -750,6 +750,7 @@ function LeftSidebar({ profile, articleCount, connectionCount, draftCount = 0, o
             : navyGrad,
           position: "relative",
           overflow: "hidden",
+          borderRadius: "15px 15px 0 0",
         }}>
           <svg
             viewBox="0 0 300 40"
@@ -1928,7 +1929,7 @@ function PostViewer({ post, onClose, onToggleLike, onToggleBookmark, onAddCommen
             </div>
           </div>
 
-          {post.text && <div style={{ padding: "0 18px 16px", fontSize: 15.5, color: C.ink, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{post.text}</div>}
+          {post.text && <div style={{ padding: post.presentation?.backgroundColor ? "24px 20px" : "0 18px 16px", fontSize: 15.5, color: C.ink, lineHeight: 1.7, whiteSpace: "pre-wrap", background: post.presentation?.backgroundColor || "transparent", marginBottom: post.presentation?.backgroundColor ? 16 : 0 }}>{post.text}</div>}
 
           {post.media && (
             <div style={{ margin: "0 0 4px" }}>
@@ -2839,7 +2840,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [selectedTrend, setSelectedTrend] = useState(null);
   const [showLogoutTransition, setShowLogoutTransition] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [feedContentReady, setFeedContentReady] = useState(Array.isArray(initialPosts) && initialPosts.length > 0);
+  const hasInitialFeedData = Array.isArray(initialPosts) && initialPosts.length > 0;
+  const [feedContentReady, setFeedContentReady] = useState(hasInitialFeedData);
   const [feedLoadError, setFeedLoadError] = useState("");
   const [unreadPublications, setUnreadPublications] = useState(0);
   const feedSeenAtRef = useRef(0);
@@ -2983,7 +2985,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     return () => { mounted = false; };
   }, [session?.user?.id]);
   const [activeAccount, setActiveAccount] = useState("personal");
-  const [accountReady, setAccountReady] = useState(false);
+  const [accountReady, setAccountReady] = useState(true);
   useEffect(() => {
     if (!session?.user?.id) {
       setAccountReady(true);
@@ -3191,6 +3193,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [targetProfileId, setTargetProfileId] = useState(null);
   const [suggestionRotation, setSuggestionRotation] = useState(0);
   const [targetGroupId, setTargetGroupId] = useState(null);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  const [isViewportReady, setIsViewportReady] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const searchRequestRef = useRef(0);
   const triggerRealtimeSync = useCallback((type = "all") => {
     if (typeof window === "undefined") return;
@@ -3213,6 +3218,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
   }, []);
   const profileTargetId = targetProfileId || searchParams?.get("userId") || null;
+  const isMobileViewport = !isViewportReady ? (typeof window !== "undefined" ? window.innerWidth <= 860 : false) : viewportWidth <= 860;
+  const showFeedSkeleton = isMounted && !feedContentReady && posts.length === 0 && !hasInitialFeedData;
 
   // Mesure la hauteur réelle du topnav pour que les modals collent parfaitement en dessous
   const [topnavHeight, setTopnavHeight] = useState(96);
@@ -3221,6 +3228,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   // Détection mobile pour les modals messages/notifications plein écran
   const [isMobile, setIsMobile] = useState(false);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   useLayoutEffect(() => {
     const measure = () => {
       const height = topnavRef.current?.getBoundingClientRect().height || 96;
@@ -3228,13 +3239,23 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       document.documentElement.style.setProperty("--lynora-header-offset", `${height}px`);
     };
 
+    const updateViewport = () => {
+      setViewportWidth(window.innerWidth);
+      setIsViewportReady(true);
+      setIsMobile(window.innerWidth < 768);
+    };
+
     measure();
+    updateViewport();
 
     const ro = new ResizeObserver(measure);
     if (topnavRef.current) ro.observe(topnavRef.current);
 
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
+    const checkMobile = () => {
+      setViewportWidth(window.innerWidth);
+      setIsViewportReady(true);
+      setIsMobile(window.innerWidth < 768);
+    };
     window.addEventListener("resize", checkMobile);
 
     return () => {
@@ -3362,8 +3383,10 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   }, [view]);
 
   useEffect(() => {
-    setFeedContentReady(Array.isArray(initialPosts) && initialPosts.length > 0);
-  }, [initialPosts]);
+    if (hasInitialFeedData || posts.length > 0) {
+      setFeedContentReady(true);
+    }
+  }, [hasInitialFeedData, posts.length]);
 
   useEffect(() => {
     if (!session?.user?.id) {
@@ -3440,8 +3463,11 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const handleOffline = () => setFeedLoadError("Connexion Internet interrompue. Vérifiez votre réseau puis cliquez sur Réessayer.");
 
     const loadPosts = async () => {
-      if (!Array.isArray(initialPosts) || initialPosts.length === 0) {
+      const shouldKeepSkeleton = !hasInitialFeedData && posts.length === 0 && !feedContentReady;
+      if (shouldKeepSkeleton && !controller.signal.aborted) {
         setFeedContentReady(false);
+      } else {
+        setFeedContentReady(true);
       }
       setFeedLoadError("");
       let timedOut = false;
@@ -3471,7 +3497,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         }
       } finally {
         window.clearTimeout(timeoutId);
-        if (!controller.signal.aborted || timedOut) setFeedContentReady(true);
+        if (!controller.signal.aborted || timedOut) {
+          setFeedContentReady(true);
+        }
       }
     };
 
@@ -5351,15 +5379,15 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     }
   };
 
-  const editPost = async (id, text, visibility, media) => {
+  const editPost = async (id, text, visibility, media, presentation) => {
     const response = await fetchBackendApi(`/api/posts/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, visibility, ...(Array.isArray(media) ? { media } : {}) }),
+      body: JSON.stringify({ text, visibility, ...(Array.isArray(media) ? { media } : {}), ...(presentation ? { presentation } : {}) }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Impossible de modifier la publication");
-    setPosts((currentPosts) => currentPosts.map((post) => post.id === id ? { ...post, text: data.post.text, visibility: data.post.visibility, updatedAt: data.post.updatedAt, ...(Array.isArray(data.post.media) ? { media: data.post.media } : {}) } : post));
+    setPosts((currentPosts) => currentPosts.map((post) => post.id === id ? { ...post, text: data.post.text, visibility: data.post.visibility, presentation: presentation || post.presentation, updatedAt: data.post.updatedAt, ...(Array.isArray(data.post.media) ? { media: data.post.media } : {}) } : post));
     setSidebarToast({ message: "Publication modifiée", icon: Check });
   };
 
@@ -5460,7 +5488,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             presentation: { ...(presentation || { theme: "navy-gold", font: "editorial", density: "airy" }), coverUrl: postMedia.find((item) => item?.type === "image" && item?.url)?.url || null },
             media: postMedia.map(({ id, ...item }) => item),
           }
-        : { text, media: postMedia.map(({ id, ...item }) => ({ ...item, label: item.name })) }),
+        : { text, presentation: presentation || {}, media: postMedia.map(({ id, ...item }) => ({ ...item, label: item.name })) }),
     };
     
     setPosts((ps) => [newPost, ...ps]);
@@ -5479,7 +5507,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         headline: isArticle ? articleTitle : undefined,
         excerpt: isArticle ? newPost.excerpt : undefined,
         articleBody: isArticle ? text : undefined,
-        presentation: isArticle ? newPost.presentation : undefined,
+        presentation: presentation || (isArticle ? newPost.presentation : undefined),
         media: newPost.media,
         mood,
         identifiedUsers,
@@ -6055,8 +6083,15 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       )}
 
       {view === "feed" ? (
-        <div style={{ maxWidth: 1400, margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0,1fr) 320px", gap: 32, alignItems: "start", paddingTop: 28 }} className="lynora-grid lynora-feed-container">
-          {!feedContentReady ? (
+        <div
+          style={
+            isMobileViewport
+              ? { maxWidth: 1400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingTop: 16 }
+              : { maxWidth: 1400, margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(0,1fr) 320px", gap: 32, alignItems: "start", paddingTop: 28 }
+          }
+          className="lynora-grid lynora-feed-container"
+        >
+          {showFeedSkeleton ? (
             <>
               <aside aria-label="Chargement de la navigation latérale">
                 <LeftSidebarSkeleton />
@@ -6074,42 +6109,46 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             </>
           ) : (
             <>
-              <div className="lynora-sidebar-placeholder" />
+              {!isMobileViewport && (
+                <>
+                  <div className="lynora-sidebar-placeholder" />
 
-              <div style={{ position: "fixed", top: "calc(var(--lynora-header-offset) + 28px)", left: "calc((100vw - min(1400px, 100vw)) / 2)", width: 300, zIndex: 10, maxHeight: "calc(100vh - var(--lynora-header-offset) - 28px - 60px)", overflowY: "auto", paddingRight: 8 }} className="lynora-sticky-sidebar lynora-fixed-sidebar">
-                <LeftSidebar
-                  profile={activeProfile}
-                  articleCount={articleCount}
-                  connectionCount={connections.length}
-                  activeView={view}
-                  onOpenComposer={setModalMode}
-                  onOpenCampaign={openCampaign}
-                  onNavigate={navigate}
-                  onNavigateShortcut={async (shortcut) => {
-                    if (activeAccount === "company" && (shortcut === "my-posts" || shortcut === "my-articles") && companyData?.id) {
-                      try {
-                        const response = await fetchBackendApi(`/api/posts?companyPageId=${encodeURIComponent(companyData.id)}&limit=50`, { cache: "no-store" });
-                        if (response.ok) {
-                          const data = await response.json();
-                          if (Array.isArray(data.posts)) setPosts((current) => mergeOptimisticPosts(current, data.posts));
+                  <div style={{ position: "fixed", top: "calc(var(--lynora-header-offset) + 28px)", left: "calc((100vw - min(1400px, 100vw)) / 2)", width: 300, zIndex: 10, maxHeight: "calc(100vh - var(--lynora-header-offset) - 28px - 60px)", overflowY: "auto", paddingRight: 8 }} className="lynora-sticky-sidebar lynora-fixed-sidebar">
+                    <LeftSidebar
+                      profile={activeProfile}
+                      articleCount={articleCount}
+                      connectionCount={connections.length}
+                      activeView={view}
+                      onOpenComposer={setModalMode}
+                      onOpenCampaign={openCampaign}
+                      onNavigate={navigate}
+                      onNavigateShortcut={async (shortcut) => {
+                        if (activeAccount === "company" && (shortcut === "my-posts" || shortcut === "my-articles") && companyData?.id) {
+                          try {
+                            const response = await fetchBackendApi(`/api/posts?companyPageId=${encodeURIComponent(companyData.id)}&limit=50`, { cache: "no-store" });
+                            if (response.ok) {
+                              const data = await response.json();
+                              if (Array.isArray(data.posts)) setPosts((current) => mergeOptimisticPosts(current, data.posts));
+                            }
+                          } catch {
+                            // Keep the currently loaded posts if the dedicated request fails.
+                          }
                         }
-                      } catch {
-                        // Keep the currently loaded posts if the dedicated request fails.
-                      }
-                    }
-                    navigate(shortcut);
-                  }}
-                  onNavigateProfile={() => {
-                    if (activeAccount === "company") {
-                      setCompanyTab("mine");
-                      setSelectedCompanyPage(null);
-                      navigate("company");
-                    } else {
-                      navigate("profile");
-                    }
-                  }}
-                />
-              </div>
+                        navigate(shortcut);
+                      }}
+                      onNavigateProfile={() => {
+                        if (activeAccount === "company") {
+                          setCompanyTab("mine");
+                          setSelectedCompanyPage(null);
+                          navigate("company");
+                        } else {
+                          navigate("profile");
+                        }
+                      }}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="lynora-feed-main" style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                 {feedLoadError && (
@@ -6124,6 +6163,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   <CompanyComposer onOpen={(mode) => openCompanyComposer(mode, null)} avatarUrl={activeProfileAvatar} initials={activeProfile.initials || CURRENT_USER.avatar} />
                 
                 {accountReady ? <Story
+                  suppressLoadingSkeleton={showFeedSkeleton}
                   accountMode={activeAccount}
                   currentUser={{
                     name: activeProfile.name || CURRENT_USER.name,
@@ -6497,37 +6537,41 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                 )}
               </div>
 
-              <div className="lynora-sidebar-placeholder" />
+              {!isMobileViewport && (
+                <>
+                  <div className="lynora-sidebar-placeholder" />
 
-              <div style={{ position: "fixed", top: "calc(var(--lynora-header-offset) + 28px)", right: "calc((100vw - min(1400px, 100vw)) / 2)", width: 320, zIndex: 10, maxHeight: "calc(100vh - var(--lynora-header-offset) - 28px - 60px)", overflowY: "auto", paddingRight: 8 }} className="lynora-sticky-sidebar lynora-fixed-sidebar">
-                <RightSidebar
-                  ads={sponsoredAds}
-                  groups={sidebarGroups}
-                  currentUserId={session?.user?.id}
-                  onOpenArticle={(p) => setOpenArticleId(p.id)}
-                  onSelectTrend={selectTrend}
-                  suggestions={activeAccount === "company" ? pageSuggestions : networkSuggestions}
-                  pageSuggestions={pageSuggestions}
-                  accountMode={activeAccount}
-                  connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
-                  networkLoading={networkLoading}
-                  followedPageIds={followedPageIds}
-                  onOpenProfile={openUserProfile}
-                  pendingRequestIds={pendingSuggestionIds}
-                  incomingInvitations={invitations}
-                  onConnect={connectSuggestion}
-                  onCancel={cancelConnectionRequest}
-                  onConfirm={acceptInvitation}
-                  onFollowPage={followPage}
-                  onJoinGroup={joinGroupFromFeed}
-                  onNavigate={navigate}
-                  onMessage={(messageAd) => {
-                    setDirectChatOpen(true);
-                    openConversationWithUser({ id: messageAd.ownerId || messageAd.authorId, pageId: messageAd.pageId || null, name: messageAd.author, image: messageAd.image || null });
-                  }}
-                  birthdays={connections}
-                />
-              </div>
+                  <div style={{ position: "fixed", top: "calc(var(--lynora-header-offset) + 28px)", right: "calc((100vw - min(1400px, 100vw)) / 2)", width: 320, zIndex: 10, maxHeight: "calc(100vh - var(--lynora-header-offset) - 28px - 60px)", overflowY: "auto", paddingRight: 8 }} className="lynora-sticky-sidebar lynora-fixed-sidebar">
+                    <RightSidebar
+                      ads={sponsoredAds}
+                      groups={sidebarGroups}
+                      currentUserId={session?.user?.id}
+                      onOpenArticle={(p) => setOpenArticleId(p.id)}
+                      onSelectTrend={selectTrend}
+                      suggestions={activeAccount === "company" ? pageSuggestions : networkSuggestions}
+                      pageSuggestions={pageSuggestions}
+                      accountMode={activeAccount}
+                      connectedIds={activeAccount === "company" ? followedPageIds : connectedSuggestionIds}
+                      networkLoading={networkLoading}
+                      followedPageIds={followedPageIds}
+                      onOpenProfile={openUserProfile}
+                      pendingRequestIds={pendingSuggestionIds}
+                      incomingInvitations={invitations}
+                      onConnect={connectSuggestion}
+                      onCancel={cancelConnectionRequest}
+                      onConfirm={acceptInvitation}
+                      onFollowPage={followPage}
+                      onJoinGroup={joinGroupFromFeed}
+                      onNavigate={navigate}
+                      onMessage={(messageAd) => {
+                        setDirectChatOpen(true);
+                        openConversationWithUser({ id: messageAd.ownerId || messageAd.authorId, pageId: messageAd.pageId || null, name: messageAd.author, image: messageAd.image || null });
+                      }}
+                      birthdays={connections}
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

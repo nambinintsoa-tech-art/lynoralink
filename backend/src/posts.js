@@ -1,5 +1,6 @@
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
+import { broadcastRealtimeEvent } from "./realtime.js";
 
 function initials(name = "") {
   return name
@@ -292,6 +293,7 @@ export async function registerPostRoutes(app) {
       },
       include: { author: { select: { id: true, name: true, title: true, image: true } } },
     });
+    broadcastRealtimeEvent({ type: "posts", broadcastToAll: true, payload: { postId: post.id } });
     return reply.code(201).send({ ok: true, post: { ...post, media: media.length > 1 ? media : media[0] || null, createdAt: post.createdAt } });
   });
 
@@ -388,6 +390,7 @@ export async function registerPostRoutes(app) {
     if (typeof body.text === "string") data.text = body.text.trim();
     if (body.visibility !== undefined) data.visibility = normalizeVisibility(body.visibility);
     if (Object.prototype.hasOwnProperty.call(body, "tags")) data.tags = JSON.stringify(normalizeTags(body.tags));
+    if (Object.prototype.hasOwnProperty.call(body, "presentation")) data.presentation = body.presentation ? JSON.stringify(body.presentation) : null;
     const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
     const media = Array.isArray(body.media) ? body.media.slice(0, 20).filter((item) => item?.url) : [];
     if (hasMedia) {

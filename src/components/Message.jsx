@@ -623,6 +623,22 @@ function DateSeparator({ label }) {
   );
 }
 
+function normalizeReplyPayload(message, fallbackAuthorName = "ce message") {
+  if (!message) return null;
+  const raw = message.replyTo || message.reply_to || message.parentMessage || message.parent_message || null;
+  if (!raw) return null;
+  const parsed = typeof raw === "string" ? { text: raw } : raw;
+  const from = parsed.from || (parsed.senderId === "me" || parsed.senderId === "self" ? "me" : "them");
+  return {
+    id: parsed.id || parsed.messageId || parsed.parentId || null,
+    text: parsed.text || parsed.content || parsed.body || (parsed.deletedForEveryone ? "Message supprimé" : "Pièce jointe"),
+    from,
+    author: parsed.author || fallbackAuthorName || (from === "me" ? "Vous" : "ce message"),
+    deletedForEveryone: Boolean(parsed.deletedForEveryone ?? parsed.deleted_for_everyone ?? false),
+    time: parsed.time || parsed.createdAt || "",
+  };
+}
+
 function ParentMessagePreview({ replyTo, isMine = false, compact = false, onClick }) {
   if (!replyTo) return null;
   const parentText = replyTo.deletedForEveryone ? "Message supprimé" : replyTo.text || "Pièce jointe";
@@ -641,24 +657,23 @@ function ParentMessagePreview({ replyTo, isMine = false, compact = false, onClic
         flexDirection: "column",
         gap: 3,
         marginBottom: compact ? 0 : 10,
-        padding: compact ? "5px 8px" : "7px 9px",
-        borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.72)" : C.navy700}`,
-        border: `1px solid ${isMine ? "rgba(255,255,255,0.22)" : "rgba(15,51,82,0.12)"}`,
+        padding: compact ? "6px 8px" : "8px 10px",
+        borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.7)" : "#d7b86c"}`,
+        border: `1px solid ${isMine ? "rgba(255,255,255,0.18)" : "rgba(15,51,82,0.08)"}`,
         borderLeftWidth: 3,
-        borderRadius: 9,
-        background: isMine ? "rgba(255,255,255,0.14)" : "rgba(15,51,82,0.065)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        opacity: compact ? 0.82 : 0.94,
+        borderRadius: 11,
+        background: isMine ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.76)",
+        opacity: compact ? 0.86 : 0.96,
         minWidth: 0,
         cursor: clickable ? "pointer" : "default",
         transition: "opacity 0.15s ease, background 0.15s ease",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35)",
       }}
     >
-      <span style={{ color: parentColor, fontSize: compact ? 9.5 : 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <span style={{ color: parentColor, fontSize: compact ? 9.5 : 9.5, fontWeight: 800, letterSpacing: "0.02em", opacity: 0.9 }}>
         Réponse à {replyTo.from === "me" ? "vous" : replyTo.author || "ce message"}
       </span>
-      <span style={{ color: isMine ? "rgba(255,255,255,0.72)" : C.muted, fontSize: compact ? 10.5 : 11, lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <span style={{ color: isMine ? "rgba(255,255,255,0.74)" : C.muted, fontSize: compact ? 10.5 : 11, lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {parentText}
       </span>
     </div>
@@ -2732,12 +2747,18 @@ export function ChatModal({
   const visibleMessages = searchOpen && searchQuery.trim()
     ? conv.messages.filter((m) => String(m.text || "").toLowerCase().includes(searchQuery.trim().toLowerCase()))
     : conv.messages;
-  const messagesWithDateLabels = visibleMessages.map((message, index) => ({
-    message,
-    dateLabel: index === 0 || getMessageDateKey(message) !== getMessageDateKey(visibleMessages[index - 1])
+  const messagesWithDateLabels = visibleMessages.map((message, index) => {
+    const prev = visibleMessages[index - 1];
+    const next = visibleMessages[index + 1];
+    const dateLabel = index === 0 || getMessageDateKey(message) !== getMessageDateKey(visibleMessages[index - 1])
       ? formatMessageDateLabel(message)
-      : null,
-  }));
+      : null;
+    // Regroupement à la Facebook Messenger : les messages consécutifs du même
+    // expéditeur (même jour, sans appel entre les deux) forment une "grappe".
+    const isGroupStart = !prev || !!dateLabel || prev.from !== message.from || prev.type === "call" || message.type === "call";
+    const isGroupEnd = !next || getMessageDateKey(next) !== getMessageDateKey(message) || next.from !== message.from || next.type === "call" || message.type === "call";
+    return { message, dateLabel, isGroupStart, isGroupEnd };
+  });
 
   const confirmMap = {
     block: { title: `Bloquer ${conv.name} ?`, message: "Cette personne ne pourra plus vous envoyer de messages ni voir votre profil.", label: "Bloquer" },
@@ -2831,10 +2852,11 @@ export function ChatModal({
             outline: none;
           }
         `}</style>
-        <div className="lynora-message-list" style={{ flex: "1 1 auto", minWidth: 0, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: mobile ? "44px 16px 16px" : 16, display: "flex", flexDirection: "column", gap: 10 }}>
-          {messagesWithDateLabels.map(({ message: m, dateLabel }) => {
+        <div className="lynora-message-list" style={{ flex: "1 1 auto", minWidth: 0, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: mobile ? "44px 16px 16px" : 16, display: "flex", flexDirection: "column", gap: 2 }}>
+          {messagesWithDateLabels.map(({ message: m, dateLabel, isGroupStart, isGroupEnd }) => {
             const isMe = m.from === "me";
             const isUnread = !isMe && !m.read;
+            const replyPreview = normalizeReplyPayload(m, conv.name);
             const reactionCounts = (m.reactions || []).reduce((acc, r) => { acc[r.emoji] = (acc[r.emoji] || 0) + 1; return acc; }, {});
             const myReaction = (m.reactions || []).find((r) => r.from === "me")?.emoji;
 
@@ -2864,7 +2886,7 @@ export function ChatModal({
                 <div
                   ref={(el) => { messageNodesRef.current[m.id] = el; }}
                   className="lynora-message-row"
-                  style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 6, width: "100%" }}
+                  style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 6, width: "100%", marginTop: isGroupStart ? 10 : 2 }}
                   onClick={() => mobile && setMobileActionMessageId((current) => current === m.id ? null : m.id)}
                   onMouseEnter={() => setHoveredMsgId(m.id)}
                   onMouseLeave={() => {
@@ -2872,9 +2894,15 @@ export function ChatModal({
                     if (msgMenuId === m.id) setMsgMenuId(null);
                   }}
                 >
-                {!isMe && <Avatar initials={m.authorInitials || conv.initials} imageUrl={m.authorImage || conv.image} size={24} online={conv.online} onClick={() => setInfoOpen(true)} />}
+                {!isMe && (
+                  isGroupEnd ? (
+                    <Avatar initials={m.authorInitials || conv.initials} imageUrl={m.authorImage || conv.image} size={20} online={conv.online} onClick={() => setInfoOpen(true)} />
+                  ) : (
+                    <div style={{ width: 20, flexShrink: 0 }} />
+                  )
+                )}
 
-                <div style={{ position: "relative", width: "fit-content", maxWidth: mobile ? "calc(100% - 42px)" : "74%", minWidth: 0, display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+                <div style={{ position: "relative", width: "fit-content", maxWidth: mobile ? "calc(100% - 34px)" : "65%", minWidth: 0, display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
                   {/* Barre d'actions au survol : réagir / répondre / plus d'options */}
                   {(hoveredMsgId === m.id || mobileActionMessageId === m.id) && !m.deletedForEveryone && (
                     <div onClick={(event) => event.stopPropagation()} className={`lynora-message-actions ${isMe ? "lynora-message-actions-sent" : "lynora-message-actions-received"}`} style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", ...(isMe ? { right: "calc(100% + 6px)" } : { left: "calc(100% + 6px)" }), display: "flex", alignItems: "center", gap: 1, background: C.white, borderRadius: 999, border: `1px solid ${C.line}`, boxShadow: "0 4px 12px rgba(15,51,82,0.18)", padding: 2, zIndex: 60 }}>
@@ -2896,24 +2924,31 @@ export function ChatModal({
                   )}
 
                   <div
-                    className={`${m.replyTo ? "lynora-reply-bubble" : "lynora-message-bubble"}${highlightedMsgId === m.id ? " lynora-message-bubble-highlight" : ""}`}
+                    className={`lynora-message-bubble${highlightedMsgId === m.id ? " lynora-message-bubble-highlight" : ""}`}
                     style={{
                       position: "relative",
-                      padding: "10px 12px", borderRadius: isMe ? "16px 16px 6px 16px" : "16px 16px 16px 6px",
-                      background: m.deletedForEveryone ? C.navy50 : (isMe ? navyGrad : C.white),
-                      border: m.deletedForEveryone ? `1px dashed ${C.line}` : (isMe ? "none" : `1px solid ${C.line}`),
-                      color: m.deletedForEveryone ? C.mutedLight : (isMe ? C.white : C.ink), fontSize: 13, lineHeight: 1.5,
+                      padding: "8px 12px",
+                      borderRadius: isMe
+                        ? `18px ${isGroupStart ? 18 : 4}px ${isGroupEnd ? 18 : 4}px 18px`
+                        : `${isGroupStart ? 18 : 4}px 18px 18px ${isGroupEnd ? 18 : 4}px`,
+                      background: m.deletedForEveryone ? C.navy50 : (isMe ? C.navy800 : "#E4E6EB"),
+                      border: m.deletedForEveryone ? `1px dashed ${C.line}` : "none",
+                      color: m.deletedForEveryone ? C.mutedLight : (isMe ? "#ffffff" : "#050505"),
+                      fontSize: 15,
+                      lineHeight: 1.33,
                       fontWeight: isUnread ? 700 : 400,
-                      opacity: (!isMe && m.read) ? 0.8 : 1,
-                      boxShadow: "0 8px 20px rgba(15,51,82,0.10)",
+                      opacity: 1,
+                      boxShadow: "none",
                       maxWidth: "100%",
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
                     }}
                   >
-                    {m.replyTo && (
+                    {replyPreview && (
                       <ParentMessagePreview
-                        replyTo={{ ...m.replyTo, author: m.replyTo.from === "me" ? "Vous" : conv.name }}
+                        replyTo={{ ...replyPreview, author: replyPreview.from === "me" ? "Vous" : replyPreview.author || conv.name }}
                         isMine={isMe}
-                        onClick={m.replyTo.id ? () => scrollToMessage(m.replyTo.id) : undefined}
+                        onClick={replyPreview.id ? () => scrollToMessage(replyPreview.id) : undefined}
                       />
                     )}
 
@@ -2954,36 +2989,42 @@ export function ChatModal({
                     ) : (
                       m.text ? <div style={{ whiteSpace: "pre-wrap" }}>{m.text}</div> : null
                     )}
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end', marginTop: 4 }}>
-                      <div style={{ fontSize: 9.5, color: m.deletedForEveryone ? C.mutedLight : (isMe ? "rgba(255,255,255,0.7)" : C.mutedLight), textAlign: "right" }}>{m.time}</div>
-                      {isMe && !m.deletedForEveryone && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: m.read ? C.gold400 : "rgba(255,255,255,0.65)" }}>
-                          {m.read ? <CheckCheck size={12} /> : <Check size={12} />}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
+                  {/* Réactions : petite pastille qui chevauche le coin bas de la bulle,
+                      comme sur Messenger */}
                   {Object.keys(reactionCounts).length > 0 && (
-                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap", justifyContent: isMe ? "flex-end" : "flex-start" }}>
+                    <div style={{ display: "flex", gap: 2, marginTop: -10, marginRight: isMe ? 6 : 0, marginLeft: isMe ? 0 : 6, position: "relative", zIndex: 5, flexWrap: "wrap", justifyContent: isMe ? "flex-end" : "flex-start" }}>
                       {Object.entries(reactionCounts).map(([emoji, count]) => {
                         const r = REACTION_MAP[emoji];
                         return (
                           <button
                             key={emoji}
                             onClick={() => toggleReaction(m.id, emoji)}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.white, border: `1px solid ${myReaction === emoji ? C.gold600 : C.line}`, borderRadius: 999, padding: "2px 6px", fontSize: 11, cursor: "pointer", boxShadow: "0 1px 3px rgba(15,51,82,0.12)" }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, background: C.white, border: `1px solid ${myReaction === emoji ? C.gold600 : C.line}`, borderRadius: 999, padding: "1px 5px", fontSize: 10.5, cursor: "pointer", boxShadow: "0 1px 3px rgba(15,51,82,0.18)" }}
                           >
                             {r ? (
-                              <img src={r.src} alt={r.label} style={{ width: 14, height: 14, objectFit: "contain", borderRadius: 4 }} />
+                              <img src={r.src} alt={r.label} style={{ width: 13, height: 13, objectFit: "contain", borderRadius: 4 }} />
                             ) : (
-                              <span style={{ fontSize: 14, lineHeight: 1 }}>{emoji}</span>
+                              <span style={{ fontSize: 13, lineHeight: 1 }}>{emoji}</span>
                             )}
                             {count > 1 && <span style={{ fontSize: 9, color: C.mutedLight, fontWeight: 700 }}>{count}</span>}
                           </button>
                         );
                       })}
+                    </div>
+                  )}
+
+                  {/* Horodatage + accusé de lecture, hors de la bulle : affichés uniquement
+                      sous le dernier message d'une grappe, comme sur Messenger */}
+                  {isGroupEnd && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: isMe ? 'flex-end' : 'flex-start', marginTop: Object.keys(reactionCounts).length > 0 ? 6 : 3, padding: '0 4px' }}>
+                      <span style={{ fontSize: 11, color: C.mutedLight }}>{m.time}</span>
+                      {isMe && !m.deletedForEveryone && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', color: m.read ? C.navy700 : C.mutedLight }}>
+                          {m.read ? <CheckCheck size={12} /> : <Check size={12} />}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -3696,8 +3737,8 @@ export default function MessagingWidget({ conversations: controlled, onChange, o
     setListOpen(false);
   };
 
-  const sendMessage = (id, text, attachments = []) => {
-    onSend?.(id, text, attachments);
+  const sendMessage = (id, text, attachments = [], replyTo = null) => {
+    onSend?.(id, text, attachments, replyTo);
   };
 
   const patchConversation = (id, fields) => {

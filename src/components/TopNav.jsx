@@ -9,6 +9,7 @@ import {
   FaUser, FaGear, FaCrown, FaRightFromBracket, FaMagnifyingGlass, FaShieldHalved,
 } from "react-icons/fa6";
 import { Skeleton, SkeletonAvatar } from "./Skeleton";
+import { canUsePullToRefresh, getFeedReloadTarget } from "@/lib/feed-refresh";
 
 /* ---------------------------------------------------------------------- */
 /*  Design tokens                                                          */
@@ -291,7 +292,7 @@ function IconButton({ icon: Icon, imgSrc, label, onClick, active, badge, size = 
         border: "none",
         borderRadius: "50%",
         cursor: "pointer",
-        background: "transparent",
+        background: active ? "#EEF1F4" : "transparent",
         color: active ? C.navy800 : C.muted,
         flexShrink: 0,
       }}
@@ -405,10 +406,11 @@ export const TopNav = forwardRef(function TopNav({
   onOpenCampaign = null,
 }, ref) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
   const [profileMenuLoading, setProfileMenuLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
   const [hasMeasured, setHasMeasured] = useState(false);
   const headerRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -424,7 +426,9 @@ export const TopNav = forwardRef(function TopNav({
       ]
     : inactiveCompanyPages.map((page) => ({ ...page, type: "company", displayName: page.displayName || page.name || "Page entreprise" }));
 
-  const isCompact = containerWidth > 0 && containerWidth < COMPACT_BREAKPOINT;
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 0;
+  const measuredWidth = hasMeasured ? containerWidth : (viewportWidth || containerWidth || 0);
+  const isCompact = measuredWidth > 0 && measuredWidth < COMPACT_BREAKPOINT;
 
   useEffect(() => {
     if (!menuOpen) {
@@ -457,9 +461,71 @@ export const TopNav = forwardRef(function TopNav({
     return () => document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
   }, [menuOpen, searchOpen]);
 
+  const triggerHardRefresh = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (isReloading) return;
+
+    setIsReloading(true);
+    const currentUrl = new URL(window.location.href);
+    const targetUrl = getFeedReloadTarget(currentUrl);
+
+    window.setTimeout(() => {
+      if (window.location.pathname === "/feed" || window.location.pathname === "/") {
+        window.location.reload();
+        return;
+      }
+      window.location.assign(targetUrl);
+    }, 220);
+  }, [isReloading]);
+
   const goHome = () => {
-    onNavigate("feed");
+    triggerHardRefresh();
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    let dragState = null;
+
+    const handlePointerDown = (event) => {
+      if (!canUsePullToRefresh({ pointerType: event?.pointerType, coarsePointer: window.matchMedia("(pointer: coarse)").matches })) {
+        dragState = null;
+        return;
+      }
+      if ((window.scrollY || window.pageYOffset || 0) <= 8) {
+        dragState = { startY: event.clientY, triggered: false };
+      }
+    };
+
+    const handlePointerMove = (event) => {
+      if (!dragState || dragState.triggered) return;
+      if (!canUsePullToRefresh({ pointerType: event?.pointerType, coarsePointer: window.matchMedia("(pointer: coarse)").matches })) {
+        dragState = null;
+        return;
+      }
+      const delta = event.clientY - dragState.startY;
+      if (delta > 180) {
+        dragState.triggered = true;
+        triggerHardRefresh();
+      }
+    };
+
+    const handlePointerUp = () => {
+      dragState = null;
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerup", handlePointerUp, { passive: true });
+    window.addEventListener("pointercancel", handlePointerUp, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [triggerHardRefresh]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -545,6 +611,47 @@ export const TopNav = forwardRef(function TopNav({
 
   return (
     <>
+      {isReloading && (
+        <div
+          aria-live="polite"
+          aria-label="Rechargement de la page"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(8, 28, 48, 0.14)",
+            backdropFilter: "blur(1px)",
+            WebkitBackdropFilter: "blur(1px)",
+            pointerEvents: "all",
+          }}
+        >
+          <div
+            className="lynora-reload-spinner"
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: "50%",
+              border: "4px solid rgba(217, 165, 54, 0.18)",
+              borderTopColor: "#D9A536",
+              borderRightColor: "#F6D374",
+              boxShadow: "0 0 0 10px rgba(217, 165, 54, 0.08), 0 12px 28px rgba(15, 51, 82, 0.18)",
+              background: "rgba(255, 255, 255, 0.2)",
+            }}
+          />
+          <style>{`
+            @keyframes lynora-gold-spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            .lynora-reload-spinner {
+              animation: lynora-gold-spin 0.9s linear infinite;
+            }
+          `}</style>
+        </div>
+      )}
       {/* ------------------------------------------------------------- */}
       {/* Header                                                        */}
       {/* ------------------------------------------------------------- */}
@@ -565,6 +672,8 @@ export const TopNav = forwardRef(function TopNav({
           visibility: "visible",
           fontFamily: "'Inter', sans-serif",
           background: C.white,
+          backdropFilter: "blur(14px) saturate(125%)",
+          WebkitBackdropFilter: "blur(14px) saturate(125%)",
           borderBottom: `1px solid ${C.border}`,
           boxShadow: "0 1px 0 rgba(13,44,72,0.04), 0 12px 28px -20px rgba(13,44,72,0.3)",
         }}
@@ -641,7 +750,9 @@ export const TopNav = forwardRef(function TopNav({
                       position: "relative", display: "flex", alignItems: "center", justifyContent: "center", border: "none",
                       width: 52, height: 52, flex: "0 0 52px", padding: 0, borderRadius: "50%", cursor: "pointer",
                       whiteSpace: "nowrap",
-                      color: active ? C.navy800 : C.muted,
+                      background: active ? "#EEF1F4" : "transparent",
+                      color: active ? C.navy950 : "rgba(248,251,255,0.72)",
+                      boxShadow: active ? "0 2px 8px rgba(15,51,82,0.12)" : "none",
                     }}
                   >
                     <span style={{ position: "relative", display: "inline-flex", lineHeight: 0 }}>
@@ -866,9 +977,6 @@ export const TopNav = forwardRef(function TopNav({
           </div>
         </div>
 
-        {/* filet de signature */}
-        <div style={{ height: 2, background: goldGrad, opacity: 0.9 }} />
-
         {/* ------------------------------------------------------------- */}
         {/* Barre de navigation mobile (haut d'écran)                     */}
         {/* ------------------------------------------------------------- */}
@@ -931,7 +1039,6 @@ export const TopNav = forwardRef(function TopNav({
                   color: active ? C.navy800 : C.muted,
                   whiteSpace: "nowrap",
                 }}>{label}</span>
-                {active && <span style={{ position: "absolute", bottom: -4, width: 14, height: 2, borderRadius: 999, background: goldGrad }} />}
               </button>
             );
           })}

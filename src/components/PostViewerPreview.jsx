@@ -1126,11 +1126,13 @@ export function ShareModal({ post, onClose, onRepost, shareUrl: shareUrlOverride
 /* ==================================================================
  *  9. TEXTE DU POST + VISIBILIT\u00c9
  * ================================================================== */
-function PostText({ text }) {
+function PostText({ text, presentation }) {
   if (!text) return null;
+  const hasBackground = Boolean(presentation?.backgroundColor);
+  const isDarkBackground = presentation?.backgroundTextColor === C.white || presentation?.backgroundColor?.includes("#0F3352") || presentation?.backgroundColor?.includes("#111827") || presentation?.backgroundColor?.includes("#123F3B") || presentation?.backgroundColor?.includes("#102F52");
   const parts = text.split(/(#\w+)/g);
   return (
-    <div style={{ fontSize: 15, lineHeight: 1.55, color: LI_TEXT, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+    <div style={{ padding: hasBackground ? "34px 24px" : 0, minHeight: hasBackground ? 180 : undefined, display: hasBackground ? "flex" : undefined, flexDirection: hasBackground ? "column" : undefined, alignItems: hasBackground ? "center" : undefined, justifyContent: hasBackground ? "center" : undefined, textAlign: hasBackground ? "center" : undefined, boxSizing: "border-box", fontSize: hasBackground ? 22 : 15, fontWeight: hasBackground ? 700 : 400, lineHeight: hasBackground ? 1.35 : 1.55, color: presentation?.backgroundTextColor || (isDarkBackground ? C.white : LI_TEXT), whiteSpace: "pre-wrap", wordBreak: "break-word", background: presentation?.backgroundColor || "transparent", margin: hasBackground ? "0 -16px" : 0, letterSpacing: hasBackground ? "-0.01em" : undefined }}>
       {parts.map((part, i) =>
         /^#\w+/.test(part) ? (
           <span key={i} style={{ color: LINKEDIN_BLUE, fontWeight: 600 }}>{part}</span>
@@ -2403,7 +2405,7 @@ export default function PostViewerPreview({
           {isFilePostContent ? (
             <>
               <div style={{ padding: "12px 16px 4px" }}>
-                <PostText text={post?.text || post?.fileDescription || post?.file?.description || post?.attachment?.description} />
+                <PostText text={post?.text || post?.fileDescription || post?.file?.description || post?.attachment?.description} presentation={post?.presentation} />
               </div>
               <FileViewerBanner post={post} />
             </>
@@ -2435,7 +2437,7 @@ export default function PostViewerPreview({
             <SponsoredViewerCard post={post} />
           ) : (
             <div style={{ padding: "12px 16px" }}>
-              <PostText text={post?.headline || post?.text || post?.excerpt} />
+              <PostText text={post?.headline || post?.text || post?.excerpt} presentation={post?.presentation} />
             </div>
           )}
 

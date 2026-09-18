@@ -381,7 +381,7 @@ export async function POST(req) {
       headline: headline || null,
       excerpt: excerpt || null,
       body: articleBody || null,
-      presentation: isArticle && presentation ? JSON.stringify(presentation) : null,
+      presentation: presentation ? JSON.stringify(presentation) : null,
       mediaUrl: mediaItem?.url || null,
       mediaType: mediaItem?.type || null,
       mediaData: serializedMedia,

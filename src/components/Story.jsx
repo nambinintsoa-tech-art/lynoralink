@@ -1585,10 +1585,16 @@ export default function Story({
   onReply,
   onReact,
   style,
+  suppressLoadingSkeleton = false,
 }) {
-  const { status } = useSession();
+  const { status, data: session } = useSession();
+  const sessionAvatar = session?.user?.image || session?.user?.avatarUrl || session?.user?.photoUrl || null;
   const [groups, setGroups] = useState(groupsProp ?? []);
-  const [currentUser, setCurrentUser] = useState(normalizeCurrentUser(currentUserProp ?? EMPTY_USER));
+  const [currentUser, setCurrentUser] = useState(normalizeCurrentUser({
+    ...EMPTY_USER,
+    ...(currentUserProp ?? {}),
+    image: currentUserProp?.image || currentUserProp?.avatarUrl || currentUserProp?.photoUrl || sessionAvatar,
+  }));
   const [showCreate, setShowCreate] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [viewerGroupIndex, setViewerGroupIndex] = useState(null);
@@ -1608,8 +1614,14 @@ export default function Story({
     setReactions((previous) => ({ ...loadedReactions, ...previous }));
   }, [groups]);
   useEffect(() => {
-    if (currentUserProp !== undefined) setCurrentUser(normalizeCurrentUser(currentUserProp));
-  }, [currentUserProp]);
+    if (currentUserProp !== undefined) {
+      setCurrentUser(normalizeCurrentUser({
+        ...EMPTY_USER,
+        ...currentUserProp,
+        image: currentUserProp.image || currentUserProp.avatarUrl || currentUserProp.photoUrl || sessionAvatar || null,
+      }));
+    }
+  }, [currentUserProp, sessionAvatar]);
 
   /* Charge les vraies stories depuis l'API uniquement si le composant
      n'est pas piloté par props (mode "autonome"), et une fois la
@@ -1630,7 +1642,11 @@ export default function Story({
         if (!res.ok) throw new Error("Failed to load stories");
         const data = await res.json();
         if (cancelled) return;
-        setCurrentUser(data.currentUser ?? EMPTY_USER);
+        setCurrentUser(normalizeCurrentUser({
+          ...EMPTY_USER,
+          ...(data.currentUser ?? {}),
+          image: data.currentUser?.image || data.currentUser?.avatarUrl || data.currentUser?.photoUrl || sessionAvatar || null,
+        }));
         setGroups(Array.isArray(data.groups) ? normalizeGroups(data.groups) : groupsFromStories(data.stories));
       } catch (err) {
         console.error("Failed to load stories:", err);
@@ -1870,7 +1886,8 @@ export default function Story({
             background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(244,246,251,0.08) 100%) !important;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.2) !important;
             overscroll-behavior-x: contain;
-            touch-action: pan-x;
+            overscroll-behavior-y: auto;
+            touch-action: pan-y pinch-zoom;
           }
           .story-tile {
             width: 110px !important;
@@ -1886,6 +1903,9 @@ export default function Story({
           background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(244,246,251,0.96) 100%);
           border: 1px solid rgba(15,51,82,0.08);
           box-shadow: 0 14px 28px -22px rgba(15,51,82,0.35), inset 0 1px 0 rgba(255,255,255,0.8);
+          overscroll-behavior-x: contain;
+          overscroll-behavior-y: auto;
+          touch-action: pan-y pinch-zoom;
         }
         .story-tile {
           transition: transform 0.22s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.22s ease, filter 0.22s ease, border-color 0.22s ease;
@@ -2033,197 +2053,191 @@ export default function Story({
         }
       `}</style>
 
-      {/* Story Rail — defilement horizontal, chaque carte affiche un apercu de la story */}
-      {loading && (
-        <SkeletonStoryRail
-          count={6}
-          spacing={14}
-          showAddButton={true}
-          background={C.surface}
-        />
-      )}
-
-      {!loading && loadError && (
+      {loadError ? (
         <div style={{
           padding: 20, background: C.surface, borderRadius: 20, border: `1px solid ${C.line}`,
           boxShadow: shadow.sm, fontSize: 13, color: C.muted, textAlign: "center",
         }}>
           {loadError}
         </div>
-      )}
-
-      {!loading && !loadError && (
-      <div
-        className="story-rail"
-        style={{
-          display: "flex", flexDirection: "row", flexWrap: "nowrap", gap: 16,
-          padding: 18, background: C.surface, borderRadius: 20, border: `1px solid ${C.line}`,
-          boxShadow: shadow.sm, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",
-        }}
-      >
-        {/* Create story card — always visible in the same rail as the stories */}
+      ) : (
         <div
-          className="story-tile"
-          onClick={() => setShowCreate(true)}
+          className="story-rail"
           style={{
-            flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
-            position: "relative", overflow: "hidden",
-            boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
-            transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
-            background: currentUser.image ? "#0B1A28" : "linear-gradient(160deg, #3B6B92 0%, #132C43 58%, #091A29 100%)",
-            border: `1px solid rgba(255,255,255,0.18)`,
-            filter: "saturate(1.06)",
+            display: "flex", flexDirection: "row", flexWrap: "nowrap", gap: 16,
+            padding: 18, background: C.surface, borderRadius: 20, border: `1px solid ${C.line}`,
+            boxShadow: shadow.sm, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
         >
-          {currentUser.image ? (
-            <>
-              <div style={{ position: "absolute", inset: -12, backgroundImage: `url(${currentUser.image})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(12px)", opacity: 0.42 }} />
-              <img src={currentUser.image} alt="Votre photo de profil" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 28%", background: "transparent" }} />
-            </>
-          ) : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.88)", fontSize: 58, fontWeight: 800, fontFamily: "'Sora', sans-serif", letterSpacing: 1 }}>{currentUser.initials || "U"}</div>}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,15,24,0.10) 0%, rgba(6,15,24,0.22) 42%, rgba(6,15,24,0.78) 100%)" }} />
-          <div style={{ position: "relative", zIndex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.white }}>
-            <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.white, color: C.navy800, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: shadow.sm }}>
-              <Plus size={20} strokeWidth={2.5} />
+          <div
+            className="story-tile"
+            onClick={() => setShowCreate(true)}
+            style={{
+              flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
+              position: "relative", overflow: "hidden",
+              boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
+              transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
+              background: currentUser.image ? "#0B1A28" : "linear-gradient(160deg, #3B6B92 0%, #132C43 58%, #091A29 100%)",
+              border: `1px solid rgba(255,255,255,0.18)`,
+              filter: "saturate(1.06)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
+          >
+            {currentUser.image ? (
+              <>
+                <div style={{ position: "absolute", inset: -12, backgroundImage: `url(${currentUser.image})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(12px)", opacity: 0.42 }} />
+                <img src={currentUser.image} alt="Votre photo de profil" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 28%", background: "transparent" }} />
+              </>
+            ) : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.88)", fontSize: 58, fontWeight: 800, fontFamily: "'Sora', sans-serif", letterSpacing: 1 }}>{currentUser.initials || "U"}</div>}
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,15,24,0.10) 0%, rgba(6,15,24,0.22) 42%, rgba(6,15,24,0.78) 100%)" }} />
+            <div style={{ position: "relative", zIndex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.white }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.white, color: C.navy800, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: shadow.sm }}>
+                <Plus size={20} strokeWidth={2.5} />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.white, textAlign: "center", padding: "0 8px", textShadow: "0 1px 4px rgba(0,0,0,0.45)" }}>Créer une story</span>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.white, textAlign: "center", padding: "0 8px", textShadow: "0 1px 4px rgba(0,0,0,0.45)" }}>Créer une story</span>
           </div>
-        </div>
 
-        {/* Own story card */}
-        {ownGroup && <div
-          className="story-tile"
-          onClick={() => openViewer(ownGroup.id)}
-          style={{
-            flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
-            position: "relative", overflow: "hidden",
-            boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
-            transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
-            background: ownGroup ? storyPreviewBg(ownGroup.items[0]) : C.navy50,
-            border: ownGroup ? "1px solid rgba(255,255,255,0.14)" : `2px dashed ${C.navy100}`,
-            filter: "saturate(1.06)",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
-        >
-          <>
-              {ownGroup.items[0].type === "image" && (
-                <img src={ownGroup.items[0].mediaUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
-              )}
-              {ownGroup.items[0].type === "video" && (
-                <video src={ownGroup.items[0].mediaUrl} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
-              )}
-              {/* Voile sombre pour la lisibilite du texte/avatar */}
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,15,24,0.10) 0%, rgba(6,15,24,0.05) 45%, rgba(6,15,24,0.75) 100%)" }} />
-              <div style={{ position: "absolute", top: 10, left: 10 }}>
-                <Avatar initials={currentUser.initials} imgUrl={currentUser.image} size={36} ring="mine" />
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowCreate(true); }}
-                aria-label="Ajouter une story"
-                className="story-add-btn"
+          {loading && !suppressLoadingSkeleton ? (
+            <SkeletonStoryRail
+              count={6}
+              spacing={14}
+              showAddButton={true}
+              background={C.surface}
+            />
+          ) : (
+            <>
+              {ownGroup && <div
+                className="story-tile"
+                onClick={() => openViewer(ownGroup.id)}
                 style={{
-                  position: "absolute", top: 34, left: 34, width: 22, height: 22, borderRadius: "50%",
-                  background: goldGrad, border: `2px solid ${C.white}`, color: C.navy900,
-                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-                  boxShadow: shadow.gold, transition: "transform 0.15s ease",
+                  flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
+                  position: "relative", overflow: "hidden",
+                  boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
+                  background: ownGroup ? storyPreviewBg(ownGroup.items[0]) : C.navy50,
+                  border: ownGroup ? "1px solid rgba(255,255,255,0.14)" : `2px dashed ${C.navy100}`,
+                  filter: "saturate(1.06)",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-                onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
               >
-                <Plus size={11} strokeWidth={3} />
-              </button>
-              {ownGroup.items[0].type === "text" && (
-                <span style={{
-                  position: "absolute", top: 46, left: 10, right: 10, fontSize: 11, fontWeight: 600,
-                  color: C.white, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 4px rgba(0,0,0,0.35)",
-                }}>
-                  {ownGroup.items[0].text}
-                </span>
-              )}
-              <span style={{ position: "absolute", bottom: 10, left: 10, right: 10, fontSize: 12, fontWeight: 700, color: C.white, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
-                Votre story
-              </span>
-              {ownGroup.items.length > 1 && <span style={{ position: "absolute", top: 10, right: 10, minWidth: 22, height: 22, padding: "0 6px", borderRadius: 999, background: "rgba(15,51,82,0.82)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, zIndex: 2 }}>{ownGroup.items.length}</span>}
-          </>
-        </div>}
+                <>
+                    {ownGroup.items[0].type === "image" && (
+                      <img src={ownGroup.items[0].mediaUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
+                    )}
+                    {ownGroup.items[0].type === "video" && (
+                      <video src={ownGroup.items[0].mediaUrl} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
+                    )}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,15,24,0.10) 0%, rgba(6,15,24,0.05) 45%, rgba(6,15,24,0.75) 100%)" }} />
+                    <div style={{ position: "absolute", top: 10, left: 10 }}>
+                      <Avatar initials={currentUser.initials} imgUrl={currentUser.image} size={36} ring="mine" />
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowCreate(true); }}
+                      aria-label="Ajouter une story"
+                      className="story-add-btn"
+                      style={{
+                        position: "absolute", top: 34, left: 34, width: 22, height: 22, borderRadius: "50%",
+                        background: goldGrad, border: `2px solid ${C.white}`, color: C.navy900,
+                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                        boxShadow: shadow.gold, transition: "transform 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                    >
+                      <Plus size={11} strokeWidth={3} />
+                    </button>
+                    {ownGroup.items[0].type === "text" && (
+                      <span style={{
+                        position: "absolute", top: 46, left: 10, right: 10, fontSize: 11, fontWeight: 600,
+                        color: C.white, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 4,
+                        WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 4px rgba(0,0,0,0.35)",
+                      }}>
+                        {ownGroup.items[0].text}
+                      </span>
+                    )}
+                    <span style={{ position: "absolute", bottom: 10, left: 10, right: 10, fontSize: 12, fontWeight: 700, color: C.white, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
+                      Votre story
+                    </span>
+                    {ownGroup.items.length > 1 && <span style={{ position: "absolute", top: 10, right: 10, minWidth: 22, height: 22, padding: "0 6px", borderRadius: 999, background: "rgba(15,51,82,0.82)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, zIndex: 2 }}>{ownGroup.items.length}</span>}
+                </>
+              </div>}
 
-        {/* Other stories — cartes-apercu */}
-        {sortedOthers.map((g) => {
-          const preview = g.items[0];
-          const hasUnseen = g.items.some((i) => !i.seen);
-          const unseenCount = g.items.filter((i) => !i.seen).length;
-          return (
-            <div
-              key={g.id}
-              className="story-tile"
-              onClick={() => openViewer(g.id)}
-              style={{
-                flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
-                position: "relative", overflow: "hidden",
-                boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
-                transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
-                background: storyPreviewBg(preview),
-                opacity: hasUnseen ? 1 : 0.85,
-                border: "1px solid rgba(255,255,255,0.14)",
-                filter: hasUnseen ? "saturate(1.06)" : "saturate(0.95)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
-            >
-              {preview.type === "image" && (
-                <img src={preview.mediaUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
-              )}
-              {preview.type === "video" && (
-                <video src={preview.mediaUrl} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
-              )}
-              {/* Voile sombre pour la lisibilite du texte/avatar */}
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,15,24,0.10) 0%, rgba(6,15,24,0.05) 45%, rgba(6,15,24,0.75) 100%)" }} />
+              {sortedOthers.map((g) => {
+                const preview = g.items[0];
+                const hasUnseen = g.items.some((i) => !i.seen);
+                const unseenCount = g.items.filter((i) => !i.seen).length;
+                return (
+                  <div
+                    key={g.id}
+                    className="story-tile"
+                    onClick={() => openViewer(g.id)}
+                    style={{
+                      flex: "0 0 auto", width: 132, height: 206, borderRadius: 18, cursor: "pointer",
+                      position: "relative", overflow: "hidden",
+                      boxShadow: "0 16px 30px -24px rgba(15,51,82,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
+                      transition: "transform .15s ease, box-shadow .15s ease, filter .15s ease",
+                      background: storyPreviewBg(preview),
+                      opacity: hasUnseen ? 1 : 0.85,
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      filter: hasUnseen ? "saturate(1.06)" : "saturate(0.95)",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = shadow.md; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = shadow.xs; }}
+                  >
+                    {preview.type === "image" && (
+                      <img src={preview.mediaUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
+                    )}
+                    {preview.type === "video" && (
+                      <video src={preview.mediaUrl} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0B1A28" }} />
+                    )}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,15,24,0.10) 0%, rgba(6,15,24,0.05) 45%, rgba(6,15,24,0.75) 100%)" }} />
 
-              <div style={{
-                position: "absolute", top: 8, left: 8, borderRadius: "50%",
-                boxShadow: hasUnseen ? `0 0 0 2.5px ${C.white}, 0 0 0 4.5px transparent` : "none",
-              }}>
-                <Avatar initials={g.user.initials} imgUrl={g.user.image} size={32} ring={hasUnseen ? "new" : "none"} />
-              </div>
+                    <div style={{
+                      position: "absolute", top: 8, left: 8, borderRadius: "50%",
+                      boxShadow: hasUnseen ? `0 0 0 2.5px ${C.white}, 0 0 0 4.5px transparent` : "none",
+                    }}>
+                      <Avatar initials={g.user.initials} imgUrl={g.user.image} size={32} ring={hasUnseen ? "new" : "none"} />
+                    </div>
 
-              {unseenCount > 1 && (
-                <div style={{
-                  position: "absolute", top: 8, right: 8, width: 18, height: 18, borderRadius: "50%",
-                  background: C.navy800, color: C.white, fontSize: 10, fontWeight: 800,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  border: `2px solid ${C.white}`, boxShadow: shadow.sm, zIndex: 2,
-                }}>
-                  {unseenCount}
-                </div>
-              )}
+                    {unseenCount > 1 && (
+                      <div style={{
+                        position: "absolute", top: 8, right: 8, width: 18, height: 18, borderRadius: "50%",
+                        background: C.navy800, color: C.white, fontSize: 10, fontWeight: 800,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: `2px solid ${C.white}`, boxShadow: shadow.sm, zIndex: 2,
+                      }}>
+                        {unseenCount}
+                      </div>
+                    )}
 
-              {preview.type === "text" && (
-                <span style={{
-                  position: "absolute", top: 44, left: 10, right: 10, fontSize: 11, fontWeight: 600,
-                  color: C.white, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 4px rgba(0,0,0,0.35)",
-                }}>
-                  {preview.text}
-                </span>
-              )}
+                    {preview.type === "text" && (
+                      <span style={{
+                        position: "absolute", top: 44, left: 10, right: 10, fontSize: 11, fontWeight: 600,
+                        color: C.white, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 4,
+                        WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 4px rgba(0,0,0,0.35)",
+                      }}>
+                        {preview.text}
+                      </span>
+                    )}
 
-              <span style={{
-                position: "absolute", bottom: 10, left: 10, right: 10,
-                fontSize: 12, fontWeight: hasUnseen ? 700 : 600, color: C.white,
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                textShadow: "0 1px 4px rgba(0,0,0,0.4)",
-              }}>
-                {g.user.name.split(" ")[0]}
-              </span>
-              {g.items.length > 1 && <span style={{ position: "absolute", top: 8, right: 8, minWidth: 22, height: 22, padding: "0 6px", borderRadius: 999, background: "rgba(15,51,82,0.82)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, zIndex: 3 }}>{g.items.length}</span>}
-            </div>
-          );
-        })}
-      </div>
+                    <span style={{
+                      position: "absolute", bottom: 10, left: 10, right: 10,
+                      fontSize: 12, fontWeight: hasUnseen ? 700 : 600, color: C.white,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                    }}>
+                      {g.user.name.split(" ")[0]}
+                    </span>
+                    {g.items.length > 1 && <span style={{ position: "absolute", top: 8, right: 8, minWidth: 22, height: 22, padding: "0 6px", borderRadius: 999, background: "rgba(15,51,82,0.82)", color: C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, zIndex: 3 }}>{g.items.length}</span>}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
       )}
 
       {/* Unseen count indicator */}

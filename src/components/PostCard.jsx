@@ -1197,6 +1197,7 @@ function MediaGallery({ items, onOpenPost }) {
 
 function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onShare, onToggleComments, onOpenPost, onOpenArticle, justShared }) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= 768 : false));
   const pickerCloseTimer = useRef(null);
   const reactionWrapRef = useRef(null);
   // Ouverture au survol (souris) — inutile sur un vrai smartphone, qui n'a pas
@@ -1233,6 +1234,15 @@ function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onS
     // l'appui long qui vient d'ouvrir le picker.
     if (longPressFired.current) event.preventDefault();
   };
+
+  useEffect(() => {
+    const update = () => setIsMobileViewport(window.innerWidth <= 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const actionIconSize = isMobileViewport ? 18 : 20;
 
   // Fermeture au tap en dehors (le onMouseLeave ne se déclenche jamais au doigt)
   useEffect(() => {
@@ -1321,8 +1331,8 @@ function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onS
               onMouseEnter={(e) => (e.currentTarget.style.background = FB.hover)}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <Icon size={20} fill={fill && active ? activeColor : "none"} color={active ? activeColor : FB.textSecondary} />
-              <span className="pc-action-label">{label}</span>
+              <Icon size={actionIconSize} fill={fill && active ? activeColor : "none"} color={active ? activeColor : FB.textSecondary} />
+              <span className="pc-action-label" style={{ display: isMobileViewport ? "none" : undefined }}>{label}</span>
             </button>
           );
         }
@@ -1372,9 +1382,9 @@ function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onS
               {post.reaction ? (
                 <ReactionIcon reaction={REACTION_OPTIONS.find((item) => item.key === post.reaction) || LIKE_REACTION} selected={Boolean(post.reaction)} size={20} />
               ) : (
-                <FontAwesomeIcon icon={faThumbsUp} style={{ fontSize: 20, color: active ? C.gold600 : FB.textSecondary }} />
+                <FontAwesomeIcon icon={faThumbsUp} style={{ fontSize: actionIconSize, color: active ? C.gold600 : FB.textSecondary }} />
               )}
-              <span className="pc-action-label">
+              <span className="pc-action-label" style={{ display: isMobileViewport ? "none" : undefined }}>
                 {post.reaction
                   ? (REACTION_OPTIONS.find((r) => r.key === post.reaction) || LIKE_REACTION).label
                   : label}
@@ -2817,9 +2827,11 @@ function truncateText(text, { charLimit, lineLimit }) {
   return { truncated: truncated.trimEnd(), wasCut: cutByLines || truncated.length < text.length };
 }
 
-function PostText({ text }) {
+function PostText({ text, presentation, onOpenPost }) {
   const [expanded, setExpanded] = useState(false);
   if (!text) return null;
+  const hasBackground = Boolean(presentation?.backgroundColor);
+  const isDarkBackground = presentation?.backgroundTextColor === C.white || presentation?.backgroundColor?.includes("#0F3352") || presentation?.backgroundColor?.includes("#111827") || presentation?.backgroundColor?.includes("#123F3B") || presentation?.backgroundColor?.includes("#102F52");
 
   const lineCount = text.split("\n").length;
   const isLong = text.length > TEXT_COLLAPSE_THRESHOLD || lineCount > TEXT_COLLAPSE_MAX_LINES;
@@ -2831,12 +2843,19 @@ function PostText({ text }) {
   const displayed = isLong && !expanded ? `${truncated}…` : text;
 
   return (
-    <div className="pc-body-text" style={{ padding: "0 16px 10px", fontSize: 15, color: C.ink, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+    <div
+      className="pc-body-text"
+      role={onOpenPost ? "button" : undefined}
+      tabIndex={onOpenPost ? 0 : undefined}
+      onClick={() => onOpenPost?.()}
+      onKeyDown={(event) => { if (onOpenPost && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onOpenPost(); } }}
+      style={{ padding: hasBackground ? "34px 24px" : "0 16px 10px", minHeight: hasBackground ? 180 : undefined, display: hasBackground ? "flex" : undefined, flexDirection: hasBackground ? "column" : undefined, alignItems: hasBackground ? "center" : undefined, justifyContent: hasBackground ? "center" : undefined, textAlign: hasBackground ? "center" : undefined, boxSizing: "border-box", fontSize: hasBackground ? 22 : 15, fontWeight: hasBackground ? 700 : 400, color: presentation?.backgroundTextColor || (isDarkBackground ? C.white : C.ink), lineHeight: hasBackground ? 1.35 : 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word", background: presentation?.backgroundColor || "transparent", margin: hasBackground ? "0 0 10px" : 0, letterSpacing: hasBackground ? "-0.01em" : undefined, cursor: onOpenPost ? "pointer" : "default" }}
+    >
       {displayed}
       {isLong && (
         <button
-          onClick={() => setExpanded((s) => !s)}
-          style={{ display: expanded ? "block" : "inline", marginTop: expanded ? 4 : 0, background: "none", border: "none", padding: "0 0 0 6px", cursor: "pointer", color: C.navy800, fontWeight: 600, fontSize: 14 }}
+          onClick={(event) => { event.stopPropagation(); setExpanded((s) => !s); }}
+          style={{ display: expanded ? "block" : "inline", marginTop: expanded ? 4 : 0, background: "none", border: "none", padding: "0 0 0 6px", cursor: "pointer", color: isDarkBackground ? C.gold400 : C.navy800, fontWeight: 700, fontSize: 14 }}
         >
           {expanded ? "Voir moins" : "Voir plus"}
           <ChevronDown size={13} style={{ marginLeft: 3, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
@@ -3613,10 +3632,10 @@ export default function PostCard({
           .pc-edit-modal-actions button:disabled { opacity: .55; cursor: default; }
           @media (max-width: 900px) { .pc-edit-overlay { padding: 0; padding-top: env(safe-area-inset-top); align-items: stretch; overflow-y: auto; } .pc-edit-modal { width: 100%; max-width: 100%; height: 100dvh; max-height: none; border-radius: 0; border-left: 0; border-right: 0; overflow: visible; } .pc-edit-modal-header { position: sticky; top: 0; z-index: 2; } .pc-edit-modal-body { flex: 1; } .pc-edit-modal textarea { min-height: 220px; } .pc-edit-modal-actions { padding-bottom: calc(14px + env(safe-area-inset-bottom)); } }
           .pc-body-text {
-            font-size: 14px !important;
-            line-height: 1.6 !important;
-            padding-left: 12px !important;
-            padding-right: 12px !important;
+            font-size: 15px;
+            line-height: 1.6;
+            padding-left: 12px;
+            padding-right: 12px;
           }
           .pc-body-text button {
             font-size: 13px !important;
@@ -3857,12 +3876,12 @@ export default function PostCard({
           <ArticleBanner post={post} onOpenArticle={onOpenArticle} />
         ) : isEventPost(post) ? (
           <>
-            <PostText text={post.text} />
+            <PostText text={post.text} presentation={post.presentation} onOpenPost={onOpenPost ? () => onOpenPost(post) : null} />
             <EventBanner post={{ ...post, currentUserId }} onJoinEvent={onJoinEvent} onOpenEvent={onOpenEvent} />
           </>
         ) : isFilePost(post) ? (
           <>
-            <PostText text={post.text || post.fileDescription || post.file?.description || post.attachment?.description} />
+            <PostText text={post.text || post.fileDescription || post.file?.description || post.attachment?.description} presentation={post.presentation} onOpenPost={onOpenPost ? () => onOpenPost(post) : null} />
             <FileBanner post={post} onOpenPost={onOpenPost} group={group} />
             {mediaItems.length > 0 && (
               <div style={{ padding: "0 0 4px" }}>
@@ -3873,7 +3892,7 @@ export default function PostCard({
         ) : (
           <>
             {isSponsored ? <SponsoredDetails post={post} onOpenPost={onOpenPost} onMessage={onMessage} /> : <>
-              <PostText text={post.text} />
+              <PostText text={post.text} presentation={post.presentation} onOpenPost={onOpenPost ? () => onOpenPost(post) : null} />
               {post.type === "shared-post" && <SharedPostBanner post={post} />}
               {mediaItems.length > 0 && (
                 <div style={{ padding: "0 0 4px" }}>
@@ -3937,6 +3956,7 @@ export default function PostCard({
           initialMood={post.mood || null}
           initialIdentifiedUsers={post.identifiedUsers || []}
           initialTags={post.tags || []}
+          initialPresentation={post.presentation || null}
           isEditing
           currentUser={{
             name: currentUser?.name || "Utilisateur",
@@ -3948,7 +3968,7 @@ export default function PostCard({
           }}
           onClose={() => setEditOpen(false)}
           onPublish={async (payload) => {
-            await onEditPost?.(post.id, payload.text.trim(), payload.visibility, payload.media);
+            await onEditPost?.(post.id, payload.text.trim(), payload.visibility, payload.media, payload.presentation);
             setEditOpen(false);
           }}
         />

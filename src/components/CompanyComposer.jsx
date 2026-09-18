@@ -25,7 +25,7 @@ function TriggerAction({ icon, label, color, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "8px 6px", borderRadius: 10, border: "none", background: "transparent", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: C.muted }}
+      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "6px 5px", borderRadius: 9, border: "none", background: "transparent", cursor: "pointer", fontSize: 12, fontWeight: 600, color: C.muted }}
       onMouseEnter={(event) => { event.currentTarget.style.background = C.navy50; }}
       onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
     >
@@ -54,18 +54,18 @@ export default function CompanyComposer({ onOpen, avatarUrl = null, initials = "
           }
         }
       `}</style>
-      <div className="company-composer-mobile" style={{ padding: 16, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 14, boxSizing: "border-box" }}>
+      <div className="company-composer-mobile" style={{ padding: 10, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 14, boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar initials={initials} imgUrl={avatarUrl} />
+          <Avatar initials={initials} imgUrl={avatarUrl} size={36} />
           <button
             type="button"
             onClick={() => onOpen?.("post")}
-            style={{ flex: 1, textAlign: "left", padding: "11px 16px", borderRadius: 22, border: `1.5px solid ${C.line}`, background: C.navy50, color: C.muted, fontSize: 14, cursor: "pointer" }}
+            style={{ flex: 1, textAlign: "left", padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${C.line}`, background: C.navy50, color: C.muted, fontSize: 13.5, cursor: "pointer" }}
           >
             Exprimez vos idées, partagez vos projets ou vos inspirations...
           </button>
         </div>
-        <div style={{ display: "flex", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
+        <div style={{ display: "flex", marginTop: 7, paddingTop: 7, borderTop: `1px solid ${C.line}` }}>
           <TriggerAction icon={faPhotoFilm} label="Médias" color="#2E9E5B" onClick={() => onOpen?.("image")} />
           <div style={{ width: 1, background: C.line, margin: "6px 0", alignSelf: "stretch" }} />
           <TriggerAction icon={faNewspaper} label="Article" color="#1B5386" onClick={() => onOpen?.("article")} />

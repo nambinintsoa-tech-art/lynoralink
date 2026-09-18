@@ -5,7 +5,7 @@ import {
   X, Globe, ChevronDown, MessageSquare, Pencil, Bold, Italic, Heading1, Heading2,
   Quote, List, ListOrdered, Link2, Code2, Minus, Highlighter, AlignLeft,
   AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Eye, EyeOff, Clock, Video,
-  UploadCloud, GripVertical, AlertCircle, Loader2, Trash2, PlayCircle,
+  UploadCloud, GripVertical, AlertCircle, Loader2, Trash2, PlayCircle, Check,
   ImagePlus, RotateCcw, Users, Lock, Hash, Smile, Plus, Camera, Sparkles, FileText, UserPlus, Send,
   Underline, Strikethrough, Undo2, Redo2, Palette, PaintBucket, RemoveFormatting,
 } from "lucide-react";
@@ -109,6 +109,7 @@ const CREATE_POST_MODAL_CSS = `
   .cpm-close-btn:hover { background: ${C.danger50} !important; color: ${C.danger} !important; transform: rotate(90deg); }
 
   .cpm-textarea-wrap { transition: box-shadow 180ms ease; }
+
 
   /* ---- Éditeur d'article riche (WYSIWYG) ---- */
   .cpm-rte {
@@ -1487,6 +1488,30 @@ const MEDIA_BAR_OPTIONS = [
   { id: "visualfocus", label: "VisualFocus", icon: faWandSparkles, action: "visuelfocus", color: "#D9A536" },
 ];
 
+const TEXT_POST_BACKGROUNDS = [
+  { id: "plain", label: "Simple", value: null, swatch: "var(--app-surface)" },
+  { id: "sky", label: "Ciel", value: "linear-gradient(135deg, #EAF5FF 0%, #D7ECFA 100%)", swatch: "linear-gradient(135deg, #EAF5FF 0%, #D7ECFA 100%)" },
+  { id: "lavender", label: "Lavande", value: "linear-gradient(135deg, #F1EEFF 0%, #E4DEFF 100%)", swatch: "linear-gradient(135deg, #F1EEFF 0%, #E4DEFF 100%)" },
+  { id: "peach", label: "Pêche", value: "linear-gradient(135deg, #FFF1E6 0%, #FFE0C7 100%)", swatch: "linear-gradient(135deg, #FFF1E6 0%, #FFE0C7 100%)" },
+  { id: "mint", label: "Menthe", value: "linear-gradient(135deg, #EAF8F0 0%, #D4F0DF 100%)", swatch: "linear-gradient(135deg, #EAF8F0 0%, #D4F0DF 100%)" },
+  { id: "navy", label: "Marine", value: "linear-gradient(135deg, #1B5386 0%, #0F3352 100%)", swatch: "linear-gradient(135deg, #1B5386 0%, #0F3352 100%)", dark: true },
+  { id: "graphite", label: "Graphite", value: "linear-gradient(145deg, #374151 0%, #111827 100%)", swatch: "linear-gradient(145deg, #4B5563 0%, #111827 100%)", dark: true },
+  { id: "cobalt", label: "Cobalt", value: "linear-gradient(145deg, #2563A8 0%, #102F52 100%)", swatch: "linear-gradient(145deg, #3B82C4 0%, #102F52 100%)", dark: true },
+  { id: "emerald", label: "Émeraude", value: "linear-gradient(145deg, #287A68 0%, #123F3B 100%)", swatch: "linear-gradient(145deg, #3EAA8F 0%, #123F3B 100%)", dark: true },
+  { id: "ivory", label: "Ivoire", value: "linear-gradient(145deg, #FFFDF8 0%, #F3EEE3 100%)", swatch: "linear-gradient(145deg, #FFFDF8 0%, #F3EEE3 100%)" },
+  { id: "sand", label: "Sable", value: "linear-gradient(145deg, #F6E7CE 0%, #E6C99B 100%)", swatch: "linear-gradient(145deg, #F6E7CE 0%, #E6C99B 100%)" },
+  { id: "aurora", label: "Aurora", value: "linear-gradient(135deg, #DFF4F1 0%, #DCEBFA 48%, #EAE0FA 100%)", swatch: "linear-gradient(135deg, #DFF4F1 0%, #DCEBFA 48%, #EAE0FA 100%)" },
+  { id: "paper", label: "Papier", value: "radial-gradient(circle at 1px 1px, rgba(15,51,82,0.12) 1px, transparent 1.2px), #F8FAFC", swatch: "radial-gradient(circle at 1px 1px, rgba(15,51,82,0.28) 1px, transparent 1.2px), #F8FAFC", size: "7px 7px" },
+  { id: "blueprint", label: "Blueprint", value: "linear-gradient(rgba(27,83,134,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(27,83,134,0.1) 1px, transparent 1px), #F2F7FB", swatch: "linear-gradient(rgba(27,83,134,0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(27,83,134,0.25) 1px, transparent 1px), #F2F7FB", size: "10px 10px" },
+  { id: "electric", label: "Électrique", value: "linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)", swatch: "linear-gradient(135deg, #29D7FF 0%, #1769FF 100%)", dark: true },
+  { id: "tropical", label: "Tropical", value: "linear-gradient(135deg, #00D2A8 0%, #00A8C5 52%, #1677D2 100%)", swatch: "linear-gradient(135deg, #35E7BE 0%, #13BBD1 52%, #287FE0 100%)", dark: true },
+  { id: "coral", label: "Corail", value: "linear-gradient(135deg, #FF9966 0%, #FF5E62 100%)", swatch: "linear-gradient(135deg, #FFB07C 0%, #FF6D70 100%)" },
+  { id: "sunrise", label: "Aube", value: "linear-gradient(135deg, #FFDE59 0%, #FF9A44 52%, #FF5F6D 100%)", swatch: "linear-gradient(135deg, #FFE77A 0%, #FFAD5C 52%, #FF737E 100%)" },
+  { id: "lime", label: "Citron vert", value: "linear-gradient(135deg, #D9F99D 0%, #84CC16 48%, #16A085 100%)", swatch: "linear-gradient(135deg, #E6FFB5 0%, #9BE33A 48%, #23B89A 100%)" },
+  { id: "berry", label: "Baies", value: "linear-gradient(135deg, #FF8FB3 0%, #D946A6 52%, #7C3AED 100%)", swatch: "linear-gradient(135deg, #FFA8C4 0%, #E25FBA 52%, #9259F0 100%)", dark: true },
+  { id: "neon-grid", label: "Néon", value: "linear-gradient(rgba(0,198,255,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(0,198,255,0.16) 1px, transparent 1px), linear-gradient(135deg, #101B38 0%, #162A50 100%)", swatch: "linear-gradient(rgba(0,220,255,0.42) 1px, transparent 1px), linear-gradient(90deg, rgba(0,220,255,0.42) 1px, transparent 1px), #132343", size: "9px 9px", dark: true },
+];
+
 export default function CreatePostModal({
   initialMode = "post",
   initialText = "",
@@ -1497,6 +1522,7 @@ export default function CreatePostModal({
   initialMood = null,
   initialIdentifiedUsers = [],
   initialTags = [],
+  initialPresentation = null,
   isEditing = false,
   onClose,
   onPublish,
@@ -1520,6 +1546,8 @@ export default function CreatePostModal({
   const [mood, setMood] = useState(initialMood);
   const [identifiedUsers, setIdentifiedUsers] = useState(initialIdentifiedUsers);
   const [tags, setTags] = useState(initialTags);
+  const [postBackground, setPostBackground] = useState(() => initialPresentation?.backgroundColor || null);
+  const [showBgPicker, setShowBgPicker] = useState(false);
   const [commentsLocked, setCommentsLocked] = useState(false);
   const [commentatorsLimit, setCommentatorsLimit] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
@@ -1547,6 +1575,8 @@ export default function CreatePostModal({
   const isArticle = mode === "article";
   const isReel = mode === "reel";
   const isVisuelfocus = mode === "visuelfocus";
+  const activeBg = TEXT_POST_BACKGROUNDS.find((b) => b.value === postBackground) || TEXT_POST_BACKGROUNDS[0];
+  const isDarkBg = Boolean(postBackground) && Boolean(activeBg.dark);
   const words = isArticle ? rtePlainWordCount(text) : (text.trim() ? text.trim().split(/\s+/).length : 0);
   const estMinutes = Math.max(1, Math.round(words / 200));
   const isUploading = media.some((m) => m.status === "uploading");
@@ -1895,6 +1925,7 @@ export default function CreatePostModal({
         commentsLocked,
         commentatorsLimit,
         reelSound,
+        presentation: isArticle ? undefined : { ...(initialPresentation || {}), backgroundColor: postBackground, backgroundTextColor: isDarkBg ? C.white : C.ink },
         media: media
           .filter((m) => m.status === "done")
           .map((m) => ({ id: m.id, type: m.type, url: m.url, fallback: m.fallback, name: m.name })),
@@ -2081,7 +2112,13 @@ export default function CreatePostModal({
               <button
                 key={id}
                 type="button"
-                onClick={() => setMode(id)}
+                onClick={() => {
+                  if (id === "visuelfocus") {
+                    onOpenVisualFocus?.();
+                    return;
+                  }
+                  setMode(id);
+                }}
                 className={`cpm-mode-tab${active ? " cpm-mode-tab-active" : ""}`}
                 style={{
                   flex: "1 1 0",
@@ -2417,22 +2454,92 @@ export default function CreatePostModal({
                   rows={isReel ? 3 : 3}
                   style={{
                     width: "100%",
-                    minHeight: media.length > 0 || isReel ? 60 : 110,
+                    minHeight: postBackground ? 220 : media.length > 0 || isReel ? 60 : 110,
                     border: "none",
-                    borderRadius: 0,
+                    borderRadius: postBackground ? 16 : 0,
                     outline: "none",
                     resize: "none",
-                    fontSize: media.length > 0 ? 17 : 22,
-                    fontWeight: media.length > 0 ? 400 : 500,
-                    color: C.ink,
+                    display: postBackground ? "flex" : undefined,
+                    textAlign: postBackground ? "center" : "left",
+                    fontSize: postBackground ? 30 : media.length > 0 ? 17 : 22,
+                    fontWeight: postBackground ? 700 : media.length > 0 ? 400 : 500,
+                    color: isDarkBg ? C.white : C.ink,
                     fontFamily: "'Inter', sans-serif",
-                    lineHeight: 1.4,
-                    padding: "4px 0 8px",
-                    background: "transparent",
-                    boxShadow: "none",
-                    transition: "font-size 120ms ease",
+                    lineHeight: 1.35,
+                    padding: postBackground ? "56px 22px 18px" : "4px 0 8px",
+                    background: postBackground || "transparent",
+                    boxShadow: postBackground ? "0 4px 14px rgba(15,51,82,0.08)" : "none",
+                    transition: "font-size 120ms ease, background 180ms ease",
                   }}
                 />
+                {/* --- Bouton "Aa" façon Facebook : ouvre/ferme le sélecteur de fond --- */}
+                {!isReel && !isVisuelfocus && media.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowBgPicker((v) => !v)}
+                    title="Fond du texte"
+                    aria-label="Choisir le fond du texte"
+                    aria-pressed={showBgPicker}
+                    style={{
+                      position: "absolute", top: 8, right: 8, zIndex: 3,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer",
+                      background: showBgPicker ? C.gold600 : "rgba(15,51,82,0.85)",
+                      color: showBgPicker ? C.navy900 : C.white,
+                      fontFamily: "Georgia, serif", fontWeight: 800, fontSize: 13,
+                      boxShadow: "0 3px 10px rgba(15,51,82,0.28)",
+                    }}
+                  >
+                    Aa
+                  </button>
+                )}
+                {/* --- Barre de fonds façon Facebook : pastille sombre flottante, défilement horizontal --- */}
+                {showBgPicker && !isReel && !isVisuelfocus && media.length === 0 && (
+                  <div
+                    role="group"
+                    aria-label="Choisir le fond de la publication"
+                    className="cpm-fade"
+                    style={{
+                      position: "absolute", top: 8, right: 46, left: 8, zIndex: 3,
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "6px 8px", borderRadius: 999,
+                      background: "rgba(15,36,51,0.82)", backdropFilter: "blur(6px)",
+                      boxShadow: "0 8px 22px rgba(15,51,82,0.32)",
+                      overflowX: "auto", scrollbarWidth: "none",
+                    }}
+                  >
+                    {TEXT_POST_BACKGROUNDS.map((background) => {
+                      const selected = postBackground === background.value;
+                      return (
+                        <button
+                          key={background.id}
+                          type="button"
+                          title={background.label}
+                          aria-label={`Fond ${background.label}`}
+                          aria-pressed={selected}
+                          onClick={() => setPostBackground(background.value)}
+                          style={{
+                            position: "relative", width: 28, height: 28, flex: "0 0 28px", padding: 0,
+                            borderRadius: "50%",
+                            border: selected ? `2px solid ${C.white}` : "2px solid transparent",
+                            background: background.swatch, backgroundSize: background.size,
+                            boxShadow: selected ? "0 0 0 2px rgba(217,165,54,0.55)" : "0 1px 3px rgba(0,0,0,0.25)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {background.id === "plain" && (
+                            <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: C.navy800, fontFamily: "Georgia, serif" }}>Aa</span>
+                          )}
+                          {selected && background.id !== "plain" && (
+                            <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Check size={12} strokeWidth={3} color={C.white} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <div style={{ position: "absolute", bottom: 8, right: 6 }}>
                   <EmojiPicker onSelect={insertEmoji} />
                 </div>
