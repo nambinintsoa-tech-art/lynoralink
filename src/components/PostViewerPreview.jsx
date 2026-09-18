@@ -2157,8 +2157,12 @@ export default function PostViewerPreview({
             display: inline !important;
             font-size: 12.5px !important;
             line-height: 1.2 !important;
+            white-space: nowrap !important;
+            overflow: visible !important;
           }
-          .post-viewer-action-btn > span { display: none !important; }
+          .post-viewer-action-btn:not([data-like-button="true"]) > span {
+            display: none !important;
+          }
           .post-viewer-action-btn:focus-visible { outline: 2px solid rgba(44,107,160,0.45); }
           /* Composer fixé en bas + safe-area iPhone */
           .post-viewer-composer {
