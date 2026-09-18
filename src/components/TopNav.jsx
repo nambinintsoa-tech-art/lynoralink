@@ -410,7 +410,7 @@ export const TopNav = forwardRef(function TopNav({
   const [profileMenuLoading, setProfileMenuLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [containerWidth, setContainerWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
+  const [containerWidth, setContainerWidth] = useState(0);
   const [hasMeasured, setHasMeasured] = useState(false);
   const headerRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -426,9 +426,8 @@ export const TopNav = forwardRef(function TopNav({
       ]
     : inactiveCompanyPages.map((page) => ({ ...page, type: "company", displayName: page.displayName || page.name || "Page entreprise" }));
 
-  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 0;
-  const measuredWidth = hasMeasured ? containerWidth : (viewportWidth || containerWidth || 0);
-  const isCompact = measuredWidth > 0 && measuredWidth < COMPACT_BREAKPOINT;
+  const measuredWidth = hasMeasured ? containerWidth : 0;
+  const isCompact = hasMeasured && measuredWidth > 0 && measuredWidth < COMPACT_BREAKPOINT;
 
   useEffect(() => {
     if (!menuOpen) {

@@ -2849,7 +2849,28 @@ function PostText({ text, presentation, onOpenPost }) {
       tabIndex={onOpenPost ? 0 : undefined}
       onClick={() => onOpenPost?.()}
       onKeyDown={(event) => { if (onOpenPost && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onOpenPost(); } }}
-      style={{ padding: hasBackground ? "34px 24px" : "0 16px 10px", minHeight: hasBackground ? 180 : undefined, display: hasBackground ? "flex" : undefined, flexDirection: hasBackground ? "column" : undefined, alignItems: hasBackground ? "center" : undefined, justifyContent: hasBackground ? "center" : undefined, textAlign: hasBackground ? "center" : undefined, boxSizing: "border-box", fontSize: hasBackground ? 22 : 15, fontWeight: hasBackground ? 700 : 400, color: presentation?.backgroundTextColor || (isDarkBackground ? C.white : C.ink), lineHeight: hasBackground ? 1.35 : 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word", background: presentation?.backgroundColor || "transparent", margin: hasBackground ? "0 0 10px" : 0, letterSpacing: hasBackground ? "-0.01em" : undefined, cursor: onOpenPost ? "pointer" : "default" }}
+      style={{
+        width: hasBackground ? "100%" : undefined,
+        padding: hasBackground ? "34px 24px" : "0 16px 10px",
+        minHeight: hasBackground ? 220 : undefined,
+        aspectRatio: hasBackground ? "16 / 9" : undefined,
+        display: hasBackground ? "flex" : undefined,
+        flexDirection: hasBackground ? "column" : undefined,
+        alignItems: hasBackground ? "center" : undefined,
+        justifyContent: hasBackground ? "center" : undefined,
+        textAlign: hasBackground ? "center" : undefined,
+        boxSizing: "border-box",
+        fontSize: hasBackground ? 22 : 15,
+        fontWeight: hasBackground ? 700 : 400,
+        color: presentation?.backgroundTextColor || (isDarkBackground ? C.white : C.ink),
+        lineHeight: hasBackground ? 1.35 : 1.7,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        background: presentation?.backgroundColor || "transparent",
+        margin: hasBackground ? "0 0 10px" : 0,
+        letterSpacing: hasBackground ? "-0.01em" : undefined,
+        cursor: onOpenPost ? "pointer" : "default",
+      }}
     >
       {displayed}
       {isLong && (

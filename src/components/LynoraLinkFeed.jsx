@@ -1929,7 +1929,7 @@ function PostViewer({ post, onClose, onToggleLike, onToggleBookmark, onAddCommen
             </div>
           </div>
 
-          {post.text && <div style={{ padding: post.presentation?.backgroundColor ? "24px 20px" : "0 18px 16px", fontSize: 15.5, color: C.ink, lineHeight: 1.7, whiteSpace: "pre-wrap", background: post.presentation?.backgroundColor || "transparent", marginBottom: post.presentation?.backgroundColor ? 16 : 0 }}>{post.text}</div>}
+          {post.text && <div style={{ width: post.presentation?.backgroundColor ? "100%" : undefined, padding: post.presentation?.backgroundColor ? "24px 20px" : "0 18px 16px", minHeight: post.presentation?.backgroundColor ? 220 : undefined, aspectRatio: post.presentation?.backgroundColor ? "16 / 9" : undefined, display: post.presentation?.backgroundColor ? "flex" : undefined, alignItems: post.presentation?.backgroundColor ? "center" : undefined, justifyContent: post.presentation?.backgroundColor ? "center" : undefined, textAlign: post.presentation?.backgroundColor ? "center" : undefined, fontSize: post.presentation?.backgroundColor ? 22 : 15.5, color: post.presentation?.backgroundTextColor || C.ink, lineHeight: post.presentation?.backgroundColor ? 1.35 : 1.7, whiteSpace: "pre-wrap", background: post.presentation?.backgroundColor || "transparent", marginBottom: post.presentation?.backgroundColor ? 16 : 0 }}>{post.text}</div>}
 
           {post.media && (
             <div style={{ margin: "0 0 4px" }}>
@@ -2847,7 +2847,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const feedSeenAtRef = useRef(0);
   const [profileLoading, setProfileLoading] = useState(false);
   const [networkInitialTab, setNetworkInitialTab] = useState("connections");
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState(null);

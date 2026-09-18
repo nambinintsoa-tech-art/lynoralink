@@ -794,11 +794,13 @@ function MediaGallery({ items = [] }) {
     return <img key={index} src={item.url} alt={item.label || `M\u00e9dia ${index + 1}`} style={mediaStyle} />;
   };
   return (
-    <div style={{ borderRadius: 0, overflow: "visible", margin: 0 }}>
+    <div style={{ width: "100%", maxWidth: "100%", borderRadius: 0, overflow: "hidden", margin: 0 }}>
       <div
         className="post-viewer-media"
         style={{
           position: "relative",
+          width: "100%",
+          maxWidth: "100%",
           minHeight: 0,
           height: "auto",
           maxHeight: "none",
@@ -807,7 +809,7 @@ function MediaGallery({ items = [] }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          overflow: "visible",
+          overflow: "hidden",
           borderRadius: 0,
         }}
       >
@@ -1132,7 +1134,7 @@ function PostText({ text, presentation }) {
   const isDarkBackground = presentation?.backgroundTextColor === C.white || presentation?.backgroundColor?.includes("#0F3352") || presentation?.backgroundColor?.includes("#111827") || presentation?.backgroundColor?.includes("#123F3B") || presentation?.backgroundColor?.includes("#102F52");
   const parts = text.split(/(#\w+)/g);
   return (
-    <div style={{ padding: hasBackground ? "34px 24px" : 0, minHeight: hasBackground ? 180 : undefined, display: hasBackground ? "flex" : undefined, flexDirection: hasBackground ? "column" : undefined, alignItems: hasBackground ? "center" : undefined, justifyContent: hasBackground ? "center" : undefined, textAlign: hasBackground ? "center" : undefined, boxSizing: "border-box", fontSize: hasBackground ? 22 : 15, fontWeight: hasBackground ? 700 : 400, lineHeight: hasBackground ? 1.35 : 1.55, color: presentation?.backgroundTextColor || (isDarkBackground ? C.white : LI_TEXT), whiteSpace: "pre-wrap", wordBreak: "break-word", background: presentation?.backgroundColor || "transparent", margin: hasBackground ? "0 -16px" : 0, letterSpacing: hasBackground ? "-0.01em" : undefined }}>
+    <div style={{ width: hasBackground ? "100%" : undefined, maxWidth: "100%", padding: hasBackground ? "34px 24px" : 0, minHeight: hasBackground ? 220 : undefined, aspectRatio: hasBackground ? "16 / 9" : undefined, display: hasBackground ? "flex" : undefined, flexDirection: hasBackground ? "column" : undefined, alignItems: hasBackground ? "center" : undefined, justifyContent: hasBackground ? "center" : undefined, textAlign: hasBackground ? "center" : undefined, boxSizing: "border-box", fontSize: hasBackground ? 22 : 15, fontWeight: hasBackground ? 700 : 400, lineHeight: hasBackground ? 1.35 : 1.55, color: presentation?.backgroundTextColor || (isDarkBackground ? C.white : LI_TEXT), whiteSpace: "pre-wrap", wordBreak: "break-word", background: presentation?.backgroundColor || "transparent", margin: 0, letterSpacing: hasBackground ? "-0.01em" : undefined, overflow: hasBackground ? "hidden" : undefined }}>
       {parts.map((part, i) =>
         /^#\w+/.test(part) ? (
           <span key={i} style={{ color: LINKEDIN_BLUE, fontWeight: 600 }}>{part}</span>
@@ -2443,7 +2445,7 @@ export default function PostViewerPreview({
 
           {/* --- Médias (pleine largeur, coins 12px en desktop) --- */}
           {!isSponsoredPost && media.length > 0 && (
-            <div style={{ padding: "0 16px 8px" }}>
+            <div style={{ width: "100%", maxWidth: "100%", padding: 0, margin: 0 }}>
               <MediaGallery items={media} />
             </div>
           )}

@@ -1346,6 +1346,7 @@ export function ConversationListModal({
     if (onChange) onChange(next);
     else setInternal(next);
   };
+  const showLoadingSkeleton = loading || !Array.isArray(conversations);
 
   if (!isOpen) return null;
 
@@ -1457,7 +1458,7 @@ export function ConversationListModal({
         </div>
       </div>
 
-      {loading ? <SkeletonMessage count={6} /> : <>
+      {showLoadingSkeleton ? <SkeletonMessage count={6} /> : <>
       <div style={{ padding: "10px 14px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.navy50, borderRadius: 10, padding: "7px 10px" }}>
           <Search size={14} color={C.mutedLight} />
