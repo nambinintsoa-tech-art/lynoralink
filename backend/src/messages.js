@@ -157,6 +157,33 @@ export async function registerMessageRoutes(app) {
     return reply.code(201).send({ ok: true, conversationId: conversation.id, message: { id: message.id, from: "me", text: message.text, attachments, replyTo: replyTo ? { id: replyTo.id, text: replyTo.text || "", from: replyTo.senderId === userId ? "me" : "them", time: formatTime(replyTo.createdAt), deletedForEveryone: replyTo.deletedForEveryone } : null, time: formatTime(message.createdAt), createdAt: message.createdAt } });
   });
 
+  app.patch("/v1/messages/:id", async (request, reply) => {
+    const userId = await getSessionUserId(request);
+    const messageId = request.params?.id;
+    if (!userId || !messageId) return reply.code(400).send({ error: "Paramètres invalides." });
+
+    const trimmedText = typeof request.body?.text === "string" ? request.body.text.trim() : "";
+    if (!trimmedText) return reply.code(400).send({ error: "Le message ne peut pas être vide." });
+
+    const message = await prisma.message.findUnique({
+      where: { id: String(messageId) },
+      select: { id: true, senderId: true, conversationId: true, text: true },
+    });
+    if (!message) return reply.code(404).send({ error: "Message introuvable." });
+    const isMember = await prisma.conversation.findFirst({
+      where: { id: message.conversationId, OR: [{ userAId: userId }, { userBId: userId }, { members: { some: { userId } } }] },
+      select: { id: true },
+    });
+    if (!isMember || message.senderId !== userId) return reply.code(403).send({ error: "Vous ne pouvez modifier que vos propres messages." });
+
+    const updated = await prisma.message.update({
+      where: { id: message.id },
+      data: { text: trimmedText },
+    });
+
+    return reply.send({ ok: true, message: { id: updated.id, text: updated.text } });
+  });
+
   app.patch("/v1/messages", async (request, reply) => {
     const userId = await getSessionUserId(request);
     if (!userId || !request.body?.conversationId) return reply.code(400).send({ error: "Paramètres invalides." });

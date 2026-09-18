@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="bgSpace" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#123B5C"/>
+      <stop offset="100%" stop-color="#03101C"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F6D374"/>
+      <stop offset="100%" stop-color="#D9A536"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8FF3EE"/>
+      <stop offset="100%" stop-color="#22B8B0"/>
+    </linearGradient>
+    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F6D374"/>
+      <stop offset="100%" stop-color="#22B8B0"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Lignes circuit vers les bords, avec noeuds lumineux -->
+  <g stroke="url(#hexGrad)" stroke-width="1.4" opacity="0.75">
+    <line x1="100" y1="40" x2="100" y2="16"/>
+    <line x1="152" y1="70" x2="174" y2="56"/>
+    <line x1="152" y1="130" x2="174" y2="144"/>
+    <line x1="100" y1="160" x2="100" y2="184"/>
+    <line x1="48" y1="130" x2="26" y2="144"/>
+    <line x1="48" y1="70" x2="26" y2="56"/>
+  </g>
+  <g filter="url(#glow)">
+    <circle cx="100" cy="14" r="3" fill="url(#goldGrad)"/>
+    <circle cx="177" cy="55" r="2.4" fill="url(#cyanGrad)"/>
+    <circle cx="177" cy="145" r="2.4" fill="url(#cyanGrad)"/>
+    <circle cx="100" cy="186" r="3" fill="url(#goldGrad)"/>
+    <circle cx="23" cy="145" r="2.4" fill="url(#cyanGrad)"/>
+    <circle cx="23" cy="55" r="2.4" fill="url(#cyanGrad)"/>
+  </g>
+
+  <!-- Hexagone neon -->
+  <polygon points="100,38 154,69 154,131 100,162 46,131 46,69"
+           fill="none" stroke="url(#hexGrad)" stroke-width="2.6"
+           filter="url(#glow)" opacity="0.9"/>
+
+  <!-- Monogramme Ln, style geometrique -->
+  <text x="100" y="106" text-anchor="middle" dominant-baseline="central"
+        font-family="'Helvetica Neue', Arial, 'Segoe UI', sans-serif" font-weight="800"
+        font-size="78" letter-spacing="-1" filter="url(#glow)">
+    <tspan fill="url(#goldGrad)">L</tspan><tspan fill="url(#cyanGrad)">n</tspan>
+  </text>
+</svg>

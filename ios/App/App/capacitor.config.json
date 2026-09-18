@@ -1,0 +1,10 @@
+{
+	"appId": "com.lynoralink.app",
+	"appName": "LynoraLink",
+	"webDir": "public",
+	"server": {
+		"url": "https://lynoralink.vercel.app",
+		"cleartext": false
+	},
+	"packageClassList": []
+}

@@ -3,12 +3,22 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.lynoralink.app"
     compileSdk rootProject.ext.compileSdkVersion
+
+    signingConfigs {
+        release {
+            storeFile file("$rootDir/keystore/lynoralink-release.jks")
+            storePassword 'LynoraLink2026!'
+            keyAlias 'lynoralink'
+            keyPassword 'LynoraLink2026!'
+        }
+    }
+
     defaultConfig {
         applicationId "com.lynoralink.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.1"
+        versionCode 4
+        versionName "1.1.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,9 +28,9 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -31,7 +41,7 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "LynoraLink-${variant.name}.apk"
+            outputFileName = "LynoraLink.v${variant.versionName}.apk"
         }
     }
 }
@@ -62,11 +72,6 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
 }

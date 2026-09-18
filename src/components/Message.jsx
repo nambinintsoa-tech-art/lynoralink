@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import {
   MessageSquare, X, Search, MoreHorizontal, Send, Paperclip, Smile, Phone, Video, Link2, BookOpen,
   File, FileSpreadsheet, Presentation,
-  Info, Pin, PinOff, Archive, ArchiveRestore, Bell, BellOff, Eye, EyeOff, Trash2, Copy, Ban,
+  Info, Pin, PinOff, Archive, ArchiveRestore, Bell, BellOff, Eye, EyeOff, Trash2, Copy, Ban, Pencil,
   Flag, ArrowLeft, Check, CheckCheck, Plus, Mic, MicOff, VideoOff, PhoneOff, Download, Forward,
   Volume2, VolumeX, Maximize2, Minimize2, Image as ImageIcon, FileText, ShieldCheck,
   SmilePlus, CornerUpLeft, UsersRound, LogOut, UserPlus,
@@ -623,14 +623,19 @@ function DateSeparator({ label }) {
   );
 }
 
-function ParentMessagePreview({ replyTo, isMine = false, compact = false }) {
+function ParentMessagePreview({ replyTo, isMine = false, compact = false, onClick }) {
   if (!replyTo) return null;
   const parentText = replyTo.deletedForEveryone ? "Message supprimé" : replyTo.text || "Pièce jointe";
   const parentColor = isMine ? "rgba(255,255,255,0.82)" : C.navy800;
+  const clickable = typeof onClick === "function";
   return (
     <div
-      className="lynora-parent-message-preview"
-      aria-label="Message parent"
+      className={`lynora-parent-message-preview${clickable ? " lynora-parent-message-preview-clickable" : ""}`}
+      aria-label={clickable ? "Aller au message parent" : "Message parent"}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? (event) => { event.stopPropagation(); onClick(event); } : undefined}
+      onKeyDown={clickable ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); onClick(event); } } : undefined}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -641,9 +646,13 @@ function ParentMessagePreview({ replyTo, isMine = false, compact = false }) {
         border: `1px solid ${isMine ? "rgba(255,255,255,0.22)" : "rgba(15,51,82,0.12)"}`,
         borderLeftWidth: 3,
         borderRadius: 9,
-        background: isMine ? "rgba(255,255,255,0.12)" : "rgba(15,51,82,0.055)",
-        opacity: compact ? 0.8 : 0.92,
+        background: isMine ? "rgba(255,255,255,0.14)" : "rgba(15,51,82,0.065)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        opacity: compact ? 0.82 : 0.94,
         minWidth: 0,
+        cursor: clickable ? "pointer" : "default",
+        transition: "opacity 0.15s ease, background 0.15s ease",
       }}
     >
       <span style={{ color: parentColor, fontSize: compact ? 9.5 : 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em" }}>
@@ -2243,6 +2252,9 @@ export function ChatModal({
   const [mobileActionMessageId, setMobileActionMessageId] = useState(null);
   const [reactionPickerId, setReactionPickerId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingMessageText, setEditingMessageText] = useState("");
+  const [highlightedMsgId, setHighlightedMsgId] = useState(null);
   const [typingLocal, setTypingLocal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // "block" | "report" | "delete"
   const [activeCall, setActiveCall] = useState(null); // null | "voice" | "video"
@@ -2265,10 +2277,30 @@ export function ChatModal({
   const emojiPickerRef = useRef(null);
   const fileInputRef = useRef(null);
   const dismissedCallIdsRef = useRef(new Set());
+  const messageNodesRef = useRef({});
+  const highlightTimeoutRef = useRef(null);
   const { status: callStatus, elapsed: callElapsed } = useCallTimer(!!activeCall, callConnected);
   const { data: session } = useSession();
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const markCallConnected = useCallback(() => setCallConnected(true), []);
+
+  // Défile jusqu'au message parent (comportement "aller au message" façon Facebook)
+  // et le met brièvement en surbrillance translucide pour le repérer.
+  const scrollToMessage = useCallback((messageId) => {
+    if (!messageId) return;
+    const node = messageNodesRef.current[messageId];
+    if (!node) {
+      setActionToast("Message introuvable, il est peut-être trop ancien.");
+      window.setTimeout(() => setActionToast((current) => current === "Message introuvable, il est peut-être trop ancien." ? null : current), 2200);
+      return;
+    }
+    node.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    setHighlightedMsgId(messageId);
+    highlightTimeoutRef.current = window.setTimeout(() => setHighlightedMsgId(null), 1600);
+  }, []);
+
+  useEffect(() => () => { if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current); }, []);
   useCallTone(Boolean(incomingCall || (activeCall && callStatus === "ringing")), Boolean(incomingCall));
 
   const incomingCaller = incomingCall?.caller;
@@ -2535,6 +2567,51 @@ export function ChatModal({
     }
   };
 
+  const startEditingMessage = (message) => {
+    if (!message || message.deletedForEveryone) return;
+    setEditingMessageId(message.id);
+    setEditingMessageText(message.text || "");
+    setMsgMenuId(null);
+  };
+
+  const saveEditedMessage = async (messageId) => {
+    const trimmed = editingMessageText.trim();
+    if (!messageId || !trimmed) return;
+    const previousMessages = conv.messages;
+    const current = previousMessages.find((message) => message.id === messageId);
+    if (!current || current.text === trimmed) {
+      setEditingMessageId(null);
+      setEditingMessageText("");
+      return;
+    }
+
+    patch({
+      messages: previousMessages.map((message) => (message.id === messageId ? { ...message, text: trimmed } : message)),
+    });
+    setEditingMessageId(null);
+    setEditingMessageText("");
+
+    try {
+      const response = await fetchBackendApi(`/api/messages/${encodeURIComponent(messageId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: trimmed }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Modification impossible");
+      window.dispatchEvent(new CustomEvent("lynoralink:messages-updated"));
+    } catch (error) {
+      patch({ messages: previousMessages });
+      setActionToast(error.message || "Modification impossible");
+      window.setTimeout(() => setActionToast(null), 2600);
+    }
+  };
+
+  const cancelEditingMessage = () => {
+    setEditingMessageId(null);
+    setEditingMessageText("");
+  };
+
   const startCall = async (mode) => {
     if (activeCall || incomingCall || callSession) return;
     try {
@@ -2723,6 +2800,37 @@ export function ChatModal({
         )}
 
         {/* Fil de messages */}
+        <style>{`
+          @keyframes lynoraMessageHighlight {
+            0% { box-shadow: 0 8px 20px rgba(15,51,82,0.10), 0 0 0 0 rgba(246,211,116,0.55); }
+            15% { box-shadow: 0 8px 20px rgba(15,51,82,0.10), 0 0 0 6px rgba(246,211,116,0.35); }
+            100% { box-shadow: 0 8px 20px rgba(15,51,82,0.10), 0 0 0 0 rgba(246,211,116,0); }
+          }
+          .lynora-message-bubble-highlight {
+            animation: lynoraMessageHighlight 1.6s ease-out;
+          }
+          .lynora-message-bubble-highlight::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: rgba(246,211,116,0.28);
+            opacity: 1;
+            pointer-events: none;
+            animation: lynoraMessageHighlightFade 1.6s ease-out forwards;
+          }
+          @keyframes lynoraMessageHighlightFade {
+            0% { opacity: 0.9; }
+            60% { opacity: 0.35; }
+            100% { opacity: 0; }
+          }
+          .lynora-parent-message-preview-clickable:hover,
+          .lynora-parent-message-preview-clickable:focus-visible {
+            opacity: 1 !important;
+            filter: brightness(1.04);
+            outline: none;
+          }
+        `}</style>
         <div className="lynora-message-list" style={{ flex: "1 1 auto", minWidth: 0, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: mobile ? "44px 16px 16px" : 16, display: "flex", flexDirection: "column", gap: 10 }}>
           {messagesWithDateLabels.map(({ message: m, dateLabel }) => {
             const isMe = m.from === "me";
@@ -2754,6 +2862,7 @@ export function ChatModal({
               <React.Fragment key={m.id}>
                 {dateLabel && <DateSeparator label={dateLabel} />}
                 <div
+                  ref={(el) => { messageNodesRef.current[m.id] = el; }}
                   className="lynora-message-row"
                   style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 6, width: "100%" }}
                   onClick={() => mobile && setMobileActionMessageId((current) => current === m.id ? null : m.id)}
@@ -2765,7 +2874,7 @@ export function ChatModal({
                 >
                 {!isMe && <Avatar initials={m.authorInitials || conv.initials} imageUrl={m.authorImage || conv.image} size={24} online={conv.online} onClick={() => setInfoOpen(true)} />}
 
-                <div style={{ position: "relative", maxWidth: "74%", display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+                <div style={{ position: "relative", width: "fit-content", maxWidth: mobile ? "calc(100% - 42px)" : "74%", minWidth: 0, display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
                   {/* Barre d'actions au survol : réagir / répondre / plus d'options */}
                   {(hoveredMsgId === m.id || mobileActionMessageId === m.id) && !m.deletedForEveryone && (
                     <div onClick={(event) => event.stopPropagation()} className={`lynora-message-actions ${isMe ? "lynora-message-actions-sent" : "lynora-message-actions-received"}`} style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", ...(isMe ? { right: "calc(100% + 6px)" } : { left: "calc(100% + 6px)" }), display: "flex", alignItems: "center", gap: 1, background: C.white, borderRadius: 999, border: `1px solid ${C.line}`, boxShadow: "0 4px 12px rgba(15,51,82,0.18)", padding: 2, zIndex: 60 }}>
@@ -2787,8 +2896,9 @@ export function ChatModal({
                   )}
 
                   <div
-                    className={m.replyTo ? "lynora-reply-bubble" : "lynora-message-bubble"}
+                    className={`${m.replyTo ? "lynora-reply-bubble" : "lynora-message-bubble"}${highlightedMsgId === m.id ? " lynora-message-bubble-highlight" : ""}`}
                     style={{
+                      position: "relative",
                       padding: "10px 12px", borderRadius: isMe ? "16px 16px 6px 16px" : "16px 16px 16px 6px",
                       background: m.deletedForEveryone ? C.navy50 : (isMe ? navyGrad : C.white),
                       border: m.deletedForEveryone ? `1px dashed ${C.line}` : (isMe ? "none" : `1px solid ${C.line}`),
@@ -2799,7 +2909,13 @@ export function ChatModal({
                       maxWidth: "100%",
                     }}
                   >
-                    {m.replyTo && <ParentMessagePreview replyTo={{ ...m.replyTo, author: m.replyTo.from === "me" ? "Vous" : conv.name }} isMine={isMe} />}
+                    {m.replyTo && (
+                      <ParentMessagePreview
+                        replyTo={{ ...m.replyTo, author: m.replyTo.from === "me" ? "Vous" : conv.name }}
+                        isMine={isMe}
+                        onClick={m.replyTo.id ? () => scrollToMessage(m.replyTo.id) : undefined}
+                      />
+                    )}
 
                     {m.attachments?.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: m.text ? 8 : 0 }}>
@@ -2809,7 +2925,29 @@ export function ChatModal({
                       </div>
                     )}
 
-                    {m.deletedForEveryone ? (
+                    {editingMessageId === m.id ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "min(100%, 300px)" }}>
+                        <textarea
+                          value={editingMessageText}
+                          onChange={(event) => setEditingMessageText(event.target.value)}
+                          rows={3}
+                          autoFocus
+                          onKeyDown={(event) => {
+                            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                              saveEditedMessage(m.id);
+                            }
+                            if (event.key === "Escape") {
+                              cancelEditingMessage();
+                            }
+                          }}
+                          style={{ width: "100%", minWidth: 0, resize: "vertical", border: `1px solid ${C.line}`, borderRadius: 10, padding: "8px 10px", font: "inherit", fontSize: 13, color: C.ink, background: C.white, outline: "none" }}
+                        />
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                          <button type="button" onClick={cancelEditingMessage} style={{ border: `1px solid ${C.line}`, background: "transparent", color: C.muted, borderRadius: 8, padding: "6px 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
+                          <button type="button" onClick={() => saveEditedMessage(m.id)} disabled={!editingMessageText.trim()} style={{ border: "none", borderRadius: 8, padding: "6px 10px", background: editingMessageText.trim() ? goldGrad : C.line, color: C.navy900, fontSize: 11.5, fontWeight: 800, cursor: editingMessageText.trim() ? "pointer" : "default" }}>Enregistrer</button>
+                        </div>
+                      </div>
+                    ) : m.deletedForEveryone ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontStyle: "italic" }}>
                         <Ban size={12} /> Message supprimé
                       </div>
@@ -2856,6 +2994,11 @@ export function ChatModal({
                           <button onClick={() => { navigator.clipboard?.writeText(m.text); setMsgMenuId(null); }} style={menuRowStyle(C.ink)}>
                             <Copy size={13} /> Copier le texte
                           </button>
+                          {isMe && (
+                            <button onClick={() => startEditingMessage(m)} style={menuRowStyle(C.ink)}>
+                              <Pencil size={13} /> Modifier
+                            </button>
+                          )}
                           <button onClick={() => { setTransferMessage(m); setMsgMenuId(null); }} style={menuRowStyle(C.ink)}>
                             <Forward size={13} /> Transférer
                           </button>
@@ -2888,7 +3031,11 @@ export function ChatModal({
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 12px 0", padding: "7px 10px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent" }}>
               <CornerUpLeft size={13} color={C.navy700} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <ParentMessagePreview replyTo={{ ...replyingTo, author: replyingTo.from === "me" ? "Vous" : conv.name }} compact />
+                <ParentMessagePreview
+                  replyTo={{ ...replyingTo, author: replyingTo.from === "me" ? "Vous" : conv.name }}
+                  compact
+                  onClick={replyingTo.id ? () => scrollToMessage(replyingTo.id) : undefined}
+                />
               </div>
               <button type="button" onClick={() => setReplyingTo(null)} style={{ border: "none", background: "transparent", color: C.mutedLight, cursor: "pointer", display: "flex", flexShrink: 0 }}>
                 <X size={14} />

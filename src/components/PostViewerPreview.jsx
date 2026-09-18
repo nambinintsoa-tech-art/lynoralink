@@ -1230,10 +1230,10 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
             </Link>
           </ProfileHoverPreview>
         ) : <Avatar initials={cInitials} imgUrl={comment.avatarUrl} size={depth > 0 ? 32 : 40} />}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: "100%" }}>
           {/* Bulle texte façon FB */}
-          <div className="pv-comment-bubble">
-            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+          <div className="pv-comment-bubble" style={{ maxWidth: "100%", overflowWrap: "anywhere", wordBreak: "break-word" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", minWidth: 0 }}>
               {comment.authorId ? <ProfileHoverPreview type={comment.authorType === "page" ? "page" : "person"} fallback={{ id: comment.authorType === "page" ? (comment.companyPageId || comment.authorId) : comment.authorId, name: comment.author, avatarUrl: comment.avatarUrl, coverUrl: comment.coverUrl, bio: comment.description, location: comment.location }}><Link href={comment.authorType === "page" ? `/feed?view=company&pageId=${encodeURIComponent(comment.companyPageId || comment.authorId)}` : `/feed?view=profile&userId=${encodeURIComponent(comment.authorId)}`} style={{ fontWeight: 700, fontSize: 13.5, color: LI_TEXT, textDecoration: "none" }}>{comment.author}</Link></ProfileHoverPreview> : <span style={{ fontWeight: 700, fontSize: 13.5, color: LI_TEXT }}>{comment.author}</span>}
               {isPostAuthorComment && (
                 <span
@@ -1274,7 +1274,7 @@ function CommentItem({ comment, currentUser, onToggleLike, onReply, onStartReply
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 14, color: LI_TEXT, lineHeight: 1.45, marginTop: 2, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{displayText}</div>
+              <div style={{ fontSize: 14, color: LI_TEXT, lineHeight: 1.45, marginTop: 2, whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }}>{displayText}</div>
             )}
             {(() => {
               const commentMedia = getCommentMedia(comment);
@@ -1875,6 +1875,9 @@ export default function PostViewerPreview({
           border-radius: 18px;
           padding: 8px 12px;
           min-width: 0;
+          max-width: min(78vw, 560px);
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .pv-comment-reactions {
           display: inline-flex;
@@ -2200,7 +2203,8 @@ export default function PostViewerPreview({
           .post-share-overlay { padding: 0 !important; align-items: stretch !important; }
           .post-share-modal { width: 100% !important; max-width: none !important; max-height: 100dvh !important; height: 100dvh !important; border-radius: 0 !important; padding-bottom: env(safe-area-inset-bottom); }
           .post-share-modal input, .post-share-modal textarea { font-size: 16px !important; }
-          .pv-comment-bubble { border-radius: 16px; }
+          .pv-comment-bubble { border-radius: 16px; max-width: calc(100vw - 92px); }
+          .post-viewer-comment-menu { right: 0; left: auto; top: calc(100% + 4px); }
         }
         @media (max-width: 420px) {
           .post-viewer-header { gap: 6px !important; }
