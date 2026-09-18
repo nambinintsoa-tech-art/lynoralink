@@ -2143,6 +2143,25 @@ export default function PostViewerPreview({
             box-shadow: none;
             transform: translateY(-50%);
           }
+          .pv-comment-reactions {
+            display: inline-flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 3px !important;
+            margin: 2px 0 0 8px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+          }
+          .pv-comment-reactions img {
+            display: block !important;
+            flex: 0 0 auto !important;
+          }
           /* Boutons d'action : icônes seules centrées (comme FB) */
           .pv-actions { gap: 0; }
           .post-viewer-action-btn {
