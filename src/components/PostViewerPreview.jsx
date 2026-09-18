@@ -937,7 +937,7 @@ function ReactionButton({ reaction, onReact, onToggleLike }) {
       )}
       <button data-like-button="true" className="post-viewer-action-btn" onClick={onToggleLike} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 4px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: isLiked ? C.gold600 : C.muted, fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
         {current ? <ReactionIcon reaction={current} selected size={22} /> : <ThumbsUp size={22} color={C.muted} />}
-        <span>{current?.label || "J'aime"}</span>
+        <span className="post-viewer-like-label">{current?.label || "J'aime"}</span>
       </button>
     </div>
   );
@@ -2154,11 +2154,32 @@ export default function PostViewerPreview({
             font-size: 13px !important;
           }
           .post-viewer-action-btn[data-like-button="true"] > span {
-            display: inline !important;
-            font-size: 12.5px !important;
-            line-height: 1.2 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .post-viewer-action-btn[data-like-button="true"] > .post-viewer-like-label {
+            display: inline-flex !important;
+            font-size: 11.5px !important;
+            line-height: 1.1 !important;
             white-space: nowrap !important;
             overflow: visible !important;
+          }
+          .post-viewer-action-btn[data-like-button="true"] {
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 2px !important;
+            padding: 4px 2px !important;
+            line-height: 1 !important;
+          }
+          .post-viewer-action-btn[data-like-button="true"] > svg,
+          .post-viewer-action-btn[data-like-button="true"] > span:first-child {
+            flex: 0 0 auto !important;
+          }
+          .post-viewer-action-btn[data-like-button="true"] > svg {
+            width: 20px !important;
+            height: 20px !important;
           }
           .post-viewer-action-btn:not([data-like-button="true"]) > span {
             display: none !important;
