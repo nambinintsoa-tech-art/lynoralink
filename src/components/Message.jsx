@@ -1763,7 +1763,7 @@ function CallOverlay({ mode, conversation, status, elapsed, minimized, onMinimiz
   };
 
   return (
-    <div ref={callRootRef} className="lynora-call-overlay" style={{ position: "absolute", inset: 0, zIndex: 90, background: callGrad, color: C.white, display: "flex", flexDirection: "column" }}>
+    <div ref={callRootRef} className="lynora-call-overlay" style={{ position: "fixed", inset: 0, zIndex: 130, background: "linear-gradient(180deg, rgba(8,27,44,0.96) 0%, rgba(5,15,23,0.98) 100%)", color: C.white, display: "flex", flexDirection: "column", overflow: "hidden", isolation: "isolate", boxShadow: "none", pointerEvents: "auto" }}>
       <style>{`
         @keyframes lynoraPulseRing { 0% { box-shadow: 0 0 0 0 rgba(246,211,116,0.45);} 70% { box-shadow: 0 0 0 22px rgba(246,211,116,0);} 100% { box-shadow: 0 0 0 0 rgba(246,211,116,0);} }
         @keyframes lynoraFadeUp { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
@@ -2007,7 +2007,7 @@ function LiveKitCallOverlay({ mode, conversation, status, elapsed, minimized, on
   const statusLabel = status === "connected" ? formatDuration(elapsed) : connected ? "Connecté" : "Connexion…";
 
   return (
-    <div className="lynora-call-overlay" style={{ position: "absolute", inset: 0, zIndex: 90, background: "#081B2C", color: C.white, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="lynora-call-overlay" style={{ position: "fixed", inset: 0, zIndex: 130, background: "linear-gradient(180deg, rgba(8,27,44,0.98) 0%, rgba(5,15,23,0.99) 100%)", color: C.white, display: "flex", flexDirection: "column", overflow: "hidden", isolation: "isolate", pointerEvents: "auto" }}>
       {/* ------ Zone vidéo/avatar plein écran, façon Messenger ------ */}
       <div style={{ position: "absolute", inset: 0 }}>
         {isOneToOne ? (
@@ -3171,9 +3171,9 @@ export function ChatModal({
           <div
             className="lynora-incoming-call"
             style={{
-              position: "absolute", inset: 0, zIndex: 95, background: callGrad, color: C.white,
+              position: "fixed", inset: 0, zIndex: 140, background: "linear-gradient(180deg, rgba(8,27,44,0.96) 0%, rgba(5,15,23,0.98) 100%)", color: C.white,
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
-              padding: "48px 24px 40px", textAlign: "center", overflow: "hidden",
+              padding: "48px 24px 40px", textAlign: "center", overflow: "hidden", isolation: "isolate", pointerEvents: "auto",
             }}
           >
             {/* halo flou en fond, façon avatar plein écran Messenger */}

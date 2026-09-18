@@ -935,7 +935,7 @@ function ReactionButton({ reaction, onReact, onToggleLike }) {
           <ReactionPicker selectedKey={current?.key} onSelect={(key) => { onReact(key); setOpen(false); }} />
         </div>
       )}
-      <button className="post-viewer-action-btn" onClick={onToggleLike} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 4px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: isLiked ? C.gold600 : C.muted, fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+      <button data-like-button="true" className="post-viewer-action-btn" onClick={onToggleLike} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 4px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: isLiked ? C.gold600 : C.muted, fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
         {current ? <ReactionIcon reaction={current} selected size={22} /> : <ThumbsUp size={22} color={C.muted} />}
         <span>{current?.label || "J'aime"}</span>
       </button>
@@ -2152,6 +2152,11 @@ export default function PostViewerPreview({
             gap: 0 !important;
             min-height: 44px;
             font-size: 13px !important;
+          }
+          .post-viewer-action-btn[data-like-button="true"] > span {
+            display: inline !important;
+            font-size: 12.5px !important;
+            line-height: 1.2 !important;
           }
           .post-viewer-action-btn > span { display: none !important; }
           .post-viewer-action-btn:focus-visible { outline: 2px solid rgba(44,107,160,0.45); }
