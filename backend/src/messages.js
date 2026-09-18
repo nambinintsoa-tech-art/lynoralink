@@ -48,6 +48,16 @@ export async function registerMessageRoutes(app) {
     const pages = new Map(pageSettings.map((setting) => {
       try { return [setting.userId, JSON.parse(setting.value || "{}")]; } catch { return [setting.userId, {}]; }
     }));
+    const participantIds = [...new Set(conversations.flatMap((conversation) => [conversation.userAId, conversation.userBId, ...conversation.members.map((member) => member.userId)]).filter((id) => id && id !== userId))];
+    const typingSettings = await prisma.userSetting.findMany({
+      where: { userId: { in: participantIds }, key: { startsWith: "typing:" } },
+      select: { userId: true, key: true, value: true },
+    });
+    const typingByConversation = new Map();
+    typingSettings.forEach((setting) => {
+      const conversationId = setting.key.slice("typing:".length);
+      if (Number(setting.value) >= Date.now() - 5000) typingByConversation.set(conversationId, setting.userId);
+    });
 
     const payload = await Promise.all(conversations.map(async (conversation) => {
       const other = conversation.userAId === userId ? conversation.userB : conversation.userA;
@@ -102,7 +112,7 @@ export async function registerMessageRoutes(app) {
         memberCount: conversation.members.length,
         members: conversation.members.map((member) => ({ id: member.user.id, name: member.user.name || "Utilisateur", title: member.user.title || "Membre LynoraLink", image: member.user.image || null, initials: initials(member.user.name || "Utilisateur") })),
         online: false,
-        typing: false,
+        typing: typingByConversation.get(conversation.id) === other?.id,
         unread: conversation.messages.filter((message) => message.senderId !== userId && !message.readAt).length,
         pinned: false,
         muted: false,

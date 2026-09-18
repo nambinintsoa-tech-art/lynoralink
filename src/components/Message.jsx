@@ -625,6 +625,8 @@ function DateSeparator({ label }) {
 
 function ParentMessagePreview({ replyTo, isMine = false, compact = false }) {
   if (!replyTo) return null;
+  const parentText = replyTo.deletedForEveryone ? "Message supprimé" : replyTo.text || "Pièce jointe";
+  const parentColor = isMine ? "rgba(255,255,255,0.82)" : C.navy800;
   return (
     <div
       className="lynora-parent-message-preview"
@@ -632,21 +634,23 @@ function ParentMessagePreview({ replyTo, isMine = false, compact = false }) {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 2,
-        marginBottom: compact ? 0 : 9,
-        padding: compact ? "3px 0 3px 9px" : "5px 0 8px 9px",
-        borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.55)" : C.navy700}`,
-        borderBottom: compact ? "none" : `1px solid ${isMine ? "rgba(255,255,255,0.22)" : C.line}`,
-        background: "transparent",
-        opacity: compact ? 0.72 : 0.62,
+        gap: 3,
+        marginBottom: compact ? 0 : 10,
+        padding: compact ? "5px 8px" : "7px 9px",
+        borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.72)" : C.navy700}`,
+        border: `1px solid ${isMine ? "rgba(255,255,255,0.22)" : "rgba(15,51,82,0.12)"}`,
+        borderLeftWidth: 3,
+        borderRadius: 9,
+        background: isMine ? "rgba(255,255,255,0.12)" : "rgba(15,51,82,0.055)",
+        opacity: compact ? 0.8 : 0.92,
         minWidth: 0,
       }}
     >
-      <span style={{ color: isMine ? "rgba(255,255,255,0.86)" : C.navy800, fontSize: compact ? 10 : 10.5, fontWeight: 700 }}>
-        {replyTo.from === "me" ? "Vous" : replyTo.author || "Message parent"}
+      <span style={{ color: parentColor, fontSize: compact ? 9.5 : 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        Réponse à {replyTo.from === "me" ? "vous" : replyTo.author || "ce message"}
       </span>
-      <span style={{ color: isMine ? "rgba(255,255,255,0.72)" : C.muted, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-        {replyTo.deletedForEveryone ? "Message supprimé" : replyTo.text || "Pièce jointe"}
+      <span style={{ color: isMine ? "rgba(255,255,255,0.72)" : C.muted, fontSize: compact ? 10.5 : 11, lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {parentText}
       </span>
     </div>
   );
@@ -2783,6 +2787,7 @@ export function ChatModal({
                   )}
 
                   <div
+                    className={m.replyTo ? "lynora-reply-bubble" : "lynora-message-bubble"}
                     style={{
                       padding: "10px 12px", borderRadius: isMe ? "16px 16px 6px 16px" : "16px 16px 16px 6px",
                       background: m.deletedForEveryone ? C.navy50 : (isMe ? navyGrad : C.white),

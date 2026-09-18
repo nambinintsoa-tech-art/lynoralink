@@ -3816,7 +3816,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     };
 
     const fetchMessages = async (force = false) => {
-      if (document.hidden || (messagesModalOpen && !force)) return; // Keep the open chat stable between explicit reloads.
+      if (document.hidden) return;
       try {
         const res = await fetchBackendApi(`/api/messages?userId=${encodeURIComponent(session.user.id)}`, {
           credentials: "include",
@@ -3962,7 +3962,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     loadRelations();
     setMessagesLoading(true);
     fetchMessages(true).finally(() => setMessagesLoading(false));
-    const messagesInterval = setInterval(fetchMessages, 30000);
+    const messagesInterval = setInterval(() => fetchMessages(messagesModalOpen), messagesModalOpen ? 3000 : 30000);
     fetchCompanyPages();
     fetchFollowedPages();
     fetchGroups();
