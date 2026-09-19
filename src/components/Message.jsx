@@ -67,8 +67,8 @@ function formatBytes(bytes) {
 }
 
 function getMessageDate(message) {
-  const timestamp = message.createdAt ? new Date(message.createdAt) : new Date();
-  return Number.isNaN(timestamp.getTime()) ? new Date() : timestamp;
+  const timestamp = message.createdAt ? new Date(message.createdAt) : new Date(0);
+  return Number.isNaN(timestamp.getTime()) ? new Date(0) : timestamp;
 }
 
 function getMessageDateKey(message) {

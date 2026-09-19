@@ -36,9 +36,12 @@ function cloudinaryFileUrls(file) {
   const versionMatch = String(file.url || "").match(/\/v(\d+)\//);
   const options = { resource_type: "raw", type: "upload", secure: true, sign_url: true };
   if (versionMatch) options.version = versionMatch[1];
+  const extension = String(file.name || "").split(".").pop()?.toLowerCase();
   return [
     cloudinary.url(file.publicId, options),
     cloudinary.url(file.publicId, { ...options, type: "authenticated" }),
+    extension && cloudinary.utils.private_download_url(file.publicId, extension, { resource_type: "raw", type: "upload", attachment: true }),
+    extension && cloudinary.utils.private_download_url(file.publicId, extension, { resource_type: "raw", type: "authenticated", attachment: true }),
   ].filter(Boolean);
 }
 function safeContentType(value) {

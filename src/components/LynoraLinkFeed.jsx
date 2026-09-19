@@ -1526,6 +1526,11 @@ const SidebarAdCard = React.memo(function SidebarAdCard({ ad, index, onAdClick, 
 function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, pageSuggestions = [], connectedIds, followedPageIds = [], pendingRequestIds, incomingInvitations = [], onConnect, onCancel, onConfirm, onFollowPage, onJoinGroup, onNavigate, onOpenProfile, onMessage, accountMode = "personal", birthdays = [], networkLoading = false }) {
   const isPageMode = accountMode === "company";
   const [joiningGroupId, setJoiningGroupId] = useState(null);
+  const [todayKey, setTodayKey] = useState("");
+  useEffect(() => {
+    const today = new Date();
+    setTodayKey(`${today.getMonth()}-${today.getDate()}`);
+  }, []);
   const openSuggestions = () => onNavigate?.(isPageMode ? "company-grid" : "network", { tab: "suggestions" });
   const displayedAds = ads.slice(0, 3);
   const birthdayPeople = useMemo(() => {
@@ -1537,13 +1542,13 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
       return Number.isNaN(date.getTime()) ? null : date;
     };
 
-    const today = new Date();
+    if (!todayKey) return [];
 
     return birthdays
       .map((person) => {
         const birthDate = parseDate(person?.birthDate || person?.dateOfBirth);
         if (!birthDate) return null;
-        const isToday = birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate();
+        const isToday = `${birthDate.getMonth()}-${birthDate.getDate()}` === todayKey;
         if (!isToday) return null;
         return {
           id: person?.id || person?.userId,
@@ -1555,7 +1560,7 @@ function RightSidebar({ ads, groups, currentUserId, onSelectTrend, suggestions, 
       })
       .filter(Boolean)
       .sort((a, b) => a.nextBirthday - b.nextBirthday);
-  }, [birthdays]);
+  }, [birthdays, todayKey]);
 
   const birthdaySummary = birthdayPeople.length > 0 ? (() => {
     const firstPerson = birthdayPeople[0];
@@ -3568,49 +3573,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const timeoutId = setTimeout(() => setSidebarToast(null), 3200);
     return () => clearTimeout(timeoutId);
   }, [sidebarToast]);
-
-  useEffect(() => {
-    if (!session?.user?.id || typeof window === "undefined") return undefined;
-    let active = true;
-    let stream = null;
-    let reconnectTimer = null;
-    let reconnectDelay = 1000;
-
-    const handleRealtime = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (!payload || !payload.type) return;
-        if (["posts", "reactions", "suggestions", "notifications", "messages"].includes(payload.type)) {
-          window.dispatchEvent(new CustomEvent("lynoralink:sync", { detail: { type: payload.type } }));
-        }
-      } catch {
-        // ignore malformed SSE payloads
-      }
-    };
-
-    const connect = () => {
-      if (!active) return;
-      stream = new EventSource("/api/realtime", { withCredentials: true });
-      stream.addEventListener("realtime", handleRealtime);
-      stream.addEventListener("message", handleRealtime);
-      stream.onopen = () => { reconnectDelay = 1000; };
-      stream.onerror = () => {
-        stream?.close();
-        stream = null;
-        if (!active) return;
-        reconnectTimer = window.setTimeout(connect, reconnectDelay);
-        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
-      };
-    };
-
-    connect();
-    return () => {
-      active = false;
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      stream?.close();
-      stream = null;
-    };
-  }, [session?.user?.id, view]);
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
