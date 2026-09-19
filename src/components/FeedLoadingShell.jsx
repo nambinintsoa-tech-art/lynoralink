@@ -41,7 +41,12 @@ export default function FeedLoadingShell({ view = "feed", profileView = false })
         profile={profile}
         view="feed"
         onNavigate={(view) => router.push(view === "feed" ? "/feed" : `/feed?view=${view}`)}
-        onRequestLogout={() => signOut({ callbackUrl: "/login" })}
+        onRequestLogout={() => {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("lynoralink:rememberMe", "false");
+          }
+          signOut({ callbackUrl: "/" });
+        }}
         unreadMessages={0}
         unreadNotifications={0}
         isAdmin={false}

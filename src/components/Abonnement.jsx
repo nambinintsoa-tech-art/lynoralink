@@ -479,7 +479,10 @@ export default function Abonnement({
   };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" });
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("lynoralink:rememberMe", "false");
+    }
+    await signOut({ callbackUrl: "/" });
   };
 
   /* Ouverture de la modale de confirmation */

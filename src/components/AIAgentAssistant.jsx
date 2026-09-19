@@ -285,7 +285,7 @@ function normalizeAssistantText(value) {
 function Bubble({ role, children }) {
   const mine = role === "user";
   return (
-    <div style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
+    <div className="lm-bubble-shell" style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
       {!mine && (
         <div style={{
           width: 24, height: 24, borderRadius: "50%", flexShrink: 0, overflow: "hidden",
@@ -294,7 +294,7 @@ function Bubble({ role, children }) {
           <LogoLynoAI size={24} />
         </div>
       )}
-      <div style={{
+      <div className="lm-bubble-card" style={{
         maxWidth: "82%", padding: "11px 14px", borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
         background: mine ? navyGradRich : C.white,
         color: mine ? C.white : C.ink, fontSize: 13.5, lineHeight: 1.6,
@@ -866,6 +866,15 @@ RÈGLES : réponds en français, avec un ton professionnel, chaleureux et direct
           .lm-send-hover:hover { transform: scale(1.1); }
         }
         .lm-fab-hover:active, .lm-send-hover:active { transform: scale(0.94); }
+        @media (max-width: 640px) {
+          .lm-bubble-shell { gap: 6px !important; }
+          .lm-bubble-card { max-width: 88% !important; font-size: 13px !important; line-height: 1.55 !important; padding: 10px 12px !important; }
+          .lm-message-list { padding: 12px 10px !important; }
+          .lm-context-pill { font-size: 10px !important; padding: 4px 8px !important; }
+          .lm-input-box { font-size: 16px !important; }
+          .lm-header-title { font-size: 14px !important; }
+          .lm-header-subtitle { font-size: 10px !important; }
+        }
         /* Empêche Safari iOS de zoomer sur les champs texte < 16px et neutralise le highlight tactile bleu. */
         input, textarea, button { -webkit-tap-highlight-color: transparent; }
       `}</style>
@@ -915,7 +924,7 @@ RÈGLES : réponds en français, avec un ton professionnel, chaleureux et direct
 
       {/* Panneau de discussion */}
       {(isPage || open) && (
-        <div style={panelStyle} className={!isPage ? "lm-panel-enter" : undefined}>
+        <div style={panelStyle} className={`lm-assistant-root${!isPage ? " lm-panel-enter" : ""}`}>
           {isPage && isMobile && (
             <div style={{ padding: "14px 14px 12px", background: C.white, borderBottom: `1px solid ${C.line}`, flexShrink: 0 }}>
               {onBack && (
@@ -944,10 +953,10 @@ RÈGLES : réponds en français, avec un ton professionnel, chaleureux et direct
               <LogoLynoAI size={42} />
             </div>
             <div style={{ flex: 1, zIndex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 14.5, color: C.white, letterSpacing: "-0.01em" }}>
+              <div className="lm-header-title" style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 14.5, color: C.white, letterSpacing: "-0.01em" }}>
                 Assistant IA LynoraLink
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "rgba(255,255,255,0.76)", fontWeight: 500, marginTop: 3 }}>
+              <div className="lm-header-subtitle" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "rgba(255,255,255,0.76)", fontWeight: 500, marginTop: 3 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: apiMode === "connected" ? "#7DE2B0" : apiMode === "local" ? C.gold400 : "#B8C7D5", boxShadow: apiMode === "connected" ? "0 0 0 3px rgba(125,226,176,0.16)" : "none", flexShrink: 0 }} />
                 {apiMode === "connected" ? "En ligne · prêt à vous aider" : apiMode === "local" ? "Disponible en mode limité" : "Connexion en cours…"}
               </div>
@@ -990,22 +999,22 @@ RÈGLES : réponds en français, avec un ton professionnel, chaleureux et direct
           <>
           {/* Barre de contexte live — ce que l'assistant sait consulter en direct */}
           <div style={contextBarStyle}>
-            <span style={contextPillStyle}>
+            <span className="lm-context-pill" style={contextPillStyle}>
               <FontAwesomeIcon icon={faCircleInfo} style={{ width: 9, height: 9 }} />
               {VIEW_LABELS[appState.view] || appState.view}
             </span>
-            <span style={contextPillStyle}>
+            <span className="lm-context-pill" style={contextPillStyle}>
               <FontAwesomeIcon icon={faBell} style={{ width: 9, height: 9 }} />
               {unreadCount} non lue{unreadCount > 1 ? "s" : ""}
             </span>
-            <span style={contextPillStyle}>
+            <span className="lm-context-pill" style={contextPillStyle}>
               <FontAwesomeIcon icon={faMagnifyingGlass} style={{ width: 9, height: 9 }} />
               {appState.connections.length} connexion{appState.connections.length > 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Messages */}
-          <div style={{
+          <div className="lm-message-list" style={{
             flex: 1, overflowY: "auto", padding: isMobile ? "14px 12px" : 16, display: "flex", flexDirection: "column", gap: 10,
             WebkitOverflowScrolling: "touch", overscrollBehavior: "contain",
             background: `linear-gradient(180deg, ${C.navy50} 0%, ${C.white} 140px)`,
@@ -1083,11 +1092,12 @@ RÈGLES : réponds en français, avec un ton professionnel, chaleureux et direct
           {/* Input */}
           <div style={inputContainerStyle}>
             <input
+              className="lm-input-box"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Posez-moi une question sur LynoraLink..."
-              style={inputStyle}
+              style={{ ...inputStyle, fontSize: isMobile ? 16 : undefined }}
               onFocus={(e) => { e.target.style.borderColor = C.navy800; e.target.style.boxShadow = "0 0 0 3px rgba(27,83,134,0.15)"; e.target.style.background = C.white; }}
               onBlur={(e) => { e.target.style.borderColor = C.line; e.target.style.boxShadow = "none"; e.target.style.background = C.navy50; }}
             />

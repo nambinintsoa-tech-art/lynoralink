@@ -5042,6 +5042,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
 
       window.localStorage.removeItem("lynoralink:login-device-id");
       window.localStorage.removeItem("lynoralink:connectedAccounts");
+      window.localStorage.setItem("lynoralink:rememberMe", "false");
       await signOut({ callbackUrl: `/reset-password?email=${encodeURIComponent(session?.user?.email || "")}` });
     } catch {
       setSidebarToast({ message: "Impossible de traiter cette alerte.", icon: X });
@@ -5184,24 +5185,27 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     const groupId = post.group?.id;
     if (!groupId || !event?.id) return;
     const attending = Boolean(currentlyAttending);
+    const nextAttending = !attending;
     const nextEvent = {
       ...event,
-      attendees: Math.max(0, Number(event.attendees || 0) + (attending ? -1 : 1)),
-      attendeeIds: attending
-        ? (event.attendeeIds || []).filter((id) => id !== session?.user?.id)
-        : [...new Set([...(event.attendeeIds || []), session?.user?.id].filter(Boolean))],
-      attending: !attending,
+      attendees: Math.max(0, Number(event.attendees || 0) + (nextAttending ? 1 : -1)),
+      attendeeIds: nextAttending
+        ? [...new Set([...(event.attendeeIds || []), session?.user?.id].filter(Boolean))]
+        : (event.attendeeIds || []).filter((id) => String(id) !== String(session?.user?.id)),
+      attending: nextAttending,
     };
+
     setPosts((currentPosts) => currentPosts.map((item) => item.id === post.id ? { ...item, event: nextEvent } : item));
+
     try {
       const response = await fetchBackendApi(`/api/groups/${groupId}/events`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: event.id, attending: !attending }),
+        body: JSON.stringify({ eventId: event.id, attending: nextAttending }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Impossible de mettre à jour la participation");
-      setPosts((currentPosts) => currentPosts.map((item) => item.id === post.id ? { ...item, event: { ...data.event, attending: !attending } } : item));
+      setPosts((currentPosts) => currentPosts.map((item) => item.id === post.id ? { ...item, event: { ...data.event, attending: nextAttending } } : item));
     } catch (error) {
       setPosts((currentPosts) => currentPosts.map((item) => item.id === post.id ? { ...item, event } : item));
       console.error("Erreur de participation à l'événement:", error);
@@ -5634,34 +5638,36 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   };
   const confirmLogout = async () => {
     setLoggingOut(true);
-    try {
-      await signOut({ redirect: false });
-    } catch {}
     if (typeof window !== "undefined") {
-      window.location.replace("/");
+      window.localStorage.setItem("lynoralink:rememberMe", "false");
+    }
+    try {
+      await signOut({ callbackUrl: "/" });
+      return;
+    } catch (error) {
+      console.error("[logout] signOut failed", error);
+    }
+    if (typeof window !== "undefined") {
+      window.location.assign("/");
     }
   };
   const deleteAccount = () => {
     fetchBackendApi("/api/account", { method: "DELETE" })
       .catch(() => {})
       .finally(async () => {
-        await signOut({ redirect: false });
-        window.location.replace("/");
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("lynoralink:rememberMe", "false");
+        }
+        try {
+          await signOut({ callbackUrl: "/" });
+        } catch (error) {
+          console.error("[logout] delete-account signOut failed", error);
+          if (typeof window !== "undefined") {
+            window.location.assign("/");
+          }
+        }
       });
   };
-  if (loggingOut) {
-    return (
-      <>
-        {showLogoutTransition && (
-          <LogoutTransition
-            userName={activeProfile.name}
-            onComplete={confirmLogout}
-          />
-        )}
-      </>
-    );
-  }
-
   const accountLockState = session?.user?.status && session.user.status !== "active"
     ? {
         type: session.user.status === "banned" ? "banned" : session.user.status === "deleted" ? "deleted" : "suspended",
@@ -5718,6 +5724,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
             </button>
             <button
               onClick={async () => {
+                if (typeof window !== "undefined") {
+                  window.localStorage.setItem("lynoralink:rememberMe", "false");
+                }
                 await signOut({ redirect: false });
                 window.location.replace("/");
               }}

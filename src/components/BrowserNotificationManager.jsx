@@ -31,6 +31,17 @@ function updateBrowserTabTitle(unreadCount) {
   document.title = unreadCount > 0 ? `(${unreadCount > 99 ? "99+" : unreadCount}) LynoraLink` : "LynoraLink";
 }
 
+function updateAppBadge(unreadCount) {
+  if (typeof navigator === "undefined") return;
+  if (typeof navigator.setAppBadge === "function") {
+    if (unreadCount > 0) {
+      navigator.setAppBadge(unreadCount).catch(() => {});
+    } else {
+      navigator.clearAppBadge?.().catch?.(() => {});
+    }
+  }
+}
+
 function latestIncomingMessages(data) {
   return (Array.isArray(data?.conversations) ? data.conversations : []).flatMap((conversation) => {
     const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
@@ -73,6 +84,7 @@ export default function BrowserNotificationManager() {
         .reduce((total, conversation) => total + Math.max(0, Number(conversation.unread) || 0), 0);
       const unreadCount = notifications.filter((item) => !item.read).length + unreadMessageCount;
       updateBrowserTabTitle(unreadCount);
+      updateAppBadge(unreadCount);
 
       if (!initialized.current) {
         notifications.forEach((item) => remember(seenNotifications.current, item.id));

@@ -2032,13 +2032,24 @@ export default function Story({
           .story-fb-arrow { display: none !important; }
         }
         @media (max-width: 560px) {
-          .story-viewer-stage { gap: 0 !important; }
-          .story-viewer-card {
+          .story-viewer-backdrop {
+            padding: 12px !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .story-viewer-stage {
             width: 100% !important;
-            height: 100% !important;
-            max-width: none !important;
-            aspect-ratio: auto !important;
-            border-radius: 0 !important;
+            height: auto !important;
+            gap: 0 !important;
+          }
+          .story-viewer-card {
+            width: min(100%, 420px) !important;
+            height: min(78dvh, 720px) !important;
+            max-width: 100% !important;
+            max-height: calc(100dvh - 28px) !important;
+            aspect-ratio: 9 / 16 !important;
+            border-radius: 18px !important;
+            box-shadow: 0 18px 44px rgba(0,0,0,0.44) !important;
           }
         }
         @keyframes story-fade-in { from { opacity: 0; } to { opacity: 1; } }

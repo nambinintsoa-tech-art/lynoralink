@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import LynoraLinkFeed from "@/components/LynoraLinkFeed";
 import FeedLoadingShell from "@/components/FeedLoadingShell";
+import { shouldShowFeedLoading } from "@/lib/feed-shell-state";
 
 export default function FeedShell({ initialPosts }) {
   const { data: session, status } = useSession();
@@ -12,6 +13,7 @@ export default function FeedShell({ initialPosts }) {
   const [initialSearch, setInitialSearch] = useState("");
   const [sessionLoadingTimedOut, setSessionLoadingTimedOut] = useState(false);
   const requestedView = searchParams.get("view") || "feed";
+  const hasInitialFeedData = Array.isArray(initialPosts) && initialPosts.length > 0;
 
   useEffect(() => {
     if (status !== "loading") {
@@ -32,7 +34,9 @@ export default function FeedShell({ initialPosts }) {
     }
   }, []);
 
-  if (status === "loading" && !sessionLoadingTimedOut) return <FeedLoadingShell view={requestedView} />;
+  if (shouldShowFeedLoading({ status, sessionLoadingTimedOut, hasInitialFeedData })) {
+    return <FeedLoadingShell view={requestedView} />;
+  }
 
   return (
     <LynoraLinkFeed

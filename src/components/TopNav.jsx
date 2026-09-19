@@ -412,6 +412,7 @@ export const TopNav = forwardRef(function TopNav({
   const [query, setQuery] = useState("");
   const [containerWidth, setContainerWidth] = useState(0);
   const [hasMeasured, setHasMeasured] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
   const headerRef = useRef(null);
   const profileMenuRef = useRef(null);
   const inputRef = useRef(null);
@@ -426,8 +427,16 @@ export const TopNav = forwardRef(function TopNav({
       ]
     : inactiveCompanyPages.map((page) => ({ ...page, type: "company", displayName: page.displayName || page.name || "Page entreprise" }));
 
-  const measuredWidth = hasMeasured ? containerWidth : 0;
-  const isCompact = hasMeasured && measuredWidth > 0 && measuredWidth < COMPACT_BREAKPOINT;
+  const measuredWidth = hasMeasured ? containerWidth : viewportWidth;
+  const isCompact = measuredWidth > 0 && measuredWidth < COMPACT_BREAKPOINT;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const onResize = () => setViewportWidth(window.innerWidth);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -610,6 +619,14 @@ export const TopNav = forwardRef(function TopNav({
 
   return (
     <>
+      <style>{`
+        @media (max-width: 860px) {
+          .tn-desktop-nav-shell { display: none !important; }
+        }
+        @media (min-width: 861px) {
+          .tn-mobile-nav-shell { display: none !important; }
+        }
+      `}</style>
       {isReloading && (
         <div
           aria-live="polite"
@@ -735,7 +752,7 @@ export const TopNav = forwardRef(function TopNav({
 
           {/* Centre: Navigation principale (desktop) */}
           {!isCompact && (
-            <nav aria-label="Navigation principale" style={{ flex: 1, display: "flex", alignItems: "center", gap: 48, justifyContent: "center", padding: 0 }}>
+            <nav className="tn-desktop-nav-shell" aria-label="Navigation principale" style={{ flex: 1, display: "flex", alignItems: "center", gap: 48, justifyContent: "center", padding: 0 }}>
               {NAV_ITEMS.map(({ id, icon: Icon, iconSrc, label }) => {
                 const active = view === id;
                 return (
@@ -981,6 +998,7 @@ export const TopNav = forwardRef(function TopNav({
         {/* ------------------------------------------------------------- */}
         {isCompact && (
           <nav
+            className="tn-mobile-nav-shell"
             aria-label="Navigation principale mobile"
             style={{
               width: "100%",

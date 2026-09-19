@@ -2023,7 +2023,7 @@ function LiveKitCallOverlay({ mode, conversation, status, elapsed, minimized, on
   const statusLabel = status === "connected" ? formatDuration(elapsed) : connected ? "Connecté" : "Connexion…";
 
   return (
-    <div className="lynora-call-overlay" style={{ position: "fixed", inset: 0, zIndex: 130, background: "linear-gradient(180deg, rgba(8,27,44,0.98) 0%, rgba(5,15,23,0.99) 100%)", color: C.white, display: "flex", flexDirection: "column", overflow: "hidden", isolation: "isolate", pointerEvents: "auto" }}>
+    <div className="lynora-call-overlay" style={{ position: "fixed", inset: 0, width: "100%", height: "100dvh", minHeight: "100dvh", maxHeight: "100dvh", zIndex: 130, background: "linear-gradient(180deg, rgba(8,27,44,0.98) 0%, rgba(5,15,23,0.99) 100%)", color: C.white, display: "flex", flexDirection: "column", overflow: "hidden", isolation: "isolate", pointerEvents: "auto", overscrollBehavior: "none" }}>
       {/* ------ Zone vidéo/avatar plein écran, façon Messenger ------ */}
       <div style={{ position: "absolute", inset: 0 }}>
         {isOneToOne ? (
@@ -3213,9 +3213,9 @@ export function ChatModal({
           <div
             className="lynora-incoming-call"
             style={{
-              position: "fixed", inset: 0, zIndex: 140, background: "linear-gradient(180deg, rgba(8,27,44,0.96) 0%, rgba(5,15,23,0.98) 100%)", color: C.white,
+              position: "fixed", inset: 0, width: "100%", height: "100dvh", minHeight: "100dvh", maxHeight: "100dvh", zIndex: 140, background: "linear-gradient(180deg, rgba(8,27,44,0.96) 0%, rgba(5,15,23,0.98) 100%)", color: C.white,
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
-              padding: "48px 24px 40px", textAlign: "center", overflow: "hidden", isolation: "isolate", pointerEvents: "auto",
+              padding: "48px 24px 40px", textAlign: "center", overflow: "hidden", isolation: "isolate", pointerEvents: "auto", overscrollBehavior: "none",
             }}
           >
             {/* halo flou en fond, façon avatar plein écran Messenger */}

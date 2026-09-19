@@ -68,22 +68,8 @@ export default function SplashScreen({
     >
       <style suppressHydrationWarning>{`
 
-        @keyframes lyn-sp-drift-a {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%      { transform: translate(18px, -14px) scale(1.08); }
-        }
-        @keyframes lyn-sp-drift-b {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%      { transform: translate(-16px, 12px) scale(1.06); }
-        }
-        @keyframes lyn-sp-ring {
-          0%   { transform: scale(0.85); opacity: 0; }
-          40%  { opacity: .5; }
-          100% { transform: scale(1.55); opacity: 0; }
-        }
         @keyframes lyn-sp-logo-in {
-          0%   { opacity: 0; transform: scale(.5) translateY(6px); }
-          65%  { opacity: 1; transform: scale(1.05) translateY(0); }
+          0%   { opacity: 0; transform: scale(.6) translateY(6px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes lyn-sp-letter-in {
@@ -98,15 +84,11 @@ export default function SplashScreen({
           0%, 60%, 100% { opacity: .28; transform: scale(.72); }
           30%           { opacity: 1; transform: scale(1); }
         }
-        .lyn-sp-field-a { animation: lyn-sp-drift-a 9s ease-in-out infinite; }
-        .lyn-sp-field-b { animation: lyn-sp-drift-b 11s ease-in-out infinite; }
-        .lyn-sp-ring-1 { animation: lyn-sp-ring 2.8s cubic-bezier(0.22,1,0.36,1) infinite; }
-        .lyn-sp-ring-2 { animation: lyn-sp-ring 2.8s cubic-bezier(0.22,1,0.36,1) infinite 1.4s; }
-        .lyn-sp-logo { animation: lyn-sp-logo-in .75s cubic-bezier(0.22,1,0.36,1) both; }
+        .lyn-sp-logo { animation: lyn-sp-logo-in .65s cubic-bezier(0.22,1,0.36,1) both; }
         .lyn-sp-name { display: inline-flex; }
         .lyn-sp-letter { display: inline-block; opacity: 0; animation: lyn-sp-letter-in .42s cubic-bezier(0.22,1,0.36,1) both; }
-        .lyn-sp-tagline { animation: lyn-sp-fade-up .55s ease .45s both; }
-        .lyn-sp-bar { animation: lyn-sp-fade-up .55s ease .58s both; }
+        .lyn-sp-tagline { animation: lyn-sp-fade-up .55s ease .35s both; }
+        .lyn-sp-bar { animation: lyn-sp-fade-up .55s ease .45s both; }
         .lyn-sp-dot { animation: lyn-sp-dot 1.2s ease-in-out infinite; }
         .lyn-sp-dot:nth-child(2) { animation-delay: .12s; }
         .lyn-sp-dot:nth-child(3) { animation-delay: .24s; }
@@ -114,33 +96,24 @@ export default function SplashScreen({
         .lyn-sp-dot:nth-child(5) { animation-delay: .48s; }
         .lyn-sp-dot:nth-child(6) { animation-delay: .60s; }
         @media (prefers-reduced-motion: reduce) {
-          .lyn-sp-field-a, .lyn-sp-field-b, .lyn-sp-ring-1, .lyn-sp-ring-2, .lyn-sp-dot { animation: none !important; }
-          .lyn-sp-logo, .lyn-sp-name, .lyn-sp-tagline, .lyn-sp-bar { animation: none !important; opacity: 1 !important; transform: none !important; }
+          .lyn-sp-logo, .lyn-sp-name, .lyn-sp-tagline, .lyn-sp-bar, .lyn-sp-dot { animation: none !important; opacity: 1 !important; transform: none !important; }
           .lyn-sp-letter { animation: none !important; opacity: 1 !important; transform: none !important; }
         }
       `}</style>
 
-      {/* Champs de couleur décoratifs, très doux sur fond blanc */}
-      <div className="lyn-sp-field-a" style={{ position: "absolute", width: 420, height: 420, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold400} 0%, rgba(246,211,116,0) 70%)`, opacity: 0.16, filter: "blur(60px)", top: "-14%", right: "-10%" }} />
-      <div className="lyn-sp-field-b" style={{ position: "absolute", width: 380, height: 380, borderRadius: "50%", background: `radial-gradient(circle, ${C.navy800} 0%, rgba(27,83,134,0) 70%)`, opacity: 0.08, filter: "blur(60px)", bottom: "-14%", left: "-10%" }} />
-
-      {/* Logo, anneaux pulsés et halo doré */}
-      <div style={{ position: "relative", width: 200, height: 200, marginBottom: 30, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span className="lyn-sp-ring-1" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${C.gold600}` }} />
-        <span className="lyn-sp-ring-2" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${C.gold600}` }} />
-        <div style={{ position: "absolute", inset: 14, borderRadius: "50%", background: `radial-gradient(circle, rgba(246,211,116,0.35) 0%, rgba(246,211,116,0) 72%)` }} />
+      <div style={{ position: "relative", width: 170, height: 170, marginBottom: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div
           className="lyn-sp-logo"
           style={{
             position: "relative",
-            width: 152,
-            height: 152,
+            width: 122,
+            height: 122,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <LogoBadge size={144} />
+          <LogoBadge size={118} />
         </div>
       </div>
 

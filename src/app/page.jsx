@@ -5,16 +5,13 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccountPicker from "@/components/AccountPicker";
 import AuthNavigationTransition from "@/components/AuthNavigationTransition";
-import SplashScreen from "@/components/SplashScreen";
 
 export default function HomePage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [accounts, setAccounts] = useState([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
-  const [showStartupSplash, setShowStartupSplash] = useState(true);
   const [authTransition, setAuthTransition] = useState(null);
-  const hasShownSplashRef = useRef(false);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.id) {
@@ -31,6 +28,13 @@ export default function HomePage() {
       window.localStorage.setItem("lynoralink:connectedAccounts", JSON.stringify(nextAccounts));
       return nextAccounts;
     });
+  };
+
+  const handleSignOut = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("lynoralink:rememberMe", "false");
+    }
+    signOut({ callbackUrl: "/" });
   };
 
   useEffect(() => {
@@ -103,20 +107,6 @@ export default function HomePage() {
     };
   }, [status, session?.user?.id, session?.user?.name, session?.user?.email, session?.user?.image, session?.user?.plan, session?.user?.title]);
 
-  if (showStartupSplash && !hasShownSplashRef.current) {
-    return (
-      <SplashScreen
-        duration={2600}
-        tagline="Le réseau professionnel nouvelle génération"
-        isReady={status !== "loading"}
-        onFinish={() => {
-          hasShownSplashRef.current = true;
-          setShowStartupSplash(false);
-        }}
-      />
-    );
-  }
-
   if (status === "authenticated" && session?.user?.id) {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#5C7690" }}>
@@ -143,7 +133,7 @@ export default function HomePage() {
         onContinue={() => router.replace("/feed")}
         onAddAccount={() => setAuthTransition("login")}
         onRegister={() => setAuthTransition("register")}
-        onSignOut={() => signOut({ callbackUrl: "/" })}
+        onSignOut={handleSignOut}
       />
       {authTransition && (
         <AuthNavigationTransition

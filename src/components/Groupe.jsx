@@ -2991,21 +2991,49 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
 
   const toggleRsvp = async (eventId, currentAttending = rsvpdEvents.includes(eventId)) => {
     const nowRsvpd = currentAttending || rsvpdEvents.includes(eventId);
+    const nextAttending = !nowRsvpd;
+    const sourceEvent = (group.events || []).find((ev) => ev.id === eventId) || null;
+    const optimisticEvent = sourceEvent ? {
+      ...sourceEvent,
+      attendees: Math.max(0, Number(sourceEvent.attendees || 0) + (nextAttending ? 1 : -1)),
+      attendeeIds: nextAttending
+        ? [...new Set([...(sourceEvent.attendeeIds || []), session?.user?.id].filter(Boolean))]
+        : (sourceEvent.attendeeIds || []).filter((id) => String(id) !== String(session?.user?.id)),
+      attending: nextAttending,
+    } : null;
+
+    if (sourceEvent) {
+      setRsvpdEvents(prev => nextAttending ? [...new Set([...prev, eventId])] : prev.filter(id => id !== eventId));
+      onUpdateGroup(group.id, g => ({
+        ...g,
+        events: (g.events || []).map(ev => ev.id === eventId ? optimisticEvent : ev),
+        posts: (g.posts || []).map(post => post.event?.id === eventId ? { ...post, event: optimisticEvent } : post),
+      }), false);
+    }
+
     try {
       const response = await fetchBackendApi(`/api/groups/${group.id}/events`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, attending: !nowRsvpd }),
+        body: JSON.stringify({ eventId, attending: nextAttending }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Impossible de mettre à jour la participation");
-      setRsvpdEvents(prev => nowRsvpd ? prev.filter(id => id !== eventId) : [...prev, eventId]);
+      setRsvpdEvents(prev => nextAttending ? [...new Set([...prev, eventId])] : prev.filter(id => id !== eventId));
       onUpdateGroup(group.id, g => ({
         ...g,
         events: (g.events || []).map(ev => ev.id === eventId ? data.event : ev),
         posts: (g.posts || []).map(post => post.event?.id === eventId ? { ...post, event: data.event } : post),
       }), false);
     } catch (error) {
+      if (sourceEvent) {
+        setRsvpdEvents(prev => nowRsvpd ? [...new Set([...prev, eventId])] : prev.filter(id => id !== eventId));
+        onUpdateGroup(group.id, g => ({
+          ...g,
+          events: (g.events || []).map(ev => ev.id === eventId ? sourceEvent : ev),
+          posts: (g.posts || []).map(post => post.event?.id === eventId ? { ...post, event: sourceEvent } : post),
+        }), false);
+      }
       onToast(error.message, "error");
     }
   };

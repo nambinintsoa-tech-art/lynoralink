@@ -49,7 +49,12 @@ export default function DashboardPage() {
           profile={profile}
           view="dashboard"
           onNavigate={handleNavigate}
-          onRequestLogout={() => signOut({ callbackUrl: "/login" })}
+          onRequestLogout={() => {
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem("lynoralink:rememberMe", "false");
+            }
+            signOut({ callbackUrl: "/" });
+          }}
           unreadMessages={0}
           unreadNotifications={0}
           isAdmin={Boolean(session?.user?.email && session.user.email.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase())}

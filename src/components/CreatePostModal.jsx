@@ -165,17 +165,17 @@ const CREATE_POST_MODAL_CSS = `
       max-width: none !important;
       min-width: 100vw !important;
       margin: 0 !important;
-      height: calc(100dvh - env(safe-area-inset-top)) !important;
-      min-height: calc(100dvh - env(safe-area-inset-top)) !important;
-      max-height: none !important;
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+      max-height: 100dvh !important;
       border-radius: 0 !important;
       border: none !important;
       border-left: 0 !important;
       border-right: 0 !important;
       box-shadow: none !important;
-      overflow: visible !important;
-      padding-bottom: env(safe-area-inset-bottom);
-      margin-top: env(safe-area-inset-top) !important;
+      overflow: hidden !important;
+      padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      margin-top: 0 !important;
       background: var(--app-surface) !important;
     }
     .cpm-panel *:not([style*="border-radius"]) {
@@ -210,9 +210,10 @@ const CREATE_POST_MODAL_CSS = `
       background: var(--app-surface) !important;
     }
     .cpm-scroll {
-      flex: 0 0 auto !important;
+      flex: 1 1 auto !important;
       min-height: 0 !important;
-      overflow: visible !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
       padding-bottom: 20px;
       background: var(--app-surface) !important;
     }

@@ -1318,11 +1318,30 @@ html[data-device-preview] .lynora-feed-page {
     position: fixed !important;
     inset: 0 !important;
     width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
     height: 100svh !important;
     min-height: 100svh !important;
     max-height: 100svh !important;
     z-index: 1400 !important;
     overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .lynora-incoming-call {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100svh !important;
+    min-height: 100svh !important;
+    max-height: 100svh !important;
+    z-index: 1400 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
   }
 
   .lynora-call-header {

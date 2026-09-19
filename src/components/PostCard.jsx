@@ -1314,12 +1314,20 @@ function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onS
       ];
 
   return (
-    <div className="pc-actions" style={{ display: "flex", padding: "4px 8px", gap: 4 }}>
+    <>
+      <style>{`
+        @media (max-width: 767px) {
+          .pc-action-btn { padding: 7px 0 !important; min-height: 36px !important; }
+          .pc-action-label { display: none !important; }
+        }
+      `}</style>
+      <div className="pc-actions" style={{ display: "flex", padding: "4px 8px", gap: 4 }}>
       {actions.map(({ key, icon: Icon, label, active, activeColor = C.muted, onClick, fill, reaction }) => {
         if (!reaction) {
           return (
             <button
               key={key}
+              className="pc-action-btn"
               onClick={onClick}
               style={{
                 flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
@@ -1368,6 +1376,7 @@ function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onS
               </div>
             )}
             <button
+              className="pc-action-btn"
               onClick={onClick}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0",
@@ -1393,7 +1402,8 @@ function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onS
           </div>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
 

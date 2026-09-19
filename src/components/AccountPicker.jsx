@@ -862,7 +862,11 @@ export default function AccountPicker({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem("lynoralink:rememberMe");
-    setRememberMeEnabled(saved === "true");
+    const enabled = saved === "true";
+    setRememberMeEnabled(enabled);
+    if (saved === null) {
+      window.localStorage.setItem("lynoralink:rememberMe", "false");
+    }
   }, []);
 
   useEffect(() => {

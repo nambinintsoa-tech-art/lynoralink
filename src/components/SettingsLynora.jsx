@@ -743,11 +743,19 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
     try {
       const res = await fetchBackendApi('/api/account', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: deletePassword }) });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Suppression impossible'); }
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('lynoralink:rememberMe', 'false');
+      }
       await signOut({ callbackUrl: '/' });
     } catch (e) { setDeleteError(e.message); } finally { setDeleteLoading(false); }
   };
 
-  const handleLogout = async () => { await signOut({ callbackUrl: '/' }); };
+  const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('lynoralink:rememberMe', 'false');
+    }
+    await signOut({ callbackUrl: '/' });
+  };
 
   const p = draft.profile;
   const priv = draft.privacy;
@@ -855,7 +863,12 @@ export default function SettingsLynora({ initialSession, showTopNav = true, init
           profile={topNavProfile}
           view="settings"
           onNavigate={handleTopNav}
-          onRequestLogout={() => signOut({ callbackUrl: '/login' })}
+          onRequestLogout={() => {
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem('lynoralink:rememberMe', 'false');
+            }
+            signOut({ callbackUrl: '/' });
+          }}
           unreadMessages={0}
           unreadNotifications={0}
           isAdmin={Boolean(currentSession?.user?.email && currentSession.user.email.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase())}

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWhatsapp, faLinkedin, faFacebook, faXTwitter } from "@fortawesome/free-brands-svg-icons";
-import { faPenNib } from "@fortawesome/free-solid-svg-icons";
+import { faPenNib, faThumbsUp as faThumbsUpSolid } from "@fortawesome/free-solid-svg-icons";
 import {
   X, Globe, Lock, Users2, MoreHorizontal, ThumbsUp, MessageCircle, Briefcase, MapPin, Megaphone,
   Share2, Bookmark, Send, Smile, ChevronDown, ChevronUp, Search, Check, Mail, ExternalLink, PlayCircle, Image as ImageIcon, Play, VolumeX, Volume2,
@@ -447,9 +447,15 @@ function Avatar({ initials, size = 44, imgUrl = null, gradient = navyGrad, class
 
 function ReactionIcon({ reaction = LIKE_REACTION, selected = false, size = 22 }) {
   const resolvedReaction = typeof reaction === "string" ? reactionByKey(reaction) || LIKE_REACTION : reaction || LIKE_REACTION;
+  const isLikeReaction = resolvedReaction.key === "ok";
+
   return (
-    <span style={{ width: size + 10, height: size + 10, borderRadius: "50%", border: selected ? `2px solid ${C.gold600}` : `1px solid ${C.line}`, background: selected ? "rgba(217,165,54,0.18)" : "#F8FBFF", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <img src={resolvedReaction.src} alt={resolvedReaction.label} style={{ width: size, height: size, objectFit: "contain", borderRadius: 6 }} />
+    <span className="reaction-icon-bubble" style={{ width: size + 10, height: size + 10, borderRadius: "50%", border: selected ? `2px solid ${C.gold600}` : `1px solid ${C.line}`, background: selected ? "rgba(217,165,54,0.18)" : "#F8FBFF", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {isLikeReaction ? (
+        <FontAwesomeIcon icon={faThumbsUpSolid} style={{ fontSize: size - 2, color: selected ? C.gold600 : C.muted, display: "block" }} />
+      ) : (
+        <img src={resolvedReaction.src} alt={resolvedReaction.label} style={{ width: size, height: size, objectFit: "contain", borderRadius: 6 }} />
+      )}
     </span>
   );
 }
@@ -896,8 +902,8 @@ function ReactionButton({ reaction, onReact, onToggleLike }) {
   const longPressFired = useRef(false);
   const scheduleClose = () => { clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 260); };
   const cancelClose = () => clearTimeout(closeTimer.current);
-  const current = reaction ? reactionByKey(reaction) : null;
-  const isLiked = !!reaction;
+  const current = reaction ? reactionByKey(reaction) : (reaction === true ? reactionByKey("ok") : null);
+  const isLiked = Boolean(reaction);
 
   const handleTouchStart = () => {
     longPressFired.current = false;
@@ -937,22 +943,145 @@ function ReactionButton({ reaction, onReact, onToggleLike }) {
           <ReactionPicker selectedKey={current?.key} onSelect={(key) => { onReact(key); setOpen(false); }} />
         </div>
       )}
-      <button data-like-button="true" className="post-viewer-action-btn" onClick={onToggleLike} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 4px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: isLiked ? C.gold600 : C.muted, fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-        {current ? <ReactionIcon reaction={current} selected size={22} /> : <ThumbsUp size={22} color={C.muted} />}
-        <span className="post-viewer-like-label">{current?.label || "J'aime"}</span>
+      <button data-like-button="true" className="post-viewer-action-btn" onClick={onToggleLike} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: "9px 0", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: isLiked ? C.gold600 : C.muted, fontWeight: 600, fontSize: 0, lineHeight: 0, whiteSpace: "nowrap", transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+        {current ? <ReactionIcon reaction={current} selected size={22} /> : <FontAwesomeIcon icon={faThumbsUpSolid} style={{ fontSize: 20, color: isLiked ? C.gold600 : C.muted }} />}
       </button>
     </div>
   );
 }
 
-/* Bouton d'action façon Facebook (pleine largeur, hover gris clair) */
 function ActionBtn({ icon: Icon, label, active, onClick }) {
   const color = active ? LINKEDIN_BLUE : LI_SECONDARY;
   return (
-    <button className="post-viewer-action-btn" onClick={onClick} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 4px", border: "none", background: "transparent", cursor: "pointer", color, fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", borderRadius: 8, transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+    <button className="post-viewer-action-btn" onClick={onClick} style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: "9px 0", border: "none", background: "transparent", cursor: "pointer", color, fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", borderRadius: 8, transition: "background 0.15s ease, color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = C.navy50)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
       <Icon size={20} fill={active ? LINKEDIN_BLUE : "none"} color={color} />
       <span>{label}</span>
     </button>
+  );
+}
+
+function ViewerActionBar({ post, onToggleLike, onReact, onToggleBookmark, onOpenComment, onShare }) {
+  const [isMobileViewport, setIsMobileViewport] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= 768 : false));
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+  const reactionWrapRef = useRef(null);
+  const longPressTimer = useRef(null);
+  const longPressFired = useRef(false);
+  const reactionCloseTimer = useRef(null);
+
+  useEffect(() => {
+    const update = () => setIsMobileViewport(window.innerWidth <= 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const keepReactionPickerOpen = () => { clearTimeout(reactionCloseTimer.current); };
+  const scheduleReactionClose = () => { clearTimeout(reactionCloseTimer.current); reactionCloseTimer.current = setTimeout(() => setReactionPickerOpen(false), 220); };
+
+  useEffect(() => {
+    if (!reactionPickerOpen) return;
+    const handleOutside = (event) => {
+      if (reactionWrapRef.current && !reactionWrapRef.current.contains(event.target)) setReactionPickerOpen(false);
+    };
+    document.addEventListener("click", handleOutside);
+    return () => document.removeEventListener("click", handleOutside);
+  }, [reactionPickerOpen]);
+
+  const actions = [
+    {
+      key: "like",
+      type: "reaction",
+      label: "J'aime",
+      active: Boolean(post?.liked || post?.reaction),
+      activeColor: C.gold600,
+      onClick: () => onToggleLike?.(post.id),
+      onSelectReaction: (reactionKey) => onReact?.(post.id, reactionKey),
+    },
+    {
+      key: "comment",
+      type: "action",
+      label: "Commenter",
+      icon: MessageCircle,
+      onClick: () => onOpenComment?.(),
+    },
+    {
+      key: "share",
+      type: "action",
+      label: "Partager",
+      icon: Share2,
+      onClick: () => onShare?.(),
+    },
+    {
+      key: "bookmark",
+      type: "action",
+      label: "Enregistrer",
+      icon: Bookmark,
+      active: Boolean(post?.bookmarked),
+      onClick: () => onToggleBookmark?.(post.id),
+    },
+  ];
+
+  return (
+    <div className="pv-actions">
+      {actions.map((action) => {
+        if (action.type === "reaction") {
+          const currentReaction = post?.reaction ? reactionByKey(post.reaction) : (post?.liked ? reactionByKey("ok") : null);
+          const isLiked = Boolean(post?.liked || post?.reaction);
+          return (
+            <div
+              key={action.key}
+              ref={reactionWrapRef}
+              style={{ position: "relative", flex: 1, minWidth: 0 }}
+              onMouseEnter={() => { keepReactionPickerOpen(); setReactionPickerOpen(true); }}
+              onMouseLeave={scheduleReactionClose}
+              onTouchStart={() => {
+                longPressFired.current = false;
+                longPressTimer.current = window.setTimeout(() => {
+                  longPressFired.current = true;
+                  keepReactionPickerOpen();
+                  setReactionPickerOpen(true);
+                  if (navigator.vibrate) navigator.vibrate(10);
+                }, 380);
+              }}
+              onTouchEnd={(event) => {
+                clearTimeout(longPressTimer.current);
+                if (longPressFired.current) event.preventDefault();
+              }}
+              onTouchCancel={(event) => {
+                clearTimeout(longPressTimer.current);
+                if (longPressFired.current) event.preventDefault();
+              }}
+            >
+              {reactionPickerOpen && (
+                <div onMouseEnter={keepReactionPickerOpen} onMouseLeave={scheduleReactionClose} style={{ position: "absolute", bottom: "100%", left: -10, marginBottom: 6, zIndex: 20 }}>
+                  <ReactionPicker selectedKey={currentReaction?.key} onSelect={(reactionKey) => { action.onSelectReaction?.(reactionKey); setReactionPickerOpen(false); }} />
+                </div>
+              )}
+              <button
+                data-like-button="true"
+                className="post-viewer-action-btn"
+                onClick={action.onClick}
+                style={{ width: "100%", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: "9px 0", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: isLiked ? C.gold600 : C.muted, fontWeight: 600, fontSize: 0, lineHeight: 0, whiteSpace: "nowrap", transition: "background 0.15s ease, color 0.15s ease" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.navy50; keepReactionPickerOpen(); setReactionPickerOpen(true); }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; scheduleReactionClose(); }}
+              >
+                {currentReaction ? <ReactionIcon reaction={currentReaction} selected size={22} /> : <FontAwesomeIcon icon={faThumbsUpSolid} style={{ fontSize: 20, color: isLiked ? C.gold600 : C.muted }} />}
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <ActionBtn
+            key={action.key}
+            icon={action.icon}
+            label={action.label}
+            active={Boolean(action.active)}
+            onClick={action.onClick}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -2173,26 +2302,20 @@ export default function PostViewerPreview({
             width: auto !important;
             min-width: 0 !important;
             gap: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
             min-height: 44px;
             font-size: 13px !important;
           }
-          .post-viewer-action-btn[data-like-button="true"] > span {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-          }
-          .post-viewer-action-btn[data-like-button="true"] > .post-viewer-like-label {
-            display: inline-flex !important;
-            font-size: 11.5px !important;
-            line-height: 1.1 !important;
-            white-space: nowrap !important;
-            overflow: visible !important;
+          .post-viewer-action-btn[data-like-button="true"] > .post-viewer-like-label,
+          .post-viewer-action-btn[data-like-button="true"] > span:not(.reaction-icon-bubble) {
+            display: none !important;
           }
           .post-viewer-action-btn[data-like-button="true"] {
-            flex-direction: column !important;
+            flex-direction: row !important;
             align-items: center !important;
             justify-content: center !important;
-            gap: 2px !important;
+            gap: 0 !important;
             padding: 4px 2px !important;
             line-height: 1 !important;
           }
@@ -2472,12 +2595,14 @@ export default function PostViewerPreview({
           </div>
 
           {/* --- Barre d'actions façon Facebook --- */}
-          <div className="pv-actions">
-            <ReactionButton reaction={reaction} onReact={handleViewerReaction} onToggleLike={handleViewerLike} />
-            <ActionBtn icon={MessageCircle} label="Commenter" onClick={() => commentInputRef.current?.focus()} />
-            <ActionBtn icon={Share2} label="Partager" onClick={() => setShareOpen(true)} />
-            <ActionBtn icon={Bookmark} label="Enregistrer" active={post?.bookmarked} onClick={() => onToggleBookmark?.(post.id)} />
-          </div>
+          <ViewerActionBar
+            post={post}
+            onToggleLike={handleViewerLike}
+            onReact={handleViewerReaction}
+            onToggleBookmark={() => onToggleBookmark?.(post.id)}
+            onOpenComment={() => commentInputRef.current?.focus()}
+            onShare={() => setShareOpen(true)}
+          />
 
           {/* --- En-tête commentaires (tri façon FB) --- */}
           <div className="pv-comments-header">
