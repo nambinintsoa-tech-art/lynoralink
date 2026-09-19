@@ -1,5 +1,10 @@
 import { headers } from "next/headers";
-import FeedShell from "@/components/FeedShell";
+import dynamic from "next/dynamic";
+
+const FeedShell = dynamic(() => import("@/components/FeedShell"), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: "100vh", background: "#EFF4F9" }} aria-label="Chargement" />,
+});
 
 export default async function FeedPage() {
   const cookie = headers().get("cookie");
