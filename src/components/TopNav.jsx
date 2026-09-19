@@ -487,7 +487,8 @@ export const TopNav = forwardRef(function TopNav({
   }, [isReloading]);
 
   const goHome = () => {
-    triggerHardRefresh();
+    setMenuOpen(false);
+    onNavigate("feed");
   };
 
   useEffect(() => {
