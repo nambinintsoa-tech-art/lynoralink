@@ -66,7 +66,7 @@ import RelativeTime from "@/components/RelativeTime";
 import { appUrl } from "@/lib/app-url";
 import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
-import { fetchBackendApi } from "@/lib/backend-api";
+import { fetchBackendApi, fetchFileWithFallback } from "@/lib/backend-api";
 import CreatePostModal from "./CreatePostModal";
 import { CommentSkeleton } from "@/components/Skeleton";
 import ProfileHoverPreview from "./ProfileHoverPreview";
@@ -550,7 +550,9 @@ function FileBanner({ post, onOpenPost, group }) {
       const downloadPath = group?.id && file?.id
         ? `/api/groups/${encodeURIComponent(group.id)}/files/${encodeURIComponent(file.id)}/download`
         : fileUrl;
-      const response = await fetchBackendApi(downloadPath);
+      const response = group?.id && file?.id
+        ? await fetchFileWithFallback(downloadPath, fileUrl)
+        : await fetchBackendApi(downloadPath);
       if (!response.ok) throw new Error("download failed");
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);

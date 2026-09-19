@@ -38,11 +38,18 @@ interface AdminPanelProps {
 // ─── Mock analytics data ─────────────────────────────────────────
 function generateWeeklyData() {
   const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const values = [
+    { views: 742, likes: 64, comments: 18 },
+    { views: 918, likes: 71, comments: 23 },
+    { views: 684, likes: 52, comments: 14 },
+    { views: 1106, likes: 83, comments: 29 },
+    { views: 1264, likes: 96, comments: 34 },
+    { views: 438, likes: 31, comments: 9 },
+    { views: 376, likes: 28, comments: 7 },
+  ];
   return days.map((day, i) => ({
     day,
-    views: Math.floor(Math.random() * 800 + 200 + (i < 5 ? 300 : 0)),
-    likes: Math.floor(Math.random() * 80 + 20),
-    comments: Math.floor(Math.random() * 30 + 5),
+    ...values[i],
   }));
 }
 

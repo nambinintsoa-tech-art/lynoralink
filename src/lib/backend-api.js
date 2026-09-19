@@ -20,3 +20,9 @@ export function fetchBackendApi(path, options = {}) {
     ...options,
   });
 }
+
+export async function fetchFileWithFallback(path, fileUrl) {
+  const response = await fetchBackendApi(path);
+  if (response.ok || !fileUrl) return response;
+  return fetch(fileUrl, { credentials: "omit", cache: "no-store" });
+}

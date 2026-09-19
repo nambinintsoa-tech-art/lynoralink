@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { fetchBackendApi } from "@/lib/backend-api";
+import { fetchBackendApi, fetchFileWithFallback } from "@/lib/backend-api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft, faPlus, faSearch, faUsers, faGlobe, faLock, faShieldHalved, faCrown,
@@ -3955,7 +3955,7 @@ const GroupDetail = ({ group, currentUserId, onBack, onAdmin, onToast, onUpdateG
                         aria-label={`Télécharger ${f.name}`}
                         onClick={async () => {
                           try {
-                            const response = await fetchBackendApi(`/api/groups/${group.id}/files/${encodeURIComponent(f.id)}/download`);
+                            const response = await fetchFileWithFallback(`/api/groups/${group.id}/files/${encodeURIComponent(f.id)}/download`, f.url);
                             if (!response.ok) throw new Error();
                             const blob = await response.blob();
                             const url = URL.createObjectURL(blob);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useId, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChartColumn } from "@fortawesome/free-solid-svg-icons";
@@ -278,12 +278,13 @@ function useMediaQuery(query) {
 function Sparkline({ data, color, width = 100, height = 32, delay = 0, animated = true }) {
   const [progress, setProgress] = useState(animated ? 0 : 1);
   const [hovered, setHovered] = useState(false);
+  const gradientId = useId().replace(/:/g, "");
   useEffect(() => { if (!animated) return; const t = setTimeout(() => setProgress(1), delay); return () => clearTimeout(t); }, [delay, animated]);
   const max = Math.max(...data); const min = Math.min(...data); const range = max - min || 1; const step = width / (data.length - 1);
   const points = data.map((v, i) => ({ x: i * step, y: height - ((v - min) / range) * (height * 0.8) - height * 0.1 }));
   const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
   const areaD = `${pathD} L ${width} ${height} L 0 ${height} Z`;
-  const gid = `spark-${color.replace("#", "")}-${Math.random().toString(36).slice(2, 8)}`;
+  const gid = `spark-${color.replace("#", "")}-${gradientId}`;
   return (
     <svg
       width={width}
@@ -302,6 +303,7 @@ function Sparkline({ data, color, width = 100, height = 32, delay = 0, animated 
 
 function AnimatedAreaChart({ data, dataKeys, colors, width = 700, height = 300, delay = 0 }) {
   const [progress, setProgress] = useState(0); const [activePoint, setActivePoint] = useState(null); const ref = useRef(null);
+  const gradientId = useId().replace(/:/g, "");
   const chartData = (Array.isArray(data) ? data : []).map((item) => Object.fromEntries([
     ...Object.entries(item || {}),
     ...dataKeys.map((key) => [key, Number.isFinite(Number(item?.[key])) ? Number(item[key]) : 0]),
@@ -313,7 +315,7 @@ function AnimatedAreaChart({ data, dataKeys, colors, width = 700, height = 300, 
   const gridLines = 5; const gridVals = Array.from({ length: gridLines }, (_, i) => Math.round((range / (gridLines - 1)) * i));
   const handleMouseMove = useCallback((e) => { if (!ref.current || chartData.length < 2) return; const rect = ref.current.getBoundingClientRect(); const x = e.clientX - rect.left - padding.left; const idx = Math.round(x / xStep); setActivePoint(idx >= 0 && idx < chartData.length ? idx : null); }, [chartData.length, xStep]);
   const handleMouseLeave = useCallback(() => setActivePoint(null), []);
-  const gradIds = colors.map((c, i) => `area-grad-${i}-${Math.random().toString(36).slice(2, 8)}`);
+  const gradIds = colors.map((c, i) => `area-grad-${i}-${gradientId}`);
   return (
     <div style={{ width: "100%", maxWidth: width, overflow: "visible" }}>
       <svg ref={ref} width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>

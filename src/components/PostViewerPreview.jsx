@@ -18,7 +18,7 @@ import { CommentSkeleton } from "@/components/Skeleton";
 import EnterpriseBadge from "./EnterpriseBadge";
 import PremiumBadge from "./PremiumBadge";
 import ProfileHoverPreview from "./ProfileHoverPreview";
-import { fetchBackendApi } from "@/lib/backend-api";
+import { fetchBackendApi, fetchFileWithFallback } from "@/lib/backend-api";
 import { appUrl } from "@/lib/app-url";
 import VideoControls from "./VideoControls";
 
@@ -199,7 +199,9 @@ function FileViewerBanner({ post }) {
       const downloadPath = post?.groupId && file?.id
         ? `/api/groups/${encodeURIComponent(post.groupId)}/files/${encodeURIComponent(file.id)}/download`
         : fileUrl;
-      const response = await fetchBackendApi(downloadPath);
+      const response = post?.groupId && file?.id
+        ? await fetchFileWithFallback(downloadPath, fileUrl)
+        : await fetchBackendApi(downloadPath);
       if (!response.ok) throw new Error("download failed");
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
