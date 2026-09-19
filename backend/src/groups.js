@@ -32,17 +32,32 @@ function safeFileUrl(value) {
 }
 function cloudinaryFileUrls(file) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  if (!file?.publicId || !cloudName || !process.env.CLOUDINARY_API_SECRET) return [];
+  if (!cloudName || !process.env.CLOUDINARY_API_SECRET) return [];
+
   cloudinary.config({ cloud_name: cloudName, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
-  const versionMatch = String(file.url || "").match(/\/v(\d+)\//);
+  const sourceUrl = String(file.url || "");
+  const sourceMatch = sourceUrl.match(/\/(image|raw|video)\/upload\/(.+)$/i);
+  const versionMatch = sourceMatch?.[2].match(/^v(\d+)\//i);
+  const sourcePath = sourceMatch?.[2].replace(/^v\d+\//i, "").replace(/^s--[^/]+--\//i, "") || "";
+  const sourceExtension = sourcePath.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || "";
+  const nameExtension = String(file.name || "").match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || "";
+  const extension = sourceExtension || nameExtension;
+  const storedPublicId = String(file.publicId || "").replace(/^\/+|\/+$/g, "");
+  const publicId = storedPublicId || (sourcePath ? sourcePath : "");
+  if (!publicId) return [];
+  const publicIdWithExtension = extension && !new RegExp(`\\.${extension}$`, "i").test(publicId)
+    ? `${publicId}.${extension}`
+    : publicId;
+  const publicIdWithoutExtension = extension && new RegExp(`\\.${extension}$`, "i").test(publicId)
+    ? publicId.slice(0, -(extension.length + 1))
+    : publicId;
   const options = { resource_type: "raw", type: "upload", secure: true, sign_url: true };
   if (versionMatch) options.version = versionMatch[1];
-  const extension = String(file.name || "").split(".").pop()?.toLowerCase();
   return [
-    cloudinary.url(file.publicId, options),
-    cloudinary.url(file.publicId, { ...options, type: "authenticated" }),
-    extension && cloudinary.utils.private_download_url(file.publicId, extension, { resource_type: "raw", type: "upload", attachment: true }),
-    extension && cloudinary.utils.private_download_url(file.publicId, extension, { resource_type: "raw", type: "authenticated", attachment: true }),
+    cloudinary.url(publicIdWithExtension, options),
+    cloudinary.url(publicIdWithExtension, { ...options, type: "authenticated" }),
+    extension && cloudinary.utils.private_download_url(publicIdWithoutExtension, extension, { resource_type: "raw", type: "upload", attachment: true }),
+    extension && cloudinary.utils.private_download_url(publicIdWithoutExtension, extension, { resource_type: "raw", type: "authenticated", attachment: true }),
   ].filter(Boolean);
 }
 function safeContentType(value) {
