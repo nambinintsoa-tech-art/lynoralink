@@ -2,6 +2,7 @@ import "./globals.css";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import Providers from "@/components/Providers";
+import AppSplashGate from "@/components/AppSplashGate";
 import Script from "next/script";
 
 export const metadata = {
@@ -45,7 +46,9 @@ export default async function RootLayout({ children }) {
             document.documentElement.dataset.fontScale = appearance.fontScale || "medium";
           } catch {}`}
         </Script>
-        <Providers session={session}>{children}</Providers>
+        <Providers session={session}>
+          <AppSplashGate>{children}</AppSplashGate>
+        </Providers>
       </body>
     </html>
   );
