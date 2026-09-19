@@ -41,7 +41,9 @@ export async function handler(request, { params }) {
   // external email providers are slow or temporarily delayed.
   let timeoutMs = 10000; // 10 seconds default
   const normalizedPath = path.replace(/^\/+/, "");
-  if (normalizedPath.includes("ai-image") || normalizedPath.includes("ai-article")) {
+  if (normalizedPath === "realtime") {
+    timeoutMs = 0;
+  } else if (normalizedPath.includes("ai-image") || normalizedPath.includes("ai-article")) {
     timeoutMs = 120000; // 120 seconds for AI generation
   } else if (normalizedPath.includes("notifications")) {
     timeoutMs = 5000; // 5 seconds for notifications
@@ -51,10 +53,10 @@ export async function handler(request, { params }) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = timeoutMs > 0 ? setTimeout(() => controller.abort(), timeoutMs) : null;
     
     const response = await fetch(target, { ...init, signal: controller.signal });
-    clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId);
     
     const responseHeaders = new Headers();
     for (const name of ["content-type", "cache-control", "location"]) {

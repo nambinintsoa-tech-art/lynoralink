@@ -186,7 +186,13 @@ export async function registerGroupRoutes(app) {
     if (!isMember(group, userId) && group.privacy !== "public") return reply.code(403).send({ error: "Accès interdit" });
     const file = array(group.files).find((item) => item?.id === request.params.fileId); const fileUrl = safeFileUrl(file?.url);
     if (!file || !fileUrl) return reply.code(404).send({ error: "Fichier introuvable" });
-    let response; try { response = await fetch(fileUrl, { redirect: "error" }); } catch { return reply.code(502).send({ error: "Impossible de télécharger le fichier" }); }
+    let response;
+    try {
+      response = await fetch(fileUrl, { redirect: "follow" });
+      if (response.url && !safeFileUrl(response.url)) return reply.code(502).send({ error: "La destination du fichier est invalide" });
+    } catch {
+      return reply.code(502).send({ error: "Impossible de télécharger le fichier" });
+    }
     if (!response.ok) return reply.code(502).send({ error: "Le fichier n'est plus disponible" });
     const contentLength = Number(response.headers.get("content-length"));
     if (Number.isFinite(contentLength) && contentLength > MAX_GROUP_FILE_BYTES) return reply.code(413).send({ error: "Le fichier dépasse la taille maximale autorisée" });
