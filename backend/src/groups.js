@@ -188,12 +188,13 @@ export async function registerGroupRoutes(app) {
     if (!file || !fileUrl) return reply.code(404).send({ error: "Fichier introuvable" });
     let response;
     try {
-      response = await fetch(fileUrl, { redirect: "follow" });
+      response = await fetch(fileUrl, { redirect: "follow", signal: AbortSignal.timeout(45000) });
       if (response.url && !safeFileUrl(response.url)) return reply.code(502).send({ error: "La destination du fichier est invalide" });
     } catch {
       return reply.code(502).send({ error: "Impossible de télécharger le fichier" });
     }
-    if (!response.ok) return reply.code(502).send({ error: "Le fichier n'est plus disponible" });
+    if (response.status === 404 || response.status === 410) return reply.code(404).send({ error: "Le fichier n'est plus disponible" });
+    if (!response.ok) return reply.code(502).send({ error: `Le stockage du fichier a répondu avec le statut ${response.status}` });
     const contentLength = Number(response.headers.get("content-length"));
     if (Number.isFinite(contentLength) && contentLength > MAX_GROUP_FILE_BYTES) return reply.code(413).send({ error: "Le fichier dépasse la taille maximale autorisée" });
     const contentType = safeContentType(file.mimeType || response.headers.get("content-type"));

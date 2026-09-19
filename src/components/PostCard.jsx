@@ -561,6 +561,8 @@ function FileBanner({ post, onOpenPost, group }) {
       link.click();
       link.remove();
       URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Group file download failed:", error);
     } finally {
       setDownloading(false);
     }

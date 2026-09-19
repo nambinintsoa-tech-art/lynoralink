@@ -43,6 +43,8 @@ export async function handler(request, { params }) {
   const normalizedPath = path.replace(/^\/+/, "");
   if (normalizedPath === "realtime") {
     timeoutMs = 0;
+  } else if (/^groups\/[^/]+\/files\/[^/]+\/download$/.test(normalizedPath)) {
+    timeoutMs = 60000;
   } else if (normalizedPath.includes("ai-image") || normalizedPath.includes("ai-article")) {
     timeoutMs = 120000; // 120 seconds for AI generation
   } else if (normalizedPath.includes("notifications")) {
