@@ -31,8 +31,9 @@ function safeFileUrl(value) {
   } catch { return null; }
 }
 function cloudinaryFileUrls(file) {
-  if (!file?.publicId || !process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_SECRET) return [];
-  cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  if (!file?.publicId || !cloudName || !process.env.CLOUDINARY_API_SECRET) return [];
+  cloudinary.config({ cloud_name: cloudName, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
   const versionMatch = String(file.url || "").match(/\/v(\d+)\//);
   const options = { resource_type: "raw", type: "upload", secure: true, sign_url: true };
   if (versionMatch) options.version = versionMatch[1];
@@ -200,9 +201,9 @@ export async function registerGroupRoutes(app) {
     const group = await findGroup(request.params.id, reply); if (!group) return;
     if (!isMember(group, userId) && group.privacy !== "public") return reply.code(403).send({ error: "Accès interdit" });
     const file = array(group.files).find((item) => item?.id === request.params.fileId); const fileUrl = safeFileUrl(file?.url);
-    if (!file || !fileUrl) return reply.code(404).send({ error: "Fichier introuvable" });
+    if (!file || (!fileUrl && !file.publicId)) return reply.code(404).send({ error: "Fichier introuvable" });
     let response = null;
-    for (const candidateUrl of [...cloudinaryFileUrls(file), fileUrl]) {
+    for (const candidateUrl of [...cloudinaryFileUrls(file), ...(fileUrl ? [fileUrl] : [])]) {
       try {
         const candidateResponse = await fetch(candidateUrl, { redirect: "follow", signal: AbortSignal.timeout(45000) });
         if (candidateResponse.url && !safeFileUrl(candidateResponse.url)) continue;

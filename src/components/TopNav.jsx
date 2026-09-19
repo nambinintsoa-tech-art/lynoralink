@@ -412,7 +412,7 @@ export const TopNav = forwardRef(function TopNav({
   const [query, setQuery] = useState("");
   const [containerWidth, setContainerWidth] = useState(0);
   const [hasMeasured, setHasMeasured] = useState(false);
-  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
+  const [viewportWidth, setViewportWidth] = useState(0);
   const headerRef = useRef(null);
   const profileMenuRef = useRef(null);
   const inputRef = useRef(null);

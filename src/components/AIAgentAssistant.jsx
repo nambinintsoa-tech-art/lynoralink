@@ -500,7 +500,7 @@ export default function AIAgentAssistant({ actions = {}, context = {}, userName 
   const [hidden, setHidden] = useState(false);
   // Détection réactive du smartphone réel (largeur ET support tactile), pour
   // adapter le panneau en plein écran natif plutôt qu'en simple redimensionnement CSS.
-  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= 640 : false));
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
     const mq = window.matchMedia("(max-width: 640px)");

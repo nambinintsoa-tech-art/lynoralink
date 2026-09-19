@@ -965,7 +965,7 @@ function ActionBtn({ icon: Icon, label, active, onClick }) {
 }
 
 function ViewerActionBar({ post, onToggleLike, onReact, onToggleBookmark, onOpenComment, onShare }) {
-  const [isMobileViewport, setIsMobileViewport] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= 768 : false));
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const reactionWrapRef = useRef(null);
   const longPressTimer = useRef(null);

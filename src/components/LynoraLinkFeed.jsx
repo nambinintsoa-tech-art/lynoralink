@@ -3198,7 +3198,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
   const [targetProfileId, setTargetProfileId] = useState(null);
   const [suggestionRotation, setSuggestionRotation] = useState(0);
   const [targetGroupId, setTargetGroupId] = useState(null);
-  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  const [viewportWidth, setViewportWidth] = useState(0);
   const [isViewportReady, setIsViewportReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const searchRequestRef = useRef(0);

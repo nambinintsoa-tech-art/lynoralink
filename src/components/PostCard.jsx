@@ -1201,7 +1201,7 @@ function MediaGallery({ items, onOpenPost }) {
 
 function ActionBar({ post, onToggleLike, onSelectReaction, onToggleBookmark, onShare, onToggleComments, onOpenPost, onOpenArticle, justShared }) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= 768 : false));
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const pickerCloseTimer = useRef(null);
   const reactionWrapRef = useRef(null);
   // Ouverture au survol (souris) — inutile sur un vrai smartphone, qui n'a pas

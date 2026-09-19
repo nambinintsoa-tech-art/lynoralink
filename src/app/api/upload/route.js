@@ -127,8 +127,12 @@ export async function POST(req) {
       }, { status: httpCode === 401 || httpCode === 403 ? httpCode : 502 });
     }
 
+    const deliveryUrl = resourceType === "raw" && uploadResult.public_id && process.env.CLOUDINARY_API_SECRET
+      ? cloudinary.url(uploadResult.public_id, { resource_type: "raw", type: "upload", secure: true, sign_url: true })
+      : uploadResult.secure_url;
+
     return NextResponse.json({
-      url: uploadResult.secure_url,
+      url: deliveryUrl,
       type,
       publicId: uploadResult.public_id,
       fallback: false,
