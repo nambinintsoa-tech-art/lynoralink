@@ -43,7 +43,10 @@ export async function registerUploadRoutes(app) {
       const result = preset
         ? await uploadUnsigned({ buffer, fileName: part.filename, mimeType: part.mimetype, cloudName, preset, resourceType })
         : await new Promise((resolve, reject) => { const stream = cloudinary.uploader.upload_stream({ folder: "lynoralink", resource_type: resourceType }, (error, value) => error ? reject(error) : resolve(value)); stream.end(buffer); });
-      return reply.send({ url: result.secure_url, type, publicId: result.public_id, fallback: false });
+      const deliveryUrl = resourceType === "raw" && result.public_id && process.env.CLOUDINARY_API_SECRET
+        ? cloudinary.url(result.public_id, { resource_type: "raw", type: "upload", secure: true, sign_url: true })
+        : result.secure_url;
+      return reply.send({ url: deliveryUrl, type, publicId: result.public_id, fallback: false });
     } catch (error) {
       request.log.error({ err: error, type, resourceType }, "Cloudinary upload failed");
       return reply.code(502).send({

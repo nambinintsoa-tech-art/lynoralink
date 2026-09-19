@@ -1,5 +1,6 @@
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
+import { v2 as cloudinary } from "cloudinary";
 
 const DEFAULT_COVER = "linear-gradient(160deg, #1F6F4C 0%, #122318 100%)";
 const DEFAULT_QUESTIONS = [
@@ -28,6 +29,17 @@ function safeFileUrl(value) {
     if (hostname === "localhost" || hostname.endsWith(".localhost") || hostname === "127.0.0.1" || hostname === "::1" || hostname.startsWith("10.") || hostname.startsWith("192.168.") || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return null;
     return url.toString();
   } catch { return null; }
+}
+function cloudinaryFileUrls(file) {
+  if (!file?.publicId || !process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_SECRET) return [];
+  cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
+  const versionMatch = String(file.url || "").match(/\/v(\d+)\//);
+  const options = { resource_type: "raw", type: "upload", secure: true, sign_url: true };
+  if (versionMatch) options.version = versionMatch[1];
+  return [
+    cloudinary.url(file.publicId, options),
+    cloudinary.url(file.publicId, { ...options, type: "authenticated" }),
+  ].filter(Boolean);
 }
 function safeContentType(value) {
   const contentType = String(value || "application/octet-stream").split(";", 1)[0].trim().toLowerCase();
@@ -186,15 +198,19 @@ export async function registerGroupRoutes(app) {
     if (!isMember(group, userId) && group.privacy !== "public") return reply.code(403).send({ error: "Accès interdit" });
     const file = array(group.files).find((item) => item?.id === request.params.fileId); const fileUrl = safeFileUrl(file?.url);
     if (!file || !fileUrl) return reply.code(404).send({ error: "Fichier introuvable" });
-    let response;
-    try {
-      response = await fetch(fileUrl, { redirect: "follow", signal: AbortSignal.timeout(45000) });
-      if (response.url && !safeFileUrl(response.url)) return reply.code(502).send({ error: "La destination du fichier est invalide" });
-    } catch {
-      return reply.code(502).send({ error: "Impossible de télécharger le fichier" });
+    let response = null;
+    for (const candidateUrl of [...cloudinaryFileUrls(file), fileUrl]) {
+      try {
+        const candidateResponse = await fetch(candidateUrl, { redirect: "follow", signal: AbortSignal.timeout(45000) });
+        if (candidateResponse.url && !safeFileUrl(candidateResponse.url)) continue;
+        if (candidateResponse.ok) {
+          response = candidateResponse;
+          break;
+        }
+        if (candidateResponse.status === 404 || candidateResponse.status === 410) break;
+      } catch {}
     }
-    if (response.status === 404 || response.status === 410) return reply.code(404).send({ error: "Le fichier n'est plus disponible" });
-    if (!response.ok) return reply.code(502).send({ error: `Le stockage du fichier a répondu avec le statut ${response.status}` });
+    if (!response) return reply.code(502).send({ error: "Le stockage du fichier a refusé la livraison" });
     const contentLength = Number(response.headers.get("content-length"));
     if (Number.isFinite(contentLength) && contentLength > MAX_GROUP_FILE_BYTES) return reply.code(413).send({ error: "Le fichier dépasse la taille maximale autorisée" });
     const contentType = safeContentType(file.mimeType || response.headers.get("content-type"));
