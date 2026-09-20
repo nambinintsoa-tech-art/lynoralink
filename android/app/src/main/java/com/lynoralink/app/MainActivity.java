@@ -104,10 +104,8 @@ public class MainActivity extends BridgeActivity {
 
         try {
             WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
-            if (controller != null) {
-                controller.setAppearanceLightStatusBars(true);
-                controller.setAppearanceLightNavigationBars(true);
-            }
+            controller.setAppearanceLightStatusBars(true);
+            controller.setAppearanceLightNavigationBars(true);
         } catch (Throwable t) {
             // Ignore OEM/platform issues with insets controller to avoid startup crash.
         }
@@ -118,7 +116,6 @@ public class MainActivity extends BridgeActivity {
         View contentView = findViewById(android.R.id.content);
         if (contentView == null) return;
         ViewCompat.setOnApplyWindowInsetsListener(contentView, (v, insets) -> {
-            if (insets == null) return WindowInsetsCompat.CONSUMED;
             int top = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
             int bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
             v.setPadding(0, top, 0, bottom);
@@ -154,7 +151,7 @@ public class MainActivity extends BridgeActivity {
         splashOverlay.setVisibility(View.VISIBLE);
 
         ViewGroup decor = (ViewGroup) getWindow().getDecorView();
-        if (decor != null && splashOverlay.getParent() == null) {
+        if (splashOverlay.getParent() == null) {
             decor.addView(splashOverlay);
         }
     }
