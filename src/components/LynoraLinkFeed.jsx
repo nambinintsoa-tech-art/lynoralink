@@ -50,7 +50,6 @@ import { NetworkOpeningSkeleton } from "./Reseau";
 import {
   FeedSkeleton,
   ComposerSkeleton,
-  LeftSidebarSkeleton,
   RightSidebarSkeleton,
   NotificationsSkeleton,
   ProfileSkeleton,
@@ -385,8 +384,9 @@ function inlineFormat(str) {
         <a key={key++} href={href} target="_blank" rel="noreferrer" style={{ color: C.navy800, fontWeight: 600, textDecoration: "underline" }}>
           {match[1]}
         </a>
-      ) : match[1]);
-    } else if (match[3] !== undefined) {
+      ) : (
+        match[1]
+      ));
       nodes.push(<strong key={key++}>{match[3]}</strong>);
     } else if (match[4] !== undefined) {
       nodes.push(<em key={key++}>{match[4]}</em>);
@@ -6062,25 +6062,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
           }
           className="lynora-grid lynora-feed-container"
         >
-          {showFeedSkeleton ? (
-            <>
-              <aside aria-label="Chargement de la navigation latérale">
-                <LeftSidebarSkeleton />
-              </aside>
-
-              <div className="lynora-skeleton-feed-main" style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-                <ComposerSkeleton />
-                <SkeletonStoryRail />
-                <FeedSkeleton count={5} />
-              </div>
-
-              <aside aria-label="Chargement des informations latérales">
-                <RightSidebarSkeleton />
-              </aside>
-            </>
-          ) : (
-            <>
-              {!isMobileViewport && (
+            {!isMobileViewport && (
                 <>
                   <div className="lynora-sidebar-placeholder" />
 
@@ -6131,10 +6113,13 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   </div>
                 )}
                 <MobileFeedShortcuts activeView={view} onNavigate={navigate} />
-                  <CompanyComposer onOpen={(mode) => openCompanyComposer(mode, null)} avatarUrl={activeProfileAvatar} initials={activeProfile.initials || CURRENT_USER.avatar} />
+                  {showFeedSkeleton ? (
+                    <ComposerSkeleton />
+                  ) : (
+                    <CompanyComposer onOpen={(mode) => openCompanyComposer(mode, null)} avatarUrl={activeProfileAvatar} initials={activeProfile.initials || CURRENT_USER.avatar} />
+                  )}
                 
-                {accountReady ? <Story
-                  suppressLoadingSkeleton={showFeedSkeleton}
+                {showFeedSkeleton || !accountReady ? <SkeletonStoryRail count={6} spacing={14} showAddButton background={C.surface} /> : <Story
                   accountMode={activeAccount}
                   currentUser={{
                     name: activeProfile.name || CURRENT_USER.name,
@@ -6224,9 +6209,9 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                     return "Action enregistrée";
                   }}
                   style={{ width: "100%" }}
-                /> : <SkeletonStoryRail count={6} spacing={14} showAddButton background={C.surface} />}
+                />}
                 
-                {visibleFeedPosts.length === 0 ? (
+                {showFeedSkeleton ? <FeedSkeleton count={5} /> : visibleFeedPosts.length === 0 ? (
                   <>
                     <div style={{ padding: "32px 20px", textAlign: "center", background: "#F7FAFC", border: `1px solid ${C.line}`, borderRadius: 18 }}>
                       <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 20, color: C.ink, marginBottom: 8 }}>
@@ -6543,8 +6528,6 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
                   </div>
                 </>
               )}
-            </>
-          )}
         </div>
       ) : (
         <>

@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import FeedLoadingShell from "@/components/FeedLoadingShell";
 
 const FeedShell = dynamic(() => import("@/components/FeedShell"), {
   ssr: false,
-  loading: () => <div style={{ minHeight: "100vh", background: "#EFF4F9" }} aria-label="Chargement" />,
+  loading: () => <FeedLoadingShell view="feed" />,
 });
 
 export default function FeedPage() {

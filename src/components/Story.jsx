@@ -10,7 +10,6 @@ import {
   ChevronUp, Sparkles, Zap, Share2, Bookmark, Copy, Play, Pause,
 } from "lucide-react";
 import ReactionPicker from "./ReactionPicker";
-import { SkeletonStoryRail } from "./StorySkeleton";
 import { fetchBackendApi } from "@/lib/backend-api";
 import { useRelativeTime } from "@/hooks/useRelativeTime";
 
@@ -1585,7 +1584,6 @@ export default function Story({
   onReply,
   onReact,
   style,
-  suppressLoadingSkeleton = false,
 }) {
   const { status, data: session } = useSession();
   const sessionAvatar = session?.user?.image || session?.user?.avatarUrl || session?.user?.photoUrl || null;
@@ -2110,14 +2108,7 @@ export default function Story({
             </div>
           </div>
 
-          {loading && !suppressLoadingSkeleton ? (
-            <SkeletonStoryRail
-              count={6}
-              spacing={14}
-              showAddButton={true}
-              background={C.surface}
-            />
-          ) : (
+          {
             <>
               {ownGroup && <div
                 className="story-tile"
@@ -2247,7 +2238,7 @@ export default function Story({
                 );
               })}
             </>
-          )}
+          }
         </div>
       )}
 

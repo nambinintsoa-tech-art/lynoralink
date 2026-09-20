@@ -72,6 +72,7 @@ build/Release/
 *.apk
 android/.artifacts/
 android/keystore/
+android/keystore.properties
 *.sqlite
 *.sqlite3
 prisma/*.db

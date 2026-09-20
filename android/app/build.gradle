@@ -4,20 +4,12 @@ android {
     namespace "com.lynoralink.app"
     compileSdk rootProject.ext.compileSdkVersion
 
-    def keystorePropertiesFile = rootProject.file('keystore.properties')
-    def keystoreProperties = new Properties()
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-    }
-
     signingConfigs {
         release {
-            if (keystorePropertiesFile.exists()) {
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-            }
+            storeFile file("$rootDir/keystore/lynoralink-release.jks")
+            storePassword 'LynoraLink2026!'
+            keyAlias 'lynoralink'
+            keyPassword 'LynoraLink2026!'
         }
     }
 

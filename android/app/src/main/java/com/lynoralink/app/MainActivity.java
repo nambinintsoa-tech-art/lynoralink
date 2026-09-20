@@ -1,7 +1,7 @@
 package com.lynoralink.app;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -16,13 +16,14 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
-import android.webkit.WebView;
-import android.webkit.CookieManager;
 import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -33,56 +34,62 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
 public class MainActivity extends BridgeActivity {
 
-    private static final long SPLASH_MIN_VISIBLE_MS = 1800L;
-    private static final long SPLASH_FALLBACK_MS = 7000L;
+    private static final long SPLASH_MIN_VISIBLE_MS = 1500L;
+    private static final long LOAD_TIMEOUT_MS = 15000L; // 15 seconds fail-safe
 
     private boolean isOffline = false;
     private FrameLayout splashOverlay;
-    private final Handler splashHandler = new Handler(Looper.getMainLooper());
-    private Runnable hideSplashRunnable;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private boolean contentLoaded = false;
 
-    private ActivityResultLauncher<String> requestPermissionLauncher;
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                // Permission handled
+            });
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // 1. Splash Screen API
+        // 1. Install Splash Screen API
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
         
         super.onCreate(savedInstanceState);
         
-        // Initialize permission launcher (register after Activity is created)
-        requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-            // FCM Permission handled
-        });
-        
-        // 2. Permissions
+        // 2. Notifications Permission (Android 13+)
         askNotificationPermission();
         
-        // 3. Configure Immersive Layout
+        // 3. Modern Layout
         setupEdgeToEdge();
         applyContentInsets();
         
         // 4. Create Custom Splash Overlay
         createSplashOverlay();
         
-        // 5. Initial Connectivity Check
+        // 5. Connectivity
         isOffline = isNetworkDisconnected();
         if (isOffline) {
             showOverlayInternal();
+            Toast.makeText(this, "Mode hors-ligne", Toast.LENGTH_SHORT).show();
         }
         
-        // System splash fades out; our overlay is already VISIBLE to prevent white screen
+        // Let the system splash fade; our custom overlay handles the rest.
         splashScreen.setKeepOnScreenCondition(() -> false);
 
         registerConnectivityMonitoring();
-        scheduleSplashHide();
         
-        // 6. Configure WebView Handling for stability
+        // 6. Fail-safe: hide overlay after timeout
+        mainHandler.postDelayed(() -> {
+            if (!isOffline && !contentLoaded) {
+                hideOverlayInternal();
+            }
+        }, LOAD_TIMEOUT_MS);
+        
+        // 7. WebView
         setupWebView();
     }
 
@@ -95,32 +102,29 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void setupEdgeToEdge() {
         android.view.Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
 
-        try {
-            WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
+        if (controller != null) {
             controller.setAppearanceLightStatusBars(true);
             controller.setAppearanceLightNavigationBars(true);
-        } catch (Throwable t) {
-            // Ignore OEM/platform issues with insets controller to avoid startup crash.
         }
     }
 
-    @SuppressLint("NewApi")
     private void applyContentInsets() {
         View contentView = findViewById(android.R.id.content);
-        if (contentView == null) return;
-        ViewCompat.setOnApplyWindowInsetsListener(contentView, (v, insets) -> {
-            int top = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
-            int bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
-            v.setPadding(0, top, 0, bottom);
-            return WindowInsetsCompat.CONSUMED;
-        });
+        if (contentView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(contentView, (v, insets) -> {
+                int top = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+                int bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+                v.setPadding(0, top, 0, bottom);
+                return WindowInsetsCompat.CONSUMED;
+            });
+        }
     }
 
     private void createSplashOverlay() {
@@ -147,7 +151,6 @@ public class MainActivity extends BridgeActivity {
         logo.setLayoutParams(logoParams);
         splashOverlay.addView(logo);
 
-        // Visible by default to mask WebView loading process
         splashOverlay.setVisibility(View.VISIBLE);
 
         ViewGroup decor = (ViewGroup) getWindow().getDecorView();
@@ -161,39 +164,30 @@ public class MainActivity extends BridgeActivity {
         if (bridge != null && bridge.getWebView() != null) {
             WebView webView = bridge.getWebView();
             WebSettings settings = webView.getSettings();
-            webView.setBackgroundColor(Color.parseColor("#152A4D"));
             
             settings.setDomStorageEnabled(true);
-            // setJavaScriptEnabled is required for Capacitor functionality
-            //noinspection all
             settings.setJavaScriptEnabled(true);
+            settings.setDatabaseEnabled(true);
             settings.setCacheMode(WebSettings.LOAD_DEFAULT);
             settings.setAllowFileAccess(true);
-            settings.setAllowContentAccess(true);
-            settings.setSupportZoom(false);
-            settings.setBuiltInZoomControls(false);
             
             webView.setWebViewClient(new BridgeWebViewClient(bridge) {
                 @Override
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
                     super.onPageStarted(view, url, favicon);
-                    if (!isOffline) {
-                        scheduleSplashHide();
-                    }
                 }
 
                 @Override
                 public void onPageFinished(WebView view, String url) {
                     super.onPageFinished(view, url);
-                    
-                    // Prevent hiding overlay for blank or internal error pages
-                    if (url == null || url.equals("about:blank") || url.startsWith("chrome-error://")) {
-                        return;
-                    }
+                    if (url == null || url.equals("about:blank")) return;
 
-                    // Older Android WebViews are slower to render the first frame; keep the splash visible
-                    // for a safe minimum before we reveal the app.
-                    scheduleSplashHide();
+                    mainHandler.postDelayed(() -> {
+                        if (!isOffline) {
+                            contentLoaded = true;
+                            hideOverlayInternal();
+                        }
+                    }, SPLASH_MIN_VISIBLE_MS);
                 }
 
                 @Override
@@ -217,26 +211,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        if (!isOffline) {
-            scheduleSplashHide();
-        }
+    public void onPause() {
+        super.onPause();
+        CookieManager.getInstance().flush();
     }
 
     @Override
     public void onDestroy() {
-        if (hideSplashRunnable != null) {
-            splashHandler.removeCallbacks(hideSplashRunnable);
-        }
-        splashHandler.removeCallbacksAndMessages(null);
+        mainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        CookieManager.getInstance().flush();
     }
 
     private void showOverlayInternal() {
@@ -244,51 +227,26 @@ public class MainActivity extends BridgeActivity {
             if (splashOverlay != null) {
                 splashOverlay.setVisibility(View.VISIBLE);
                 splashOverlay.bringToFront();
-                setSystemBarsLight(false);
+                setSystemBarsLight(false); 
             }
         });
-    }
-
-    private void scheduleSplashHide() {
-        if (hideSplashRunnable != null) {
-            splashHandler.removeCallbacks(hideSplashRunnable);
-        }
-
-        hideSplashRunnable = () -> {
-            if (!isOffline) {
-                hideOverlayInternal();
-            }
-        };
-
-        splashHandler.postDelayed(hideSplashRunnable, SPLASH_MIN_VISIBLE_MS);
-        splashHandler.postDelayed(() -> {
-            if (!isOffline && splashOverlay != null && splashOverlay.getVisibility() == View.VISIBLE) {
-                hideOverlayInternal();
-            }
-        }, SPLASH_FALLBACK_MS);
     }
 
     private void hideOverlayInternal() {
         runOnUiThread(() -> {
-            if (splashOverlay != null && !isOffline) {
+            if (splashOverlay != null) {
                 splashOverlay.setVisibility(View.GONE);
-                setSystemBarsLight(true);
-            }
-        });
-    }
-
-    private void initiateReload() {
-        runOnUiThread(() -> {
-            if (bridge != null && bridge.getWebView() != null) {
-                bridge.getWebView().reload();
+                setSystemBarsLight(true); 
             }
         });
     }
 
     private void setSystemBarsLight(boolean light) {
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-        controller.setAppearanceLightStatusBars(light);
-        controller.setAppearanceLightNavigationBars(light);
+        if (controller != null) {
+            controller.setAppearanceLightStatusBars(light);
+            controller.setAppearanceLightNavigationBars(light);
+        }
     }
 
     private void registerConnectivityMonitoring() {
@@ -300,7 +258,11 @@ public class MainActivity extends BridgeActivity {
             public void onAvailable(@NonNull Network network) {
                 if (isOffline) {
                     isOffline = false;
-                    initiateReload();
+                    runOnUiThread(() -> {
+                        if (bridge != null && bridge.getWebView() != null) {
+                            bridge.getWebView().reload();
+                        }
+                    });
                 }
             }
 

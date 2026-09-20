@@ -38,6 +38,7 @@ function Skeleton({ width = "100%", height = 16, radius = 4, className = "", sty
         backgroundSize: "220% 100%",
         animation: "lyn-story-shimmer 1.7s ease-in-out infinite",
         boxShadow: `inset 0 0 0 1px ${C.line}`,
+        flexShrink: 0,
         ...style,
       }}
     />
