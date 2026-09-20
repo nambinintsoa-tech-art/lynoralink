@@ -1,6 +1,7 @@
 package com.lynoralink.app;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -45,10 +46,7 @@ public class MainActivity extends BridgeActivity {
     private final Handler splashHandler = new Handler(Looper.getMainLooper());
     private Runnable hideSplashRunnable;
 
-    private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                // FCM Permission handled
-            });
+    private ActivityResultLauncher<String> requestPermissionLauncher;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,6 +54,11 @@ public class MainActivity extends BridgeActivity {
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
         
         super.onCreate(savedInstanceState);
+        
+        // Initialize permission launcher (register after Activity is created)
+        requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+            // FCM Permission handled
+        });
         
         // 2. Permissions
         askNotificationPermission();
@@ -110,6 +113,7 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    @SuppressLint("NewApi")
     private void applyContentInsets() {
         View contentView = findViewById(android.R.id.content);
         if (contentView == null) return;
@@ -155,6 +159,7 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView() {
         if (bridge != null && bridge.getWebView() != null) {
             WebView webView = bridge.getWebView();
