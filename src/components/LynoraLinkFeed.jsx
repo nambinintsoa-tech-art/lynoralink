@@ -3879,7 +3879,7 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
         if (!res.ok) return;
         const data = await res.json();
         if (!active || !data) return;
-        const suggestions = Array.isArray(data.suggestions) ? data.suggestions : (Array.isArray(data.users) ? data.users : []);
+        const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
         const filteredSuggestions = suggestions.filter((suggestion) => {
           const suggestionId = suggestion?.id;
           if (!suggestionId) return true;

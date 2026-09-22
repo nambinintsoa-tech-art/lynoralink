@@ -10,7 +10,7 @@ export async function registerDirectoryRoutes(app) {
     const search = String(request.query?.search || "").trim().toLowerCase(); const limit = Math.min(Number(request.query?.limit) || 50, 100);
     const users = await prisma.user.findMany({ where: { id: { not: userId }, ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { email: { contains: search, mode: "insensitive" } }] } : {}) }, select: { id: true, name: true, title: true, image: true, cover: true }, orderBy: { createdAt: "desc" }, take: limit });
     const formattedUsers = users.map((user) => ({ ...user, name: user.name || "Utilisateur", initials: initials(user.name || "Utilisateur") }));
-    return reply.send({ users: formattedUsers, suggestions: formattedUsers });
+    return reply.send({ users: formattedUsers, suggestions: [] });
   });
 
   app.get("/v1/company/pages", async (request, reply) => {
