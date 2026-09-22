@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -41,7 +42,7 @@ import com.getcapacitor.BridgeWebViewClient;
 public class MainActivity extends BridgeActivity {
 
     private static final long SPLASH_MIN_VISIBLE_MS = 1500L;
-    private static final long LOAD_TIMEOUT_MS = 15000L; // 15 seconds fail-safe
+    private static final long LOAD_TIMEOUT_MS = 10000L; 
 
     private boolean isOffline = false;
     private FrameLayout splashOverlay;
@@ -50,7 +51,7 @@ public class MainActivity extends BridgeActivity {
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                // Permission handled
+                // FCM Permission handled
             });
 
     @Override
@@ -60,10 +61,10 @@ public class MainActivity extends BridgeActivity {
         
         super.onCreate(savedInstanceState);
         
-        // 2. Notifications Permission (Android 13+)
+        // 2. Permissions
         askNotificationPermission();
         
-        // 3. Modern Layout
+        // 3. Setup Layout
         setupEdgeToEdge();
         applyContentInsets();
         
@@ -71,25 +72,28 @@ public class MainActivity extends BridgeActivity {
         createSplashOverlay();
         
         // 5. Connectivity
-        isOffline = isNetworkDisconnected();
+        isOffline = !isNetworkConnected();
         if (isOffline) {
             showOverlayInternal();
             Toast.makeText(this, "Mode hors-ligne", Toast.LENGTH_SHORT).show();
+        } else {
+            // Mask loading even if online
+            showOverlayInternal();
         }
         
-        // Let the system splash fade; our custom overlay handles the rest.
+        // System splash fades; our custom overlay handles the transition.
         splashScreen.setKeepOnScreenCondition(() -> false);
 
         registerConnectivityMonitoring();
         
-        // 6. Fail-safe: hide overlay after timeout
+        // Fail-safe: hide overlay after timeout
         mainHandler.postDelayed(() -> {
             if (!isOffline && !contentLoaded) {
                 hideOverlayInternal();
             }
         }, LOAD_TIMEOUT_MS);
         
-        // 7. WebView
+        // 6. WebView Setup
         setupWebView();
     }
 
@@ -103,10 +107,19 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void setupEdgeToEdge() {
-        android.view.Window window = getWindow();
+        Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
-        window.setStatusBarColor(Color.TRANSPARENT);
-        window.setNavigationBarColor(Color.TRANSPARENT);
+        
+        // Set bars to transparent to avoid "always blue" behavior on some devices
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.setStatusBarColor(Color.TRANSPARENT);
+            window.setNavigationBarColor(Color.TRANSPARENT);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.setStatusBarContrastEnforced(false);
+            window.setNavigationBarContrastEnforced(false);
+        }
 
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
         if (controller != null) {
@@ -151,7 +164,7 @@ public class MainActivity extends BridgeActivity {
         logo.setLayoutParams(logoParams);
         splashOverlay.addView(logo);
 
-        splashOverlay.setVisibility(View.VISIBLE);
+        splashOverlay.setVisibility(View.GONE);
 
         ViewGroup decor = (ViewGroup) getWindow().getDecorView();
         if (splashOverlay.getParent() == null) {
@@ -268,7 +281,7 @@ public class MainActivity extends BridgeActivity {
 
             @Override
             public void onLost(@NonNull Network network) {
-                if (isNetworkDisconnected()) {
+                if (!isNetworkConnected()) {
                     isOffline = true;
                     showOverlayInternal();
                 }
@@ -276,13 +289,19 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    private boolean isNetworkDisconnected() {
+    private boolean isNetworkConnected() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (connectivityManager == null) return true;
+        if (connectivityManager == null) return false;
 
-        Network activeNetwork = connectivityManager.getActiveNetwork();
-        if (activeNetwork == null) return true;
-        NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
-        return capabilities == null || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network activeNetwork = connectivityManager.getActiveNetwork();
+            if (activeNetwork == null) return false;
+            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+            return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } else {
+            @SuppressWarnings("deprecation")
+            android.net.NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+            return info != null && info.isConnected();
+        }
     }
 }

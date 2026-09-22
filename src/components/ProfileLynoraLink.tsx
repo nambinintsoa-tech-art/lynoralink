@@ -998,10 +998,12 @@ export default function ProfileLynoraLink({ targetUserId, headerOffset = 0 }: { 
   const [toast, setToast] = useState<{ message: string; icon: any } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionUser = session?.user as { id?: string; email?: string | null } | undefined;
-  const isProfileScopeForeign = Boolean(targetUserId && targetUserId !== sessionUser?.id);
+  const isProfileScopeForeign = Boolean(
+    targetUserId && String(targetUserId) !== String(sessionUser?.id || "")
+  );
   const isOwner = React.useMemo(() => {
-    if (targetUserId) return false;
-    return Boolean(sessionUser);
+    if (!sessionUser?.id) return !targetUserId;
+    return !targetUserId || String(targetUserId) === String(sessionUser.id);
   }, [sessionUser, targetUserId]);
   const [, setTick] = useState(0);
 
