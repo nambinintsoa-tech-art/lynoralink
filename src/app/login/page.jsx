@@ -73,7 +73,7 @@ function LoginPageContent() {
     if (!twoFactorStep) {
       let challenge;
       try {
-        challenge = await withTimeout(fetchBackendApi("/api/auth/2fa/request", {
+        challenge = await withTimeout(fetch("/api/auth/2fa/request", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),

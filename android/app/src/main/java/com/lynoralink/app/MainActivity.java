@@ -1,5 +1,6 @@
 package com.lynoralink.app;
 
+import android.animation.ObjectAnimator;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -24,6 +25,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -151,6 +153,16 @@ public class MainActivity extends BridgeActivity {
         );
         splashOverlay.setLayoutParams(layoutParams);
 
+        LinearLayout splashContent = new LinearLayout(this);
+        splashContent.setOrientation(LinearLayout.VERTICAL);
+        splashContent.setGravity(Gravity.CENTER_HORIZONTAL);
+        FrameLayout.LayoutParams contentParams = new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER
+        );
+        splashContent.setLayoutParams(contentParams);
+
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.splash); 
         
@@ -161,7 +173,35 @@ public class MainActivity extends BridgeActivity {
                 Gravity.CENTER
         );
         logo.setLayoutParams(logoParams);
-        splashOverlay.addView(logo);
+        splashContent.addView(logo);
+
+        LinearLayout dots = new LinearLayout(this);
+        dots.setOrientation(LinearLayout.HORIZONTAL);
+        dots.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams dotsParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        dotsParams.topMargin = (int) (24 * getResources().getDisplayMetrics().density);
+        dots.setLayoutParams(dotsParams);
+
+        int dotSize = (int) (8 * getResources().getDisplayMetrics().density);
+        int dotGap = (int) (8 * getResources().getDisplayMetrics().density);
+        for (int index = 0; index < 6; index++) {
+            View dot = new View(this);
+            dot.setBackgroundColor(index == 1 ? Color.parseColor("#D9A441") : Color.WHITE);
+            LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(dotSize, dotSize);
+            dotParams.leftMargin = index == 0 ? 0 : dotGap;
+            dots.addView(dot, dotParams);
+
+            ObjectAnimator animation = ObjectAnimator.ofFloat(dot, View.ALPHA, 0.28f, 1f, 0.28f);
+            animation.setDuration(1200L);
+            animation.setStartDelay(index * 120L);
+            animation.setRepeatCount(ObjectAnimator.INFINITE);
+            animation.start();
+        }
+        splashContent.addView(dots);
+        splashOverlay.addView(splashContent);
 
         splashOverlay.setVisibility(View.GONE);
 

@@ -1,18 +1,13 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import LogoBadge from "./LogoBadge";
-
 /* ------------------------------------------------------------------ */
 /*  TOKENS — identiques au reste de l'application                    */
 /* ------------------------------------------------------------------ */
 const C = {
-  navy900: "#0F3352",
-  navy800: "#1B5386",
-  navy50: "#EFF4F9",
-  muted: "#5C7488",
-  gold400: "#F6D374",
-  gold600: "#D9A536",
+  navy900: "#152A4D",
+  navy800: "#152A4D",
+  gold600: "#D9A441",
   white: "#FFFFFF",
 };
 
@@ -55,7 +50,7 @@ export default function SplashScreen({
         position: "fixed",
         inset: 0,
         zIndex: 300,
-        background: C.white,
+        background: C.navy900,
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
@@ -72,23 +67,11 @@ export default function SplashScreen({
           0%   { opacity: 0; transform: scale(.6) translateY(6px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @keyframes lyn-sp-letter-in {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes lyn-sp-fade-up {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
         @keyframes lyn-sp-dot {
           0%, 60%, 100% { opacity: .28; transform: scale(.72); }
           30%           { opacity: 1; transform: scale(1); }
         }
         .lyn-sp-logo { animation: lyn-sp-logo-in .65s cubic-bezier(0.22,1,0.36,1) both; }
-        .lyn-sp-name { display: inline-flex; }
-        .lyn-sp-letter { display: inline-block; opacity: 0; animation: lyn-sp-letter-in .42s cubic-bezier(0.22,1,0.36,1) both; }
-        .lyn-sp-tagline { animation: lyn-sp-fade-up .55s ease .35s both; }
-        .lyn-sp-bar { animation: lyn-sp-fade-up .55s ease .45s both; }
         .lyn-sp-dot { animation: lyn-sp-dot 1.2s ease-in-out infinite; }
         .lyn-sp-dot:nth-child(2) { animation-delay: .12s; }
         .lyn-sp-dot:nth-child(3) { animation-delay: .24s; }
@@ -96,8 +79,7 @@ export default function SplashScreen({
         .lyn-sp-dot:nth-child(5) { animation-delay: .48s; }
         .lyn-sp-dot:nth-child(6) { animation-delay: .60s; }
         @media (prefers-reduced-motion: reduce) {
-          .lyn-sp-logo, .lyn-sp-name, .lyn-sp-tagline, .lyn-sp-bar, .lyn-sp-dot { animation: none !important; opacity: 1 !important; transform: none !important; }
-          .lyn-sp-letter { animation: none !important; opacity: 1 !important; transform: none !important; }
+          .lyn-sp-logo, .lyn-sp-dot { animation: none !important; opacity: 1 !important; transform: none !important; }
         }
       `}</style>
 
@@ -113,39 +95,18 @@ export default function SplashScreen({
             justifyContent: "center",
           }}
         >
-          <LogoBadge size={118} />
+          <img src="/logo_lynora.svg" alt="LynoraLink" width="118" height="118" style={{ display: "block" }} />
         </div>
       </div>
-
-      {/* Nom de l'app */}
-      <div className="lyn-sp-name" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 10 }}>
-        {[..."Lynora"].map((letter, index) => (
-          <span key={`lynora-${index}`} className="lyn-sp-letter" style={{ color: C.navy900, animationDelay: `${300 + index * 55}ms` }}>
-            {letter}
-          </span>
-        ))}
-        {[..."Link"].map((letter, index) => (
-          <span key={`link-${index}`} className="lyn-sp-letter" style={{ color: C.gold600, animationDelay: `${630 + index * 55}ms` }}>
-            {letter}
-          </span>
-        ))}
-      </div>
-
-      {/* Accroche */}
-      {tagline && (
-        <div className="lyn-sp-tagline" style={{ fontSize: 14, fontWeight: 500, color: C.muted, marginBottom: 40, textAlign: "center", maxWidth: 300 }}>
-          {tagline}
-        </div>
-      )}
 
       {/* Indicateur de chargement en points, comme Facebook */}
-      <div className="lyn-sp-bar" aria-label="Chargement" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, height: 16 }}>
+      <div aria-label="Chargement" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 16 }}>
         {[0, 1, 2, 3, 4, 5].map((dot) => (
           <span
             key={dot}
             className="lyn-sp-dot"
             aria-hidden="true"
-            style={{ width: 7, height: 7, borderRadius: "50%", background: dot === 1 ? C.gold600 : C.navy800 }}
+            style={{ width: 8, height: 8, borderRadius: "50%", background: dot === 1 ? C.gold600 : C.white }}
           />
         ))}
       </div>
