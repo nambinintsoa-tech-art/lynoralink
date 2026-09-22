@@ -790,10 +790,10 @@ function MediaGallery({ items = [] }) {
       return <div key={index} style={{ width: "100%", height: "100%", background: navyGrad, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "rgba(255,255,255,0.9)", padding: 16, textAlign: "center" }}><span style={{ fontSize: 12.5, fontWeight: 600 }}>{item?.label || item?.name || "M\u00e9dia"}</span></div>;
     }
     const mediaStyle = {
-      width: "100%",
+      width: "auto",
       maxWidth: "100%",
       height: "auto",
-      maxHeight: "none",
+      maxHeight: VIEWER_MEDIA_MAX_HEIGHT,
       objectFit: "contain",
       objectPosition: "center center",
       display: "block",
@@ -811,9 +811,9 @@ function MediaGallery({ items = [] }) {
           position: "relative",
           width: "100%",
           maxWidth: "100%",
-          minHeight: 0,
           height: "auto",
-          maxHeight: "none",
+          minHeight: VIEWER_MEDIA_MIN_HEIGHT,
+          maxHeight: VIEWER_MEDIA_MAX_HEIGHT,
           aspectRatio: currentItem?.type === "video" ? "16 / 9" : undefined,
           background: "#000",
           display: "flex",
@@ -2359,9 +2359,9 @@ export default function PostViewerPreview({
           }
           /* Média plein cadre */
           .post-viewer-media { min-height: 0 !important; max-height: none !important; height: auto !important; overflow: visible !important; border-radius: 0 !important; }
-          .post-viewer-media img { width: 100% !important; max-width: 100% !important; max-height: none !important; height: auto !important; object-fit: contain !important; }
-          .post-viewer-media video { width: 100% !important; max-width: 100% !important; max-height: none !important; height: 100% !important; object-fit: contain !important; }
-          .post-viewer-media .pv-video-stage { height: 100% !important; max-height: none !important; border-radius: 0 !important; }
+          .post-viewer-media img { width: auto !important; max-width: 100% !important; max-height: min(560px, calc(100dvh - 180px)) !important; height: auto !important; object-fit: contain !important; }
+          .post-viewer-media video { width: auto !important; max-width: 100% !important; max-height: min(560px, calc(100dvh - 180px)) !important; height: auto !important; object-fit: contain !important; }
+          .post-viewer-media .pv-video-stage { height: auto !important; max-height: none !important; border-radius: 0 !important; }
           .post-viewer-media .pv-video-stage .pv-video-frame,
           .post-viewer-media .pv-video-stage video {
             width: 100% !important;
