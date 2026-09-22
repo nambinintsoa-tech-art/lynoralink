@@ -1,0 +1,66 @@
+LYNORALINK
+RESUME DE L’ALIGNEMENT DES COMMENTAIRES
+Date : 1 septembre 2026
+Etat : Phase 1 terminée
+
+1. RESULTAT
+
+Les posts et les reels utilisent désormais une structure de commentaires commune. La logique de normalisation est centralisée dans src/lib/commentNormalizer.js.
+
+2. FICHIER CENTRAL
+
+src/lib/commentNormalizer.js contient les fonctions de normalisation, validation, comptage, enrichissement utilisateur, traitement des médias et formatage des dates.
+
+3. MODIFICATION PRINCIPALE
+
+src/components/Reel.jsx utilise normalizeComment() lors de la création d’un commentaire local et prend en charge les médias, réactions, réponses, initiales et timestamps.
+
+4. STRUCTURE NORMALISEE
+
+Identité : id, author, initials, avatarUrl, authorId.
+
+Contenu : text, media.
+
+Temps : time, at.
+
+Réactions : likes, liked, reaction, reactionKeys.
+
+Réponses : replies, parentId, depth.
+
+Métadonnées : isOwn.
+
+5. BENEFICES
+
+La logique est centralisée.
+
+Les composants partagent la même structure.
+
+Les anciens formats restent acceptés.
+
+Les médias et réponses peuvent être ajoutés progressivement.
+
+Les règles d’affichage sont identiques entre posts et reels.
+
+6. ETAT DES COMPOSANTS
+
+Reel.jsx : mis à jour.
+
+PostCard.jsx : compatible.
+
+ArticleViewerPreview.jsx : compatible sous réserve de conserver la structure normalisée.
+
+Groupe.jsx : vérification complémentaire recommandée.
+
+CompanyPage.jsx : vérification complémentaire recommandée.
+
+7. PHASES SUIVANTES
+
+Phase 2 : persistance complète des commentaires de reels en base de données.
+
+Phase 3 : réactions persistées et notifications associées.
+
+Phase 4 : réponses complètes, modération et analytics.
+
+8. VALIDATION
+
+La structure a été vérifiée pour les commentaires locaux, les champs optionnels et la rétrocompatibilité. Les tests navigateur et les tests d’intégration restent nécessaires avant une mise en production générale.

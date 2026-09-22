@@ -254,22 +254,38 @@ function ToolCallChip({ name }) {
 
 function normalizeAssistantText(value) {
   let text = String(value || "").trim();
-  try {
-    const parsed = JSON.parse(text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, ""));
-    const entries = Array.isArray(parsed) ? parsed : [parsed];
-    const results = entries
-      .map((entry) => {
-        if (!entry || typeof entry !== "object") return entry;
-        if (entry.result !== undefined) return entry.result;
-        if (entry.text !== undefined) return entry.text;
-        return entry;
-      })
-      .filter((entry) => typeof entry === "string" && entry.trim())
-      .map((entry) => entry.trim());
-    if (results.length) text = results.join("\n\n");
-  } catch {
-    // Le contenu est déjà du texte naturel.
-  }
+  const cleanJsonFence = (candidate) => candidate
+    .replace(/^```(?:json|markdown|md|text)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  const decodeJsonValue = (candidate, depth = 0) => {
+    if (depth > 2 || typeof candidate !== "string") return candidate;
+    try {
+      return decodeJsonValue(JSON.parse(cleanJsonFence(candidate)), depth + 1);
+    } catch {
+      return candidate;
+    }
+  };
+
+  const parsed = decodeJsonValue(text);
+  const entries = Array.isArray(parsed) ? parsed : [parsed];
+  const results = entries
+    .map((entry) => {
+      if (typeof entry === "string") return entry;
+      if (!entry || typeof entry !== "object") return "";
+      return entry.result ?? entry.text ?? entry.content ?? entry.answer ?? entry.output ?? "";
+    })
+    .filter((entry) => typeof entry === "string" && entry.trim())
+    .map((entry) => entry.trim());
+  if (results.length) text = results.join("\n\n");
+
+  // Certains fournisseurs renvoient encore les séparateurs JSON échappés.
+  text = text
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\"/g, '"');
 
   return text
     .replace(/```[\s\S]*?```/g, (block) => block.replace(/```[a-z]*\n?/gi, "").replace(/```/g, ""))
@@ -298,6 +314,7 @@ function Bubble({ role, children }) {
         maxWidth: "82%", padding: "11px 14px", borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
         background: mine ? navyGradRich : C.white,
         color: mine ? C.white : C.ink, fontSize: 13.5, lineHeight: 1.6,
+        whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word",
         boxShadow: mine ? "0 4px 14px rgba(15,51,82,0.22)" : "0 1px 3px rgba(15,51,82,0.08)",
         border: mine ? "none" : `1px solid ${C.lineSoft}`,
       }}>

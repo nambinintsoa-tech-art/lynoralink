@@ -1,23 +1,48 @@
-# LynoraLink Backend
+LYNORALINK BACKEND
+Service API indépendant de l’interface Next.js
 
-Service API indépendant de l'interface Next.js.
+ROLE DU SERVICE
 
-## Démarrage
+Le backend fournit les routes HTTP versionnées sous le préfixe /v1. Il gère les traitements métier, les accès PostgreSQL, l’authentification serveur, les permissions, les notifications, les appels et les intégrations externes.
 
-```powershell
+INSTALLATION
+
+Depuis la racine du projet :
 cd backend
 npm install
+
+Créer le fichier d’environnement backend :
 Copy-Item .env.example .env
+
+Renseigner ensuite les variables nécessaires dans backend/.env.
+
+DEVELOPPEMENT
+
 npm run dev
-```
 
-Le endpoint de vérification est disponible sur `http://localhost:4001/v1/health`.
+Le service écoute par défaut sur le port 4001.
 
-## Règles de séparation
+Le contrôle de santé est disponible sur :
+http://localhost:4001/v1/health
 
-- Les secrets et l'accès PostgreSQL restent exclusivement dans ce service.
-- Le frontend ne doit appeler que les routes HTTP versionnées sous `/v1`.
-- `FRONTEND_ORIGIN` doit contenir uniquement l'origine publique du frontend.
-- L'authentification et les permissions doivent être vérifiées côté backend avant le déplacement des routes métier.
+PRODUCTION
 
-La migration des domaines métier se fera progressivement, en commençant par les posts, puis les reels, messages, groupes et paiements.
+npm run start
+
+Le démarrage de production génère le client Prisma à partir du schéma situé dans ../prisma/schema.prisma avant de lancer le serveur.
+
+REGLES DE SEPARATION
+
+Les secrets et l’accès PostgreSQL restent exclusivement côté backend.
+
+Le frontend utilise uniquement les routes HTTP versionnées sous /v1 pour les fonctionnalités déléguées au service.
+
+FRONTEND_ORIGIN doit contenir uniquement l’origine publique du frontend, sans chemin supplémentaire.
+
+L’authentification et les permissions doivent être vérifiées côté backend avant toute opération métier.
+
+Les domaines métier sont migrés progressivement, notamment les publications, reels, messages, groupes et paiements.
+
+SECURITE
+
+Ne jamais publier backend/.env, les secrets PostgreSQL, les clés API, les certificats ou les identifiants de fournisseurs externes.

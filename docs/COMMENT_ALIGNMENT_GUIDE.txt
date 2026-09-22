@@ -1,0 +1,139 @@
+LYNORALINK
+GUIDE D’IMPLEMENTATION DES COMMENTAIRES UNIFIES
+Version : 1.0
+Date : 1 septembre 2026
+
+1. OBJECTIF
+
+Tous les commentaires de l’application doivent utiliser une structure commune, quel que soit le contenu auquel ils sont rattachés : publication, reel, article, groupe ou page entreprise.
+
+La normalisation évite les différences de comportement entre les composants, simplifie l’affichage et permet d’ajouter des médias, réactions et réponses sans modifier chaque composant séparément.
+
+2. UTILITAIRE CENTRAL
+
+Fichier de référence : src/lib/commentNormalizer.js
+
+Fonctions disponibles :
+
+normalizeComment(rawComment, options)
+Normalise un commentaire unique et complète les valeurs manquantes.
+
+normalizeComments(comments, options)
+Normalise une liste de commentaires.
+
+normalizeCommentMedia(mediaData)
+Convertit les médias reçus depuis l’API ou l’état local.
+
+countTotalComments(comments)
+Compte les commentaires racine et leurs réponses imbriquées.
+
+isValidComment(comment)
+Vérifie qu’un commentaire contient un texte ou un média valide.
+
+createEmptyComment(options)
+Crée une structure vide compatible avec le système de commentaires.
+
+enrichCommentWithUser(comment, currentUser)
+Ajoute les informations de l’utilisateur courant et calcule le statut isOwn.
+
+formatRelativeTime(date)
+Produit un affichage relatif en français.
+
+3. REGLE PRINCIPALE
+
+Tout commentaire créé ou reçu doit passer par normalizeComment() avant d’être placé dans l’état React ou transmis à un composant d’affichage.
+
+Exemple d’appel :
+
+import { normalizeComment } from "@/lib/commentNormalizer";
+
+const comment = normalizeComment({
+  id: `local-${Date.now()}`,
+  author: "Vous",
+  text: draftText,
+  time: new Date(),
+  media: [],
+});
+
+4. FLUX RECOMMANDE
+
+L’utilisateur saisit un contenu.
+
+Le composant vérifie que le contenu possède un texte ou un média.
+
+Le composant appelle normalizeComment().
+
+Le commentaire normalisé est ajouté à l’état local.
+
+Le composant d’affichage utilise la structure normalisée.
+
+Une future API peut persister le même objet en base de données.
+
+5. COMPOSANTS CONCERNES
+
+Reel.jsx utilise la structure normalisée pour les nouveaux commentaires.
+
+PostCard.jsx est compatible avec la structure commune.
+
+ArticleViewerPreview.jsx doit conserver les mêmes champs lors de l’affichage d’un article.
+
+Groupe.jsx et CompanyPage.jsx doivent utiliser le même normalizer lorsqu’ils gèrent des commentaires.
+
+6. AMELIORATIONS APPORTEES
+
+Les médias attachés sont pris en charge.
+
+Les réponses imbriquées utilisent replies et parentId.
+
+Les réactions utilisent likes, liked, reaction et reactionKeys.
+
+Les timestamps sont conservés comme Date et affichés sous forme relative dans at.
+
+Les initiales sont calculées automatiquement.
+
+Les anciennes données au format id, author, text et at restent acceptées par rétrocompatibilité.
+
+7. REGLES DE QUALITE
+
+Chaque commentaire doit posséder un identifiant stable.
+
+Le champ text doit être nettoyé avant affichage.
+
+Le champ time doit être convertible en Date.
+
+Le champ at doit être généré par le normalizer.
+
+Les réponses doivent conserver parentId et depth.
+
+Les médias doivent être vérifiés avant affichage.
+
+Les actions de réaction et de suppression doivent vérifier les permissions côté serveur.
+
+8. PERSISTANCE FUTURE
+
+Les routes recommandées pour les reels sont :
+
+POST /api/reels/[id]/comments
+GET /api/reels/[id]/comments
+DELETE /api/reels/[id]/comments/[commentId]
+
+Pour les réactions :
+
+POST /api/reels/[id]/comments/[commentId]/reactions
+DELETE /api/reels/[id]/comments/[commentId]/reactions
+
+La persistance doit conserver la même structure logique que l’état frontend.
+
+9. VERIFICATION
+
+Vérifier les identifiants uniques.
+
+Vérifier l’affichage du texte, des médias et des réactions.
+
+Vérifier les réponses et leur indentation.
+
+Vérifier les timestamps en français.
+
+Vérifier le comportement pour un commentaire supprimé ou incomplet.
+
+Lancer les tests et vérifier l’absence d’erreurs de syntaxe avant livraison.

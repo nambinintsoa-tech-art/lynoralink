@@ -1,0 +1,130 @@
+LYNORALINK
+EXEMPLES D’UTILISATION DES COMMENTAIRES UNIFIES
+
+1. CREER UN COMMENTAIRE
+
+import { normalizeComment } from "@/lib/commentNormalizer";
+
+function submitComment(draftText) {
+  if (!draftText.trim()) return;
+
+  const newComment = normalizeComment({
+    id: `local-${Date.now()}`,
+    author: "Vous",
+    text: draftText,
+    time: new Date(),
+    media: [],
+  });
+
+  setCommentThreads((current) => ({
+    ...current,
+    [reelId]: [...(current[reelId] || []), newComment],
+  }));
+}
+
+2. NORMALISER UNE REPONSE D’API
+
+import { normalizeComments } from "@/lib/commentNormalizer";
+
+async function loadPostComments(postId) {
+  const response = await fetch(`/api/posts/${postId}`);
+  const data = await response.json();
+  const comments = normalizeComments(data.comments || [], {
+    currentUserId: session.user.id,
+  });
+  setLocalComments(comments);
+}
+
+3. AFFICHER UN COMMENTAIRE
+
+function CommentDisplay({ comment }) {
+  return (
+    <article className="comment">
+      <img
+        src={comment.avatarUrl || "/default-avatar.png"}
+        alt={comment.author}
+        className="comment-avatar"
+      />
+      <div className="comment-body">
+        <strong>{comment.author}</strong>
+        {comment.isOwn && <span>Vous</span>}
+        <p>{comment.text}</p>
+        <time title={comment.time?.toLocaleString()}>{comment.at}</time>
+        {comment.likes > 0 && <span>{comment.likes}</span>}
+        {comment.replies?.map((reply) => (
+          <CommentDisplay key={reply.id} comment={reply} />
+        ))}
+      </div>
+    </article>
+  );
+}
+
+4. AJOUTER UNE REACTION
+
+async function toggleCommentReaction(commentId, reactionKey) {
+  const response = await fetch(
+    `/api/posts/${postId}/comments/${commentId}/reactions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reaction: reactionKey }),
+    },
+  );
+
+  if (!response.ok) throw new Error("La réaction n’a pas pu être enregistrée.");
+
+  const data = await response.json();
+  setLocalComments((previous) => previous.map((comment) => (
+    comment.id === commentId
+      ? {
+          ...comment,
+          reaction: data.reaction,
+          liked: Boolean(data.reaction),
+          likes: data.totalReactions,
+        }
+      : comment
+  )));
+}
+
+5. CREER UNE REPONSE
+
+import { isValidComment, normalizeComment } from "@/lib/commentNormalizer";
+
+function createReply(parentCommentId, replyText, media = []) {
+  const reply = normalizeComment({
+    id: `reply-${Date.now()}`,
+    author: currentUser.name,
+    avatarUrl: currentUser.image,
+    authorId: currentUser.id,
+    text: replyText,
+    time: new Date(),
+    media,
+    parentId: parentCommentId,
+  });
+
+  if (!isValidComment(reply)) {
+    throw new Error("La réponse ne contient aucun contenu.");
+  }
+
+  return reply;
+}
+
+6. COMPTER LES COMMENTAIRES
+
+import { countTotalComments } from "@/lib/commentNormalizer";
+
+const total = countTotalComments(comments);
+
+Le résultat inclut les commentaires racine et les réponses imbriquées.
+
+7. RECOMMANDATIONS
+
+Toujours normaliser avant d’écrire dans l’état local.
+
+Ne pas créer manuellement une structure partielle dans un nouveau composant.
+
+Utiliser comment.at pour l’affichage relatif.
+
+Utiliser comment.time pour les tris et les tooltips.
+
+Vérifier les permissions avant toute réaction, modification ou suppression persistée.

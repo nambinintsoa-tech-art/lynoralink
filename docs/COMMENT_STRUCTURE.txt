@@ -1,0 +1,112 @@
+LYNORALINK
+SPECIFICATION DE LA STRUCTURE UNIFIEE DES COMMENTAIRES
+Version : 1.0
+Date : 1 septembre 2026
+
+1. PRINCIPES
+
+La structure est commune aux posts, reels, articles, groupes et pages entreprise.
+
+Les données reçues de l’API et les données créées localement doivent être normalisées avant utilisation.
+
+Les champs avancés peuvent être absents lorsque la fonctionnalité correspondante n’est pas activée.
+
+2. CHAMPS D’IDENTITE
+
+id : chaîne obligatoire. Identifiant local ou identifiant de base de données.
+
+author : chaîne obligatoire. Nom affiché de l’auteur.
+
+initials : chaîne obligatoire. Initiales calculées à partir du nom.
+
+avatarUrl : chaîne facultative. Adresse de l’avatar.
+
+authorId : chaîne facultative. Identifiant de l’utilisateur.
+
+3. CHAMPS DE CONTENU
+
+text : chaîne obligatoire sauf si un média est présent.
+
+media : liste facultative d’objets média.
+
+Chaque média peut contenir url, type et label. Les types pris en charge sont image et video.
+
+4. CHAMPS DE TEMPS
+
+time : date complète utilisée pour les traitements et les tris.
+
+at : chaîne relative destinée à l’interface, par exemple il y a 5 minutes.
+
+Le champ at ne doit pas remplacer time dans les traitements métier.
+
+5. CHAMPS DE REACTION
+
+likes : nombre total de réactions.
+
+liked : indique si l’utilisateur courant a réagi.
+
+reaction : réaction active de l’utilisateur courant.
+
+reactionKeys : liste des types de réactions connus.
+
+6. CHAMPS DE REPONSE
+
+replies : liste de commentaires enfants.
+
+parentId : identifiant du commentaire parent.
+
+depth : niveau d’imbrication, zéro pour un commentaire racine.
+
+7. CHAMPS DE CONTEXTE
+
+isOwn : indique si le commentaire appartient à l’utilisateur courant.
+
+8. EXEMPLE MINIMAL
+
+const comment = normalizeComment({
+  id: "comment-123",
+  author: "Jean Dupont",
+  text: "Excellente publication.",
+  time: new Date(),
+});
+
+9. EXEMPLE AVEC MEDIA
+
+const comment = normalizeComment({
+  id: "comment-456",
+  author: "Vous",
+  text: "Voici une image.",
+  media: [{
+    url: "https://example.com/image.jpg",
+    type: "image",
+    label: "Capture d’écran",
+  }],
+  time: new Date(),
+});
+
+10. REGLES DE VALIDATION
+
+Un commentaire doit avoir un id et un auteur.
+
+Il doit contenir du texte ou au moins un média.
+
+Le texte doit être nettoyé avant affichage.
+
+Les médias doivent être contrôlés avant chargement.
+
+Les réponses doivent respecter parentId et depth.
+
+Les permissions doivent être validées côté backend.
+
+11. RETROCOMPATIBILITE
+
+Le format ancien id, author, text et at reste accepté en entrée. Le normalizer complète les champs absents et produit la structure unifiée.
+
+12. IMPORTS
+
+import {
+  normalizeComment,
+  normalizeComments,
+  countTotalComments,
+  isValidComment,
+} from "@/lib/commentNormalizer";

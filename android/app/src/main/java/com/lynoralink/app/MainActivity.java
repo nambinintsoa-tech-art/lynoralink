@@ -39,6 +39,8 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
+import java.util.Objects;
+
 public class MainActivity extends BridgeActivity {
 
     private static final long SPLASH_MIN_VISIBLE_MS = 1500L;
@@ -61,7 +63,7 @@ public class MainActivity extends BridgeActivity {
         
         super.onCreate(savedInstanceState);
         
-        // 2. Permissions
+        // 2. Permissions (Android 13+)
         askNotificationPermission();
         
         // 3. Setup Layout
@@ -72,7 +74,7 @@ public class MainActivity extends BridgeActivity {
         createSplashOverlay();
         
         // 5. Connectivity
-        isOffline = !isNetworkConnected();
+        isOffline = isNetworkDisconnected();
         if (isOffline) {
             showOverlayInternal();
             Toast.makeText(this, "Mode hors-ligne", Toast.LENGTH_SHORT).show();
@@ -81,7 +83,7 @@ public class MainActivity extends BridgeActivity {
             showOverlayInternal();
         }
         
-        // System splash fades; our custom overlay handles the transition.
+        // Let the system splash fade; our custom overlay handles the rest.
         splashScreen.setKeepOnScreenCondition(() -> false);
 
         registerConnectivityMonitoring();
@@ -106,15 +108,14 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void setupEdgeToEdge() {
         Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
         
-        // Set bars to transparent to avoid "always blue" behavior on some devices
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.setStatusBarColor(Color.TRANSPARENT);
-            window.setNavigationBarColor(Color.TRANSPARENT);
-        }
+        // Set bars to transparent
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.setStatusBarContrastEnforced(false);
@@ -122,10 +123,8 @@ public class MainActivity extends BridgeActivity {
         }
 
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
-        if (controller != null) {
-            controller.setAppearanceLightStatusBars(true);
-            controller.setAppearanceLightNavigationBars(true);
-        }
+        Objects.requireNonNull(controller).setAppearanceLightStatusBars(true);
+        controller.setAppearanceLightNavigationBars(true);
     }
 
     private void applyContentInsets() {
@@ -179,9 +178,8 @@ public class MainActivity extends BridgeActivity {
             WebSettings settings = webView.getSettings();
             
             settings.setDomStorageEnabled(true);
+            // setJavaScriptEnabled is required for Capacitor functionality
             settings.setJavaScriptEnabled(true);
-            settings.setDatabaseEnabled(true);
-            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
             settings.setAllowFileAccess(true);
             
             webView.setWebViewClient(new BridgeWebViewClient(bridge) {
@@ -256,10 +254,8 @@ public class MainActivity extends BridgeActivity {
 
     private void setSystemBarsLight(boolean light) {
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-        if (controller != null) {
-            controller.setAppearanceLightStatusBars(light);
-            controller.setAppearanceLightNavigationBars(light);
-        }
+        Objects.requireNonNull(controller).setAppearanceLightStatusBars(light);
+        controller.setAppearanceLightNavigationBars(light);
     }
 
     private void registerConnectivityMonitoring() {
@@ -281,7 +277,7 @@ public class MainActivity extends BridgeActivity {
 
             @Override
             public void onLost(@NonNull Network network) {
-                if (!isNetworkConnected()) {
+                if (isNetworkDisconnected()) {
                     isOffline = true;
                     showOverlayInternal();
                 }
@@ -289,19 +285,13 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    private boolean isNetworkConnected() {
+    private boolean isNetworkDisconnected() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (connectivityManager == null) return false;
+        if (connectivityManager == null) return true;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Network activeNetwork = connectivityManager.getActiveNetwork();
-            if (activeNetwork == null) return false;
-            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
-            return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-        } else {
-            @SuppressWarnings("deprecation")
-            android.net.NetworkInfo info = connectivityManager.getActiveNetworkInfo();
-            return info != null && info.isConnected();
-        }
+        Network activeNetwork = connectivityManager.getActiveNetwork();
+        if (activeNetwork == null) return true;
+        NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+        return capabilities == null || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 }

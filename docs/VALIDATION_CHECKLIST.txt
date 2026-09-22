@@ -1,0 +1,135 @@
+LYNORALINK
+CHECKLIST DE VALIDATION DES COMMENTAIRES
+Date de référence : 1 septembre 2026
+
+1. ETAT DES PHASES
+
+Phase 1, alignement de la structure : terminée.
+
+Phase 2, persistance API : en attente.
+
+Phase 3, réactions complètes : en attente.
+
+Phase 4, threading complet : en attente.
+
+2. STRUCTURE DES DONNEES
+
+normalizeComment() produit une structure complète.
+
+Les champs requis sont présents.
+
+Les champs optionnels sont gérés.
+
+Les timestamps sont convertis en Date.
+
+Le format relatif est en français.
+
+Les initiales sont calculées automatiquement.
+
+L’ancien format id, author, text et at est accepté.
+
+3. REEL.JSX
+
+L’import du normalizer est présent.
+
+submitComment() crée un objet normalisé.
+
+Les médias sont pris en charge.
+
+Les réponses sont prises en charge.
+
+Les réactions sont prises en charge.
+
+Le compteur de commentaires est mis à jour.
+
+4. TEST MANUEL : COMMENTAIRE SIMPLE
+
+Ouvrir un reel.
+
+Ouvrir la zone des commentaires.
+
+Saisir un texte.
+
+Valider avec le bouton ou la touche Entrée.
+
+Vérifier l’affichage immédiat.
+
+Vérifier id, author, text, time, at et likes.
+
+Vérifier l’absence d’erreur dans la console.
+
+5. TEST MANUEL : AFFICHAGE
+
+Vérifier l’avatar ou les initiales.
+
+Vérifier le nom de l’auteur.
+
+Vérifier le timestamp relatif en français.
+
+Vérifier l’indication Vous pour son propre commentaire.
+
+Vérifier les boutons J’aime et Répondre.
+
+6. TEST MANUEL : REPONSES
+
+Répondre à un commentaire.
+
+Vérifier parentId et depth.
+
+Vérifier l’indentation.
+
+Vérifier l’affichage de la réponse sous le commentaire parent.
+
+7. TEST MANUEL : MEDIAS
+
+Ajouter un média lorsque la fonctionnalité est activée.
+
+Vérifier le chargement de la vignette.
+
+Vérifier le type et l’URL du média.
+
+Vérifier le comportement lorsque le média est indisponible.
+
+8. TEST MANUEL : REACTIONS
+
+Cliquer sur J’aime.
+
+Vérifier l’incrémentation du compteur.
+
+Vérifier la mise à jour de liked et reaction.
+
+Vérifier le comportement lors du retrait de la réaction.
+
+9. INTEGRATION
+
+PostCard utilise la structure commune.
+
+Reel.jsx utilise la structure commune.
+
+ArticleViewerPreview reste compatible.
+
+Les composants Groupe et CompanyPage doivent être vérifiés lors de leur prochaine modification.
+
+10. QUALITE ET LIVRAISON
+
+Lancer les tests automatisés.
+
+Vérifier l’absence d’erreurs de syntaxe.
+
+Tester sur écran mobile et desktop.
+
+Tester un commentaire vide, long, avec média et avec réponse.
+
+Vérifier les permissions côté serveur.
+
+Vérifier l’état de la base après une opération persistée.
+
+11. DEPANNAGE
+
+Si les commentaires ne s’affichent pas, vérifier l’import de normalizeComment et le passage par le normalizer.
+
+Si les initiales sont incorrectes, vérifier defaultInitials et les données author.
+
+Pour l’affichage de l’heure, utiliser comment.at et non comment.time directement.
+
+Si les réponses ne s’affichent pas, vérifier replies, parentId, depth et le rendu récursif.

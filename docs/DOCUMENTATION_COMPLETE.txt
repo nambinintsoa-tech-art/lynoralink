@@ -1,0 +1,819 @@
+LYNORALINK
+DOCUMENTATION COMPLETE DE L’APPLICATION
+Version du document : 22 septembre 2026
+Version applicative de référence : 1.1.2
+
+1. PRESENTATION
+
+LynoraLink est une plateforme de réseau social professionnel destinée à créer un profil, développer son réseau, publier du contenu, échanger avec d’autres membres et gérer une présence professionnelle ou d’entreprise.
+
+L’application est disponible sous la forme d’une interface web Next.js. Elle peut également être distribuée sous forme d’application mobile grâce à Capacitor pour Android et iOS.
+
+Le projet comprend deux services principaux :
+
+Le frontend Next.js, qui fournit l’interface utilisateur, les pages publiques, l’authentification côté interface et plusieurs routes API compatibles Next.js.
+
+Le backend Fastify, qui fournit les services HTTP versionnés sous le préfixe /v1, les traitements métier, les accès sécurisés à la base PostgreSQL, les notifications, les appels et les intégrations externes.
+
+La base de données est PostgreSQL et son accès est géré avec Prisma.
+
+2. FONCTIONNALITES PRINCIPALES
+
+2.1 Comptes et authentification
+
+Création de compte avec nom, adresse e-mail, titre professionnel, date de naissance et mot de passe.
+
+Connexion et gestion de session avec NextAuth.
+
+Vérification d’adresse e-mail.
+
+Réinitialisation du mot de passe.
+
+Gestion des appareils et des sessions de connexion.
+
+Protection contre les accès non authentifiés sur les sections privées.
+
+Possibilité de connecter des fournisseurs d’identité pris en charge par NextAuth selon la configuration installée.
+
+2.2 Profil professionnel
+
+Création et modification d’un profil professionnel.
+
+Gestion du nom, de la photo, de la couverture, du titre professionnel, de la biographie, de la localisation, de l’entreprise, du secteur, des compétences et du site web.
+
+Configuration de la visibilité du profil et de la découvrabilité.
+
+Consultation de l’activité publiée par un membre.
+
+2.3 Fil d’actualité
+
+Consultation des publications récentes.
+
+Création de publications texte.
+
+Création d’articles avec titre, extrait, corps et présentation.
+
+Ajout d’images, de vidéos et de documents selon la configuration Cloudinary.
+
+Réactions, commentaires, réponses et partages.
+
+Enregistrement de publications pour une consultation ultérieure.
+
+Gestion de la visibilité, du verrouillage des commentaires et des contenus signalés.
+
+Affichage de contenus sponsorisés lorsque le module publicitaire est activé.
+
+2.4 Réseau professionnel
+
+Consultation des connexions.
+
+Affichage des suggestions de mise en relation.
+
+Recherche de membres par nom, fonction ou entreprise.
+
+Envoi, acceptation et gestion des invitations.
+
+Gestion des connexions supprimées ou masquées selon les droits du compte.
+
+2.5 Messages
+
+Création de conversations privées.
+
+Envoi de messages texte.
+
+Ajout éventuel de médias et de pièces jointes.
+
+Réactions aux messages.
+
+Suppression d’un message pour soi ou pour tous lorsque la règle métier l’autorise.
+
+Gestion du statut en ligne et des préférences de messagerie.
+
+2.6 Groupes
+
+Création et consultation de groupes.
+
+Gestion des membres et des demandes d’adhésion.
+
+Publications dans les groupes.
+
+Événements et fichiers associés aux groupes selon les droits de l’utilisateur.
+
+2.7 Stories et Reels
+
+Création et consultation de stories.
+
+Consultation de reels vidéo.
+
+Réactions, commentaires, partages et enregistrements associés aux reels.
+
+Gestion des médias avec Cloudinary lorsque cette intégration est disponible.
+
+2.8 Pages et espace entreprise
+
+Création ou gestion d’une présence entreprise.
+
+Gestion de pages suivies.
+
+Publications associées à une entreprise.
+
+Gestion d’offres d’emploi.
+
+Statistiques d’activité et d’audience.
+
+Paramètres de messagerie automatique et règles de réponse.
+
+Gestion de campagnes publicitaires et de leurs objectifs.
+
+Paiement de campagnes avec Stripe ou PayPal selon la configuration.
+
+2.9 Assistant IA
+
+L’assistant LynoraLink répond aux questions sur l’application et peut consulter un contexte limité de l’utilisateur.
+
+Les consultations disponibles comprennent le contexte de l’application, les notifications, les connexions, les suggestions et la recherche dans le réseau.
+
+L’assistant fournit des indications de navigation et ne doit pas prétendre avoir effectué une action lorsque celle-ci n’est pas confirmée par le système.
+
+Le fournisseur IA peut être Cloudflare ou Groq selon les variables configurées. Un mode local limité existe pour certaines demandes lorsque le fournisseur distant n’est pas disponible.
+
+2.10 Notifications
+
+Notifications d’activité dans l’application.
+
+Notifications push web avec les clés VAPID.
+
+Notifications natives Android avec Firebase Cloud Messaging lorsque Firebase est configuré.
+
+E-mails de vérification, de sécurité et de support selon le fournisseur d’e-mails configuré.
+
+2.11 Appels audio et vidéo
+
+Appels audio et vidéo avec LiveKit.
+
+Configuration WebRTC avec serveurs STUN et TURN.
+
+Gestion des jetons d’accès côté serveur.
+
+Les clés LiveKit, TURN et les secrets associés ne doivent jamais être exposés dans le navigateur.
+
+2.12 Abonnements et paiements
+
+Gestion d’un abonnement Premium.
+
+Synchronisation avec Stripe.
+
+Portail client Stripe.
+
+Paiement de campagnes publicitaires avec Stripe et PayPal selon les variables disponibles.
+
+Les clés secrètes et les signatures de webhook doivent être configurées uniquement côté serveur.
+
+2.13 Administration et support
+
+Tableau de bord administrateur.
+
+Gestion des utilisateurs, publications, groupes, rapports, abonnements et demandes de support selon les droits.
+
+Outils IA d’administration pour les annonces, tâches et réponses de support.
+
+Gestion des campagnes et de la configuration de certains services.
+
+3. ARCHITECTURE TECHNIQUE
+
+3.1 Technologies principales
+
+Frontend : Next.js 14, React 18 et JavaScript JSX.
+
+Styles : Tailwind CSS, CSS global et styles de composants.
+
+Backend : Node.js, Fastify et modules ES.
+
+Base de données : PostgreSQL.
+
+ORM : Prisma 5.
+
+Authentification : NextAuth.
+
+Médias : Cloudinary.
+
+Appels : LiveKit et WebRTC.
+
+Notifications natives : Firebase Admin SDK.
+
+Temps réel : Redis et services WebSocket selon l’environnement.
+
+Paiements : Stripe et PayPal.
+
+Application mobile : Capacitor 7.
+
+3.2 Organisation des dossiers
+
+src/app contient les pages Next.js et les routes API du frontend.
+
+src/components contient les composants React réutilisables, notamment le fil, les messages, l’espace entreprise et l’assistant IA.
+
+src/lib contient les clients et fonctions partagés pour l’authentification, Prisma, les appels backend, l’IA, les notifications, le temps réel et les paiements.
+
+backend/src contient les modules Fastify et les services métier versionnés.
+
+prisma/schema.prisma contient le schéma PostgreSQL.
+
+prisma/migrations contient les migrations de base de données.
+
+prisma/seed.js contient les données d’initialisation disponibles.
+
+public contient les ressources statiques accessibles par le navigateur.
+
+android et ios contiennent les projets natifs générés par Capacitor.
+
+tests contient les tests automatisés existants.
+
+docs contient la documentation du projet.
+
+4. PREQUIS
+
+Système compatible avec Node.js 20 ou une version LTS compatible.
+
+npm installé et accessible depuis le terminal.
+
+PostgreSQL 14 ou une version plus récente recommandée.
+
+Git pour récupérer le projet.
+
+Pour le développement mobile Android : Android Studio et le SDK Android.
+
+Pour le développement mobile iOS : macOS, Xcode et CocoaPods.
+
+Pour les appels : un compte LiveKit et, selon le réseau, un serveur TURN.
+
+Pour les médias : un compte Cloudinary.
+
+Pour les paiements : un compte Stripe et, si nécessaire, un compte PayPal.
+
+Pour les notifications natives : un projet Firebase avec un compte de service.
+
+5. INSTALLATION DU FRONTEND
+
+Depuis la racine du projet, installer les dépendances :
+
+npm install
+
+Créer le fichier d’environnement frontend :
+
+Copy-Item .env.example .env
+
+Ne jamais publier ce fichier dans Git.
+
+Créer la base PostgreSQL et renseigner DATABASE_URL et DIRECT_URL.
+
+Générer un secret NextAuth robuste. Sous PowerShell, une valeur aléatoire peut être générée avec :
+
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+Placer la valeur obtenue dans NEXTAUTH_SECRET.
+
+Générer le client Prisma et appliquer les migrations :
+
+npx prisma generate
+npm run db:migrate
+
+Pour charger les données de démonstration lorsque cela est nécessaire :
+
+npm run db:seed
+
+Démarrer l’application en développement :
+
+npm run dev
+
+L’interface est alors disponible sur http://localhost:3000.
+
+6. INSTALLATION DU BACKEND
+
+Le backend utilise un package séparé et écoute par défaut sur le port 4001.
+
+Depuis la racine du projet :
+
+cd backend
+npm install
+
+Créer le fichier d’environnement backend :
+
+Copy-Item .env.example .env
+
+Renseigner ensuite les variables nécessaires dans backend/.env.
+
+Le backend doit utiliser la même valeur NEXTAUTH_SECRET que le frontend lorsqu’il valide les sessions transmises par l’application.
+
+Démarrer le backend en développement :
+
+npm run dev
+
+Le contrôle de santé est disponible sur :
+
+http://localhost:4001/v1/health
+
+Pour démarrer le backend en mode production :
+
+npm run start
+
+Depuis un nouveau terminal, revenir à la racine avant de démarrer le frontend :
+
+cd ..
+npm run dev
+
+7. CONFIGURATION DES VARIABLES D’ENVIRONNEMENT
+
+7.1 Variables minimales du frontend
+
+DATABASE_URL : URL de connexion PostgreSQL utilisée par Prisma.
+
+DIRECT_URL : URL directe de PostgreSQL utilisée par les migrations ou les opérations nécessitant une connexion directe.
+
+NEXTAUTH_URL : URL publique du frontend, par exemple http://localhost:3000 en développement.
+
+NEXTAUTH_SECRET : secret partagé pour les sessions et les opérations de sécurité.
+
+NEXT_PUBLIC_BACKEND_URL : URL du backend, par exemple http://127.0.0.1:4001.
+
+FRONTEND_ORIGIN : origine autorisée du frontend côté backend, sans chemin additionnel.
+
+7.2 Intelligence artificielle
+
+AI_PROVIDER ou LLM_PROVIDER : fournisseur utilisé par les services IA.
+
+CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID : nécessaires pour Cloudflare AI.
+
+CLOUDFLARE_MODEL : modèle de génération de texte Cloudflare.
+
+CLOUDFLARE_IMAGE_MODEL : modèle utilisé pour la génération d’images.
+
+GROQ_API_KEY : clé du fournisseur Groq.
+
+GROQ_MODEL : modèle texte Groq.
+
+GROQ_VISION_MODEL : modèle vision Groq lorsqu’il est activé.
+
+Les clés IA doivent rester côté serveur. Une variable secrète ne doit pas être préfixée par NEXT_PUBLIC_.
+
+7.3 E-mails
+
+EMAIL_PROVIDER : fournisseur utilisé, par exemple brevo, resend ou smtp.
+
+Pour Brevo : BREVO_API_KEY, BREVO_FROM_EMAIL et BREVO_FROM_NAME.
+
+Pour Resend : RESEND_API_KEY et RESEND_FROM_EMAIL.
+
+Pour SMTP : SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD et SMTP_FROM_EMAIL.
+
+NO_REPLY_EMAIL : adresse utilisée pour les messages automatiques.
+
+SUPPORT_EMAIL_TO : adresse destinataire du support.
+
+7.4 Fichiers et médias
+
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME : nom du cloud Cloudinary visible par le frontend.
+
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET : preset d’images.
+
+NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET : preset de vidéos.
+
+NEXT_PUBLIC_CLOUDINARY_DOCUMENT_PRESET : preset de documents.
+
+CLOUDINARY_API_KEY et CLOUDINARY_API_SECRET : clés serveur pour les opérations sécurisées.
+
+Les presets doivent être configurés avec des règles d’upload adaptées à l’environnement.
+
+7.5 Notifications
+
+WEB_PUSH_EMAIL : adresse utilisée pour identifier l’application Web Push.
+
+NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY : clé publique VAPID.
+
+WEB_PUSH_VAPID_PRIVATE_KEY : clé privée VAPID, uniquement côté serveur.
+
+FIREBASE_SERVICE_ACCOUNT_JSON ou FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL et FIREBASE_PRIVATE_KEY : configuration Firebase Admin pour les notifications natives.
+
+7.6 Appels et temps réel
+
+LIVEKIT_API_KEY et LIVEKIT_API_SECRET : clés serveur LiveKit.
+
+NEXT_PUBLIC_LIVEKIT_URL : URL WebSocket LiveKit pouvant être exposée au frontend.
+
+WEBRTC_STUN_SERVERS : liste de serveurs STUN séparés par des virgules.
+
+TURN_SERVER_URL, TURN_SERVER_USERNAME et TURN_SERVER_PASSWORD : configuration TURN facultative mais recommandée pour les réseaux restrictifs.
+
+REDIS_URL : connexion Redis pour certaines fonctions temps réel.
+
+NEXT_PUBLIC_SIGNALING_SERVER_URL : URL du serveur de signalisation utilisé par l’environnement mobile ou WebRTC.
+
+7.7 Paiements
+
+STRIPE_SECRET_KEY : clé secrète Stripe.
+
+STRIPE_WEBHOOK_SECRET : secret de signature des webhooks Stripe.
+
+STRIPE_PREMIUM_PRICE_ID_MONTHLY : identifiant du prix mensuel Premium.
+
+STRIPE_PREMIUM_PRICE_ID_YEARLY : identifiant du prix annuel Premium.
+
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : clé publique Stripe.
+
+PAYPAL_MODE : sandbox ou live.
+
+PAYPAL_CLIENT_ID et PAYPAL_CLIENT_SECRET : identifiants PayPal.
+
+AD_CURRENCY : devise des campagnes, par exemple eur.
+
+AD_PAYMENT_SUCCESS_URL et AD_PAYMENT_CANCEL_URL : URL de retour des paiements publicitaires.
+
+7.8 Administration
+
+ADMIN_EMAIL : adresse administrateur côté serveur.
+
+NEXT_PUBLIC_ADMIN_EMAIL : adresse nécessaire uniquement pour certains contrôles d’interface qui doivent afficher les fonctions administrateur.
+
+Les rôles et autorisations doivent toujours être vérifiés côté serveur. La variable publique ne doit pas être considérée comme une preuve d’autorisation.
+
+8. COMMANDES DE DEVELOPPEMENT
+
+Démarrer le frontend :
+
+npm run dev
+
+Démarrer le frontend accessible sur le réseau local :
+
+npm run dev:lan
+
+Démarrer le frontend automatiquement avec une adresse IP locale pour un téléphone :
+
+npm run dev:phone
+
+Démarrer le backend :
+
+npm run backend:dev
+
+Vérifier la migration backend :
+
+npm run migration:check
+
+Générer Prisma :
+
+npx prisma generate
+
+Créer une migration de développement :
+
+npm run db:migrate
+
+Appliquer les migrations existantes :
+
+npm run db:deploy
+
+Ouvrir Prisma Studio :
+
+npm run db:studio
+
+Initialiser les données :
+
+npm run db:seed
+
+Lancer les tests de sécurité :
+
+npm run test:security
+
+Construire l’application frontend :
+
+npm run build
+
+Démarrer la version compilée :
+
+npm run start
+
+Ouvrir un tunnel temporaire vers le frontend :
+
+npm run tunnel
+
+Le tunnel est destiné au développement et aux tests. Il ne remplace pas un reverse proxy ou une configuration de production.
+
+9. UTILISATION DE L’APPLICATION
+
+9.1 Première connexion
+
+Ouvrir la page d’accueil.
+
+Créer un compte ou se connecter.
+
+Vérifier l’adresse e-mail lorsque cette étape est activée.
+
+Compléter le profil professionnel pendant l’onboarding.
+
+Choisir les paramètres de confidentialité adaptés.
+
+9.2 Publier un contenu
+
+Ouvrir le Fil d’actualité.
+
+Utiliser le compositeur de publication.
+
+Choisir une publication texte ou un article.
+
+Ajouter un média si le stockage média est configuré.
+
+Définir la visibilité et les options de commentaires.
+
+Publier puis vérifier l’affichage dans le fil.
+
+9.3 Développer son réseau
+
+Ouvrir la section Réseau.
+
+Consulter les suggestions.
+
+Rechercher un membre avec son nom, son poste ou son entreprise.
+
+Envoyer une invitation.
+
+Gérer les invitations depuis la section dédiée.
+
+9.4 Utiliser la messagerie
+
+Ouvrir Messages.
+
+Créer ou sélectionner une conversation.
+
+Rédiger le message.
+
+Ajouter une pièce jointe si le stockage est disponible.
+
+Utiliser les paramètres de conversation pour gérer les préférences.
+
+9.5 Utiliser l’assistant IA
+
+Ouvrir Assistant IA depuis l’espace prévu dans l’application.
+
+Saisir une question précise.
+
+Pour obtenir une réponse contextualisée, demander un résumé des notifications ou du réseau.
+
+L’assistant peut expliquer une procédure mais ne doit être considéré comme ayant exécuté une action que si l’application affiche explicitement sa confirmation.
+
+10. BASE DE DONNEES ET MIGRATIONS
+
+Le schéma Prisma se trouve dans prisma/schema.prisma.
+
+Les principales entités comprennent les utilisateurs, sessions, appareils de connexion, profils, publications, articles, commentaires, réactions, messages, conversations, notifications, stories, reels, groupes, pages entreprise, abonnements, rapports, demandes de support et règles de réponse automatique.
+
+En développement, utiliser :
+
+npm run db:migrate
+
+En production, utiliser uniquement les migrations versionnées :
+
+npm run db:deploy
+
+Ne pas modifier directement la base de production pour corriger une structure. Créer une migration, la tester sur une base de préproduction puis la déployer.
+
+Avant toute migration importante :
+
+Exporter une sauvegarde PostgreSQL.
+
+Vérifier que la migration est compatible avec la version de l’application.
+
+Prévoir une procédure de retour arrière lorsque la modification touche des données existantes.
+
+11. API ET INTEGRATIONS
+
+Le backend Fastify expose ses routes métier sous /v1.
+
+Le point de contrôle de santé est /v1/health.
+
+Le frontend utilise également des routes Next.js sous /api, notamment pour l’authentification, les publications, les messages, les notifications, les groupes, les paiements, l’upload, le support et l’assistant IA.
+
+La réécriture /v1/:path* du frontend pointe vers NEXT_PUBLIC_BACKEND_URL en développement et vers l’URL backend configurée en production.
+
+Les appels backend doivent conserver les contrôles d’authentification, d’autorisation, de validation des entrées et de limitation de débit.
+
+12. SECURITE
+
+Ne jamais versionner les fichiers .env, les certificats, les clés privées, les comptes Firebase ou les secrets de paiement.
+
+Utiliser des secrets différents entre développement, préproduction et production.
+
+Utiliser HTTPS en production.
+
+Définir NEXTAUTH_SECRET avec une valeur aléatoire longue.
+
+Limiter FRONTEND_ORIGIN à l’origine exacte du frontend.
+
+Conserver les clés API, les mots de passe et les secrets webhook côté serveur.
+
+Vérifier les permissions côté backend, même lorsqu’une fonctionnalité est masquée dans l’interface.
+
+Appliquer les migrations avec une procédure contrôlée.
+
+Surveiller les journaux sans y écrire de mots de passe, jetons ou données personnelles sensibles.
+
+Les en-têtes de sécurité configurés par Next.js comprennent notamment X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy et HSTS en production.
+
+13. DEPLOIEMENT FRONTEND
+
+13.1 Vercel
+
+Le fichier vercel.json configure un projet Next.js.
+
+Commande d’installation :
+
+npm ci --include=dev
+
+Commande de build :
+
+npm run build
+
+Commande de développement :
+
+npm run dev
+
+Configurer dans Vercel les variables du frontend, notamment NEXTAUTH_URL, NEXTAUTH_SECRET, DATABASE_URL, DIRECT_URL et NEXT_PUBLIC_BACKEND_URL.
+
+13.2 Docker
+
+Le Dockerfile racine construit Next.js dans une première étape puis démarre l’application sur le port 3000.
+
+Construire l’image :
+
+docker build -t lynoralink-frontend .
+
+Démarrer le conteneur :
+
+docker run --env-file .env -p 3000:3000 lynoralink-frontend
+
+13.3 Render
+
+Le fichier render.yaml décrit principalement le service backend Docker.
+
+Le backend utilise le contrôle de santé /v1/health et exécute prisma migrate deploy avant le déploiement.
+
+Renseigner toutes les variables marquées sync: false dans le tableau de bord Render.
+
+14. DEPLOIEMENT BACKEND
+
+Le backend possède son propre Dockerfile et écoute sur le port 4001 par défaut, ou sur la valeur PORT fournie par l’environnement.
+
+Construire l’image :
+
+docker build -f backend/Dockerfile -t lynoralink-backend .
+
+Démarrer le conteneur :
+
+docker run --env-file backend/.env -p 4001:4001 lynoralink-backend
+
+En production, vérifier les points suivants :
+
+La base PostgreSQL est accessible depuis le service.
+
+DATABASE_URL et DIRECT_URL sont correctes.
+
+NEXTAUTH_SECRET est identique à celui du frontend.
+
+FRONTEND_ORIGIN correspond à l’origine publique réelle.
+
+Les migrations ont été appliquées.
+
+Le point /v1/health répond correctement.
+
+Les services externes sont joignables depuis le réseau du serveur.
+
+15. APPLICATION MOBILE
+
+Capacitor utilise l’identifiant d’application com.lynoralink.app et le nom LynoraLink.
+
+La configuration se trouve dans capacitor.config.ts. La valeur CAPACITOR_SERVER_URL permet de charger une URL différente en développement.
+
+15.1 Android
+
+Installer les dépendances :
+
+npm install
+
+Ajouter la plateforme Android si elle n’existe pas :
+
+npm run mobile:add:android
+
+Synchroniser les ressources :
+
+npm run mobile:sync
+
+Ouvrir Android Studio :
+
+npm run mobile:open:android
+
+Android Studio est nécessaire pour compiler, signer et exécuter l’application.
+
+15.2 iOS
+
+Sur macOS, ajouter iOS :
+
+npm run mobile:add:ios
+
+Synchroniser :
+
+npm run mobile:sync
+
+Ouvrir Xcode :
+
+npm run mobile:open:ios
+
+Le projet iOS nécessite Xcode, CocoaPods et un compte développeur Apple pour la distribution.
+
+16. TESTS ET VALIDATION
+
+Avant une livraison :
+
+Installer les dépendances propres avec npm ci.
+
+Vérifier la présence des variables indispensables.
+
+Générer Prisma.
+
+Appliquer les migrations sur une base de test.
+
+Lancer npm run test:security.
+
+Construire avec npm run build.
+
+Tester l’inscription, la connexion, la déconnexion et la réinitialisation du mot de passe.
+
+Tester les droits d’accès d’un utilisateur normal et d’un administrateur.
+
+Tester la publication, le commentaire, la réaction et l’upload.
+
+Tester la messagerie et les notifications.
+
+Tester l’assistant IA avec le fournisseur configuré et avec le mode dégradé.
+
+Tester l’affichage mobile sur Android et iOS si l’application mobile est publiée.
+
+Vérifier le point de santé backend après déploiement.
+
+17. DEPANNAGE
+
+Le frontend ne démarre pas : vérifier la version de Node.js, supprimer node_modules si nécessaire, relancer npm install et vérifier les variables d’environnement.
+
+Erreur de connexion PostgreSQL : vérifier DATABASE_URL, DIRECT_URL, le port PostgreSQL, les droits de l’utilisateur et l’accès réseau.
+
+Erreur NextAuth : vérifier que NEXTAUTH_URL et NEXTAUTH_SECRET sont présents et cohérents entre les services.
+
+Le backend répond 401 : vérifier la session, le cookie, le secret partagé et FRONTEND_ORIGIN.
+
+Les médias ne s’envoient pas : vérifier le nom Cloudinary, les presets, les clés API et les limites de taille.
+
+Les e-mails ne partent pas : vérifier EMAIL_PROVIDER, les identifiants du fournisseur et l’adresse d’expédition autorisée.
+
+Les notifications natives ne partent pas : vérifier Firebase Service Account, le projet Firebase et l’enregistrement du jeton appareil.
+
+Les appels ne se connectent pas : vérifier l’URL LiveKit, les clés LiveKit et la présence d’un serveur TURN pour les réseaux restrictifs.
+
+Les paiements échouent : vérifier le mode sandbox ou live, les identifiants, les prix Stripe et le secret webhook.
+
+L’assistant IA renvoie une erreur : vérifier AI_PROVIDER, les identifiants du fournisseur, le modèle configuré et les limites de quota.
+
+Les migrations échouent : sauvegarder la base, lire le détail Prisma, vérifier la connexion directe et appliquer les migrations depuis un environnement contrôlé.
+
+18. MAINTENANCE
+
+Mettre à jour les dépendances régulièrement après lecture des notes de version.
+
+Conserver les migrations Prisma dans le contrôle de version.
+
+Surveiller les erreurs frontend et backend.
+
+Vérifier périodiquement les certificats, les clés, les webhooks et les domaines autorisés.
+
+Effectuer des sauvegardes PostgreSQL régulières et tester leur restauration.
+
+Documenter chaque changement de variable d’environnement.
+
+Tester les fonctionnalités optionnelles lorsqu’un fournisseur externe est renouvelé ou modifié.
+
+19. REGLES DE CONTRIBUTION
+
+Conserver les changements ciblés et cohérents avec l’architecture existante.
+
+Ne pas ajouter de secret dans le code source.
+
+Ajouter ou mettre à jour un test pour toute modification métier sensible.
+
+Utiliser une migration Prisma pour toute évolution de schéma.
+
+Vérifier la sécurité côté serveur avant de considérer une fonctionnalité terminée.
+
+Lancer les tests et le build avant une livraison.
+
+Documenter les nouvelles variables d’environnement et les nouveaux services externes.
+
+20. CONTACT ET INFORMATIONS D’EXPLOITATION
+
+Les adresses administrateur, de support et d’expédition sont définies par les variables d’environnement. Elles doivent être remplacées par les adresses officielles de l’organisation avant la mise en production.
+
+Les URL par défaut présentes dans les fichiers de configuration servent au développement ou à l’exemple. Vérifier les domaines réellement utilisés par l’environnement cible avant tout déploiement.
