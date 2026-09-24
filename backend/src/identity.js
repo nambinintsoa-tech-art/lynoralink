@@ -50,9 +50,22 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
 async function sendEmail({ to, subject, text }) {
   const html = renderEmailHtml(subject, text);
   const configuredProvider = String(process.env.EMAIL_PROVIDER || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
-  const provider = configuredProvider || (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL ? "brevo" : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend");
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY?.trim() && (process.env.BREVO_FROM_EMAIL?.trim() || process.env.NO_REPLY_EMAIL?.trim()));
+  const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+  const hasResend = Boolean(process.env.RESEND_API_KEY?.trim() && (process.env.RESEND_FROM_EMAIL?.trim() || process.env.NO_REPLY_EMAIL?.trim()));
+  const provider = configuredProvider === "brevo" && hasBrevo
+    ? "brevo"
+    : configuredProvider === "smtp" && hasSmtp
+      ? "smtp"
+      : configuredProvider === "resend" && hasResend
+        ? "resend"
+        : hasBrevo
+          ? "brevo"
+          : hasSmtp
+            ? "smtp"
+            : "resend";
   if (provider === "brevo") {
-    const fromEmail = process.env.BREVO_FROM_EMAIL?.trim();
+    const fromEmail = (process.env.BREVO_FROM_EMAIL || process.env.NO_REPLY_EMAIL || process.env.SMTP_FROM_EMAIL)?.trim();
     const apiKey = process.env.BREVO_API_KEY?.trim();
     if (!fromEmail || !apiKey) throw new Error("Configuration Brevo backend manquante");
     const response = await fetchWithTimeout("https://api.brevo.com/v3/smtp/email", {
