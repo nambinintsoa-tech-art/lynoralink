@@ -1,7 +1,29 @@
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
+import { sendNativePushNotification } from "./push.js";
+import { broadcastRealtimeEvent } from "./realtime.js";
 
 const reactions = new Set(["ok", "love", "triste", "hahaha", "colere", "waouh"]);
+
+async function createStoryNotification({ userId, senderId, type, text, meta = {} }) {
+  if (!userId || !senderId || userId === senderId || !text) return;
+  const sender = await prisma.user.findUnique({ where: { id: senderId }, select: { name: true, image: true } });
+  const notification = await prisma.notification.create({
+    data: {
+      userId,
+      senderId,
+      type,
+      actor: sender?.name || "Un utilisateur",
+      initials: (sender?.name || "Un utilisateur").split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(""),
+      text,
+      message: text,
+      meta: JSON.stringify({ ...meta, ...(sender?.image ? { avatarUrl: sender.image, actorAvatar: sender.image } : {}) }),
+      read: false,
+    },
+  });
+  broadcastRealtimeEvent({ userId, type: "notifications", payload: { notificationId: notification.id, kind: type } });
+  await sendNativePushNotification(userId, { ...notification, url: "/feed?view=notifications" }).catch(() => {});
+}
 
 function normalizePrivacy(value) {
   const normalized = String(value || "").trim().toLowerCase();
@@ -25,7 +47,13 @@ export async function registerStoryRoutes(app) {
   app.post("/v1/stories", async (request, reply) => {
     const userId = await getSessionUserId(request); if (!userId) return reply.code(401).send({ error: "Non authentifié" });
     const body = request.body || {}; if (!body.text && !body.image) return reply.code(400).send({ error: "Contenu requis" });
-    const story = await prisma.story.create({ data: { userId, text: String(body.text || ""), image: body.image || null, type: body.type || "text", backgroundColor: body.backgroundColor || null, privacy: normalizePrivacy(body.privacy), expiresAt: new Date(Date.now() + 86400000) } });
+    const privacy = normalizePrivacy(body.privacy);
+    const story = await prisma.story.create({ data: { userId, text: String(body.text || ""), image: body.image || null, type: body.type || "text", backgroundColor: body.backgroundColor || null, privacy, expiresAt: new Date(Date.now() + 86400000) } });
+    if (privacy !== "private") {
+      const connections = await prisma.connection.findMany({ where: { status: "accepted", OR: [{ userAId: userId }, { userBId: userId }] }, select: { userAId: true, userBId: true } });
+      const recipientIds = [...new Set(connections.map((connection) => connection.userAId === userId ? connection.userBId : connection.userAId))];
+      await Promise.all(recipientIds.map((recipientId) => createStoryNotification({ userId: recipientId, senderId: userId, type: "story", text: "a publié une nouvelle story.", meta: { storyId: story.id, kind: "new_story" } })));
+    }
     return reply.code(201).send(story);
   });
   app.post("/v1/stories/:id/views", async (request, reply) => {
@@ -34,7 +62,12 @@ export async function registerStoryRoutes(app) {
   });
   app.post("/v1/stories/:id/reactions", async (request, reply) => {
     const userId = await getSessionUserId(request); const reaction = String(request.body?.reaction || ""); if (!userId) return reply.code(401).send({ error: "Non authentifié" }); if (!reactions.has(reaction)) return reply.code(400).send({ error: "Réaction invalide" });
-    await prisma.storyReaction.upsert({ where: { storyId_userId: { storyId: request.params.id, userId } }, update: { reaction }, create: { storyId: request.params.id, userId, reaction } }); return reply.send({ ok: true, reaction });
+    const story = await prisma.story.findUnique({ where: { id: request.params.id }, select: { id: true, userId: true } });
+    if (!story) return reply.code(404).send({ error: "Story introuvable" });
+    const existing = await prisma.storyReaction.findUnique({ where: { storyId_userId: { storyId: story.id, userId } } });
+    await prisma.storyReaction.upsert({ where: { storyId_userId: { storyId: story.id, userId } }, update: { reaction }, create: { storyId: story.id, userId, reaction } });
+    if (existing?.reaction !== reaction) await createStoryNotification({ userId: story.userId, senderId: userId, type: "like", text: `a réagi à votre story (${reaction}).`, meta: { storyId: story.id, kind: "story_reaction", reaction } });
+    return reply.send({ ok: true, reaction });
   });
   app.post("/v1/stories/:id/actions", async (request, reply) => {
     const userId = await getSessionUserId(request); const action = request.body?.action;

@@ -2814,7 +2814,7 @@ export function CompanyPagesGrille({ onOpenPage, onOpenCompany, onOpenMyPage, cu
             top: "var(--lynora-header-offset, 0px)",
             overflowY: "auto",
             alignSelf: "flex-start",
-            display: mobileSidebarOpen ? "block" : "none",
+            display: mobileSidebarOpen ? "block" : "flex",
             opacity: mobileSidebarOpen ? 1 : 0,
             visibility: mobileSidebarOpen ? "visible" : "hidden",
             pointerEvents: mobileSidebarOpen ? "auto" : "none",

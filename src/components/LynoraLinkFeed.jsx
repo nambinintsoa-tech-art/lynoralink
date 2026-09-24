@@ -3222,6 +3222,26 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
       window.dispatchEvent(new CustomEvent("lynoralink:suggestions-updated"));
     }
   }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id || typeof window === "undefined" || typeof window.EventSource === "undefined") return undefined;
+
+    const realtime = new EventSource("/api/realtime");
+    const handleRealtimeEvent = (event) => {
+      try {
+        const payload = JSON.parse(event.data || "{}");
+        triggerRealtimeSync(payload.type || "all");
+      } catch {
+        triggerRealtimeSync("all");
+      }
+    };
+    realtime.addEventListener("realtime", handleRealtimeEvent);
+    return () => {
+      realtime.removeEventListener("realtime", handleRealtimeEvent);
+      realtime.close();
+    };
+  }, [session?.user?.id, triggerRealtimeSync]);
+
   const profileTargetId = targetProfileId || searchParams?.get("userId") || null;
   const isMobileViewport = !isViewportReady ? (typeof window !== "undefined" ? window.innerWidth <= 860 : false) : viewportWidth <= 860;
   const showFeedSkeleton = isMounted && !feedContentReady && posts.length === 0 && !hasInitialFeedData;
@@ -4282,6 +4302,8 @@ export default function LynoraFeed({ session, initialPosts, initialSearch = "" }
     if (id === "feed") setUnreadPublications(0);
     if (id === "network") {
       setNetworkBadgeDismissed(true);
+      setNetworkLoading(true);
+      fetchRelations().finally(() => setNetworkLoading(false));
       markNetworkNotificationsRead();
     }
     if (id === "groups") setGroupBadgeDismissed(true);

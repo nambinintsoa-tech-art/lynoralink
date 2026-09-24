@@ -1573,6 +1573,7 @@ export default function PostViewerPreview({
 
   useEffect(() => {
     setShowAllComments(false);
+    setReplyingTo(null);
   }, [post?.id]);
 
   useEffect(() => {
@@ -1581,8 +1582,8 @@ export default function PostViewerPreview({
       return;
     }
 
-    const hasCommentPayload = post?.comments !== undefined && post?.comments !== null;
-    setCommentsLoading(Boolean(post?.loadingComments || !hasCommentPayload));
+    const hasCommentPayload = Array.isArray(post?.comments) && post?.commentsLoaded !== false;
+    setCommentsLoading(Boolean(post?.loadingComments || post?.commentsLoaded === false || !hasCommentPayload));
   }, [post?.id, post?.comments, post?.loadingComments]);
 
   useEffect(() => {

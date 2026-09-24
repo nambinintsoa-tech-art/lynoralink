@@ -57,3 +57,63 @@ test("group notifications keep the actor avatar and group cover together", async
   assert.match(routeSource, /actor: session\.user\.name/);
   assert.match(routeSource, /coverUrl: group\.coverUrl \|\| group\.avatarUrl/);
 });
+
+test("post viewer clears the reply target when switching posts", async () => {
+  const source = await load("src/components/PostViewerPreview.jsx");
+  assert.match(source, /setShowAllComments\(false\);\s*setReplyingTo\(null\);\s*\}, \[post\?\.id\]\)/);
+});
+
+test("backend post events create notifications for reactions, comments, and mentions", async () => {
+  const source = await load("backend/src/posts.js");
+  assert.match(source, /type: "like"/);
+  assert.match(source, /type: "comment"/);
+  assert.match(source, /type: "mention"/);
+  assert.match(source, /createBackendNotification/);
+});
+
+test("notification events are delivered to the client in real time", async () => {
+  const backendSource = await load("backend/src/posts.js");
+  const clientSource = await load("src/components/LynoraLinkFeed.jsx");
+  assert.match(backendSource, /broadcastRealtimeEvent\(\{ userId, type: "notifications"/);
+  assert.match(clientSource, /new EventSource\("\/api\/realtime"\)/);
+  assert.match(clientSource, /addEventListener\("realtime"/);
+});
+
+test("story reactions and new stories create notifications", async () => {
+  const source = await load("backend/src/stories.js");
+  assert.match(source, /type: "story"/);
+  assert.match(source, /kind: "new_story"/);
+  assert.match(source, /type: "like"/);
+  assert.match(source, /kind: "story_reaction"/);
+  assert.match(source, /createStoryNotification/);
+});
+
+test("splash screen finishes before the application skeleton is rendered", async () => {
+  const source = await load("src/components/AppSplashGate.jsx");
+  assert.match(source, /useState\(\(\) => !splashShownForDocument\)/);
+  assert.match(source, /if \(showSplash\) return <SplashScreen/);
+  assert.doesNotMatch(source, /\{showSplash && <SplashScreen[\s\S]*\}\s*\{children\}/);
+});
+
+test("post viewer and network use loading skeletons for fresh data", async () => {
+  const postViewerSource = await load("src/components/PostViewerPreview.jsx");
+  const feedSource = await load("src/components/LynoraLinkFeed.jsx");
+  assert.match(postViewerSource, /post\?\.commentsLoaded === false/);
+  assert.match(postViewerSource, /<CommentSkeleton count=\{4\}/);
+  assert.match(feedSource, /setNetworkLoading\(true\);\s*fetchRelations\(\)\.finally/);
+  assert.match(feedSource, /<NetworkOpeningSkeleton \/>/);
+});
+
+test("company pages grid includes a left sidebar skeleton", async () => {
+  const skeletonSource = await load("src/components/Skeleton.jsx");
+  const gridSource = await load("src/components/CompanyPage.jsx");
+  assert.match(skeletonSource, /company-pages-grid-skeleton-sidebar/);
+  assert.match(skeletonSource, /company-pages-grid-skeleton-content/);
+  assert.match(gridSource, /display: mobileSidebarOpen \? "block" : "flex"/);
+});
+
+test("splash logo appears before the loading dots", async () => {
+  const source = await load("src/components/SplashScreen.jsx");
+  assert.match(source, /\.lyn-sp-dots \{ animation: lyn-sp-dots-in \.2s ease \.65s both; \}/);
+  assert.match(source, /className="lyn-sp-dots"/);
+});

@@ -1,5 +1,6 @@
 import { getSessionUserId } from "./auth.js";
 import { prisma } from "./db.js";
+import { sendNativePushNotification } from "./push.js";
 import { broadcastRealtimeEvent } from "./realtime.js";
 
 function initials(name = "") {
@@ -21,6 +22,26 @@ function parseMedia(value, fallbackUrl, fallbackType) {
 
 function authError(reply) {
   return reply.code(401).send({ error: "Non authentifié" });
+}
+
+async function createBackendNotification({ userId, senderId, type, text, meta = {} }) {
+  if (!userId || !senderId || userId === senderId || !text) return;
+  const sender = await prisma.user.findUnique({ where: { id: senderId }, select: { name: true, image: true } });
+  const notification = await prisma.notification.create({
+    data: {
+      userId,
+      senderId,
+      type,
+      actor: sender?.name || "Un utilisateur",
+      initials: initials(sender?.name || "Un utilisateur"),
+      text,
+      message: text,
+      meta: JSON.stringify({ ...meta, ...(sender?.image ? { avatarUrl: sender.image, actorAvatar: sender.image } : {}) }),
+      read: false,
+    },
+  });
+  broadcastRealtimeEvent({ userId, type: "notifications", payload: { notificationId: notification.id, kind: type } });
+  await sendNativePushNotification(userId, { ...notification, url: "/feed?view=notifications" }).catch(() => {});
 }
 
 function normalizeTags(value) {
@@ -293,6 +314,15 @@ export async function registerPostRoutes(app) {
       },
       include: { author: { select: { id: true, name: true, title: true, image: true } } },
     });
+    if (Array.isArray(body.identifiedUsers)) {
+      await Promise.all(body.identifiedUsers.slice(0, 20).map((identifiedUser) => createBackendNotification({
+        userId: identifiedUser?.id,
+        senderId: userId,
+        type: "mention",
+        text: "vous a identifié dans une publication.",
+        meta: { postId: post.id },
+      })));
+    }
     broadcastRealtimeEvent({ type: "posts", broadcastToAll: true, payload: { postId: post.id } });
     return reply.code(201).send({ ok: true, post: { ...post, media: media.length > 1 ? media : media[0] || null, createdAt: post.createdAt } });
   });
@@ -305,7 +335,16 @@ export async function registerPostRoutes(app) {
     const existing = await prisma.like.findFirst({ where: { postId: post.id, userId } });
     if (existing?.reaction === reaction) await prisma.like.delete({ where: { id: existing.id } });
     else if (existing) await prisma.like.update({ where: { id: existing.id }, data: { reaction } });
-    else await prisma.like.create({ data: { postId: post.id, userId, reaction } });
+    else {
+      await prisma.like.create({ data: { postId: post.id, userId, reaction } });
+      await createBackendNotification({
+        userId: post.authorId,
+        senderId: userId,
+        type: "like",
+        text: `a réagi à votre publication (${reaction}).`,
+        meta: { postId: post.id, reaction },
+      });
+    }
     const likes = await prisma.like.findMany({ where: { postId: post.id }, select: { userId: true, reaction: true } });
     const current = likes.find((like) => like.userId === userId);
     return reply.send({ liked: Boolean(current), likes: likes.length, reaction: current?.reaction || null, reactions: likes.reduce((counts, like) => ({ ...counts, [like.reaction]: (counts[like.reaction] || 0) + 1 }), {}) });
@@ -338,7 +377,15 @@ export async function registerPostRoutes(app) {
     if (!text || text.length > 5000) return reply.code(400).send({ error: "Le commentaire est requis" });
     const parentId = request.body?.parentId ? String(request.body.parentId) : null;
     if (parentId && !(await prisma.comment.findFirst({ where: { id: parentId, postId: post.id } }))) return reply.code(400).send({ error: "Commentaire parent introuvable" });
+    const parentComment = parentId ? await prisma.comment.findUnique({ where: { id: parentId }, select: { authorId: true } }) : null;
     const comment = await prisma.comment.create({ data: { postId: post.id, authorId: userId, text, parentId, mediaData: Array.isArray(request.body?.media) ? JSON.stringify(request.body.media.slice(0, 10)) : null }, include: { author: { select: { name: true, image: true } } } });
+    await createBackendNotification({
+      userId: parentComment?.authorId || post.authorId,
+      senderId: userId,
+      type: "comment",
+      text: parentComment ? "a répondu à votre commentaire." : "a commenté votre publication.",
+      meta: { postId: post.id, commentId: comment.id, ...(parentId ? { parentId } : {}) },
+    });
     return reply.code(201).send(shapeComment(comment));
   });
 
@@ -352,6 +399,15 @@ export async function registerPostRoutes(app) {
     if (existing?.reaction === reaction) await prisma.commentReaction.delete({ where: { id: existing.id } });
     else if (existing) await prisma.commentReaction.update({ where: { id: existing.id }, data: { reaction } });
     else await prisma.commentReaction.create({ data: { commentId: comment.id, userId, reaction } });
+    if (existing?.reaction !== reaction) {
+      await createBackendNotification({
+        userId: comment.authorId,
+        senderId: userId,
+        type: "like",
+        text: `a réagi à votre commentaire (${reaction}).`,
+        meta: { postId: request.params.postId, commentId: comment.id, reaction },
+      });
+    }
     const totalReactions = await prisma.commentReaction.count({ where: { commentId: comment.id } });
     return reply.send({ reaction: existing?.reaction === reaction ? null : reaction, totalReactions });
   });

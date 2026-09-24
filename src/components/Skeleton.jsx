@@ -38,6 +38,8 @@ const STYLE_CSS = `
 .lyn-media-fade { animation: lyn-fade-in .45s ease both; }
 .lyn-spin { animation: lyn-spin .9s linear infinite; }
 @media (max-width: 1024px) {
+  .company-pages-grid-skeleton-sidebar { display: none !important; }
+  .company-pages-grid-skeleton-content { padding: 16px 12px 48px !important; }
   .lynora-skeleton-feed-shell { min-height: 100dvh !important; overflow-x: hidden; }
   .lynora-skeleton-feed-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; padding: calc(max(96px, var(--lynora-header-offset, 96px)) + 12px) 12px 12px !important; }
   .lynora-skeleton-feed-grid > aside { display: none !important; }
@@ -954,28 +956,38 @@ export function CompanyPageSkeleton() {
 
 export function CompanyPagesGridSkeleton({ count = 6 }) {
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <Skeleton width="28%" height={12} radius={5} />
-        <Skeleton width="42%" height={26} radius={7} />
-      </div>
-      <div style={{ display: "flex", gap: 8, overflow: "hidden" }}>
-        {Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} width={92} height={36} radius={999} />)}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-        {Array.from({ length: count }).map((_, index) => (
-          <Frame key={index} style={{ padding: 0, overflow: "hidden" }}>
-            <Skeleton width="100%" height={92} radius="16px 16px 0 0" />
-            <div style={{ padding: "0 14px 14px", marginTop: -24 }}>
-              <SkeletonAvatar size={54} radius={999} style={{ border: `4px solid ${C.white}`, marginBottom: 12 }} />
-              <Skeleton width="76%" height={15} radius={5} />
-              <Skeleton width="48%" height={10} radius={4} style={{ marginTop: 8 }} />
-              <SkeletonText lines={2} lastLineWidth="74%" lineHeight={10} style={{ marginTop: 14 }} />
-              <Skeleton width="100%" height={34} radius={8} style={{ marginTop: 14 }} />
-            </div>
-          </Frame>
-        ))}
-      </div>
+    <div className="company-pages-grid-skeleton" style={{ display: "flex", width: "100%", minHeight: "calc(100dvh - var(--lynora-header-offset, 0px))", background: C.base, gap: 0 }}>
+      <aside className="company-pages-grid-skeleton-sidebar" style={{ width: 360, flex: "0 0 360px", padding: "18px 24px", background: C.white, borderRight: `1px solid ${C.line}` }}>
+        <Skeleton width="34%" height={24} radius={6} />
+        <Skeleton width="100%" height={42} radius={22} style={{ marginTop: 18 }} />
+        <Skeleton width="100%" height={44} radius={10} style={{ marginTop: 12 }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 20 }}>
+          {Array.from({ length: 7 }).map((_, index) => <div key={index} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 8px" }}><SkeletonAvatar size={32} radius={999} /><Skeleton width={`${index % 2 ? 62 : 76}%`} height={13} radius={5} /></div>)}
+        </div>
+      </aside>
+      <main className="company-pages-grid-skeleton-content" style={{ flex: 1, minWidth: 0, maxWidth: 1080, margin: "0 auto", padding: "24px 28px 64px", display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Skeleton width="28%" height={12} radius={5} />
+          <Skeleton width="42%" height={26} radius={7} />
+        </div>
+        <div style={{ display: "flex", gap: 8, overflow: "hidden" }}>
+          {Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} width={92} height={36} radius={999} />)}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+          {Array.from({ length: count }).map((_, index) => (
+            <Frame key={index} style={{ padding: 0, overflow: "hidden" }}>
+              <Skeleton width="100%" height={92} radius="16px 16px 0 0" />
+              <div style={{ padding: "0 14px 14px", marginTop: -24 }}>
+                <SkeletonAvatar size={54} radius={999} style={{ border: `4px solid ${C.white}`, marginBottom: 12 }} />
+                <Skeleton width="76%" height={15} radius={5} />
+                <Skeleton width="48%" height={10} radius={4} style={{ marginTop: 8 }} />
+                <SkeletonText lines={2} lastLineWidth="74%" lineHeight={10} style={{ marginTop: 14 }} />
+                <Skeleton width="100%" height={34} radius={8} style={{ marginTop: 14 }} />
+              </div>
+            </Frame>
+          ))}
+        </div>
+      </main>
     </div>
   );
 }

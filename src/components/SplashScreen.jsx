@@ -71,7 +71,12 @@ export default function SplashScreen({
           0%, 60%, 100% { opacity: .28; transform: scale(.72); }
           30%           { opacity: 1; transform: scale(1); }
         }
+        @keyframes lyn-sp-dots-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         .lyn-sp-logo { animation: lyn-sp-logo-in .65s cubic-bezier(0.22,1,0.36,1) both; }
+        .lyn-sp-dots { animation: lyn-sp-dots-in .2s ease .65s both; }
         .lyn-sp-dot { animation: lyn-sp-dot 1.2s ease-in-out infinite; }
         .lyn-sp-dot:nth-child(2) { animation-delay: .12s; }
         .lyn-sp-dot:nth-child(3) { animation-delay: .24s; }
@@ -79,7 +84,7 @@ export default function SplashScreen({
         .lyn-sp-dot:nth-child(5) { animation-delay: .48s; }
         .lyn-sp-dot:nth-child(6) { animation-delay: .60s; }
         @media (prefers-reduced-motion: reduce) {
-          .lyn-sp-logo, .lyn-sp-dot { animation: none !important; opacity: 1 !important; transform: none !important; }
+          .lyn-sp-logo, .lyn-sp-dots, .lyn-sp-dot { animation: none !important; opacity: 1 !important; transform: none !important; }
         }
       `}</style>
 
@@ -100,7 +105,7 @@ export default function SplashScreen({
       </div>
 
       {/* Indicateur de chargement en points, comme Facebook */}
-      <div aria-label="Chargement" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 16 }}>
+      <div className="lyn-sp-dots" aria-label="Chargement" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 16 }}>
         {[0, 1, 2, 3, 4, 5].map((dot) => (
           <span
             key={dot}

@@ -7,7 +7,7 @@ const SPLASH_DURATION = 1800;
 let splashShownForDocument = false;
 
 export default function AppSplashGate({ children }) {
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(() => !splashShownForDocument);
   const finishSplash = useCallback(() => setShowSplash(false), []);
 
   useEffect(() => {
@@ -18,10 +18,6 @@ export default function AppSplashGate({ children }) {
     return () => window.clearTimeout(timeoutId);
   }, [finishSplash]);
 
-  return (
-    <>
-      {showSplash && <SplashScreen duration={SPLASH_DURATION} onFinish={finishSplash} />}
-      {children}
-    </>
-  );
+  if (showSplash) return <SplashScreen duration={SPLASH_DURATION} onFinish={finishSplash} />;
+  return children;
 }
