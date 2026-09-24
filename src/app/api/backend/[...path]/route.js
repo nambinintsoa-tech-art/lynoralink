@@ -6,7 +6,9 @@ import { authOptions } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const backendUrl = () => {
-  const configured = (process.env.NEXT_PUBLIC_BACKEND_URL || "").replace(/\/$/, "");
+  const configured = (process.env.NEXT_PUBLIC_BACKEND_URL || "")
+    .replace(/\/v1\/?$/, "")
+    .replace(/\/$/, "");
   if (process.env.NODE_ENV === "production" && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configured)) {
     return "https://api.lynoralink.com";
   }
