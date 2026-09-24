@@ -12,3 +12,11 @@ test('session config keeps the user authenticated across app restarts', () => {
   assert.match(source, /jwt:\s*\{[\s\S]*maxAge:\s*SESSION_TTL_SECONDS/);
   assert.match(source, /cookies:\s*\{[\s\S]*sessionToken:[\s\S]*maxAge:\s*SESSION_TTL_SECONDS/);
 });
+
+test('registration signs in and opens the welcome page after email verification', () => {
+  const registerSource = fs.readFileSync(path.join(process.cwd(), 'src/app/register/page.jsx'), 'utf8');
+  assert.match(registerSource, /signIn\("credentials"/);
+  assert.match(registerSource, /redirect:\s*false/);
+  assert.match(registerSource, /window\.location\.replace\("\/welcome"\)/);
+  assert.doesNotMatch(registerSource, /window\.location\.href\s*=\s*"\/login\?callbackUrl=%2Fwelcome"/);
+});

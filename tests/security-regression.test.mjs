@@ -40,3 +40,20 @@ test("top navigation exposes a network badge", async () => {
   assert.match(source, /networkBadge\s*=\s*0/);
   assert.match(source, /id:\s*["']network["'][^\n]*badge:\s*networkBadge/);
 });
+
+test("group notifications render their cover with a round group avatar", async () => {
+  const source = await load("src/components/Notification.jsx");
+  assert.match(source, /const primaryImage = isGroup \? \(notification\.coverUrl \|\| notification\.avatarUrl/);
+  assert.match(source, /isGroup && notification\.coverUrl/);
+  assert.match(source, /size=\{22\} imageUrl=\{notification\.avatarUrl\}/);
+});
+
+test("group notifications keep the actor avatar and group cover together", async () => {
+  const backendSource = await load("backend/src/groups.js");
+  const routeSource = await load("src/app/api/groups/[id]/join-requests/route.js");
+  assert.match(backendSource, /actorUser\?\.name/);
+  assert.match(backendSource, /avatarUrl: actorUser\?\.image/);
+  assert.match(backendSource, /coverUrl: group\.coverUrl \|\| group\.avatarUrl/);
+  assert.match(routeSource, /actor: session\.user\.name/);
+  assert.match(routeSource, /coverUrl: group\.coverUrl \|\| group\.avatarUrl/);
+});

@@ -134,7 +134,7 @@ export async function PATCH(req, { params }) {
     const decisionText = decision === "approved"
       ? `Votre demande pour rejoindre ${group.name} a été approuvée.`
       : `Votre demande pour rejoindre ${group.name} a été refusée.`;
-    await createNotification({ userId: request.userId, senderId: session.user.id, type: decision === "approved" ? "group_join_approved" : "group_join_rejected", actor: group.name, text: decisionText, meta: { groupId: group.id, kind: decision === "approved" ? "group_join_approved" : "group_join_rejected" } });
+    await createNotification({ userId: request.userId, senderId: session.user.id, type: decision === "approved" ? "group_join_approved" : "group_join_rejected", actor: session.user.name || "Administrateur", text: decisionText, avatarUrl: session.user.image || null, coverUrl: group.coverUrl || group.avatarUrl || null, meta: { groupId: group.id, kind: decision === "approved" ? "group_join_approved" : "group_join_rejected", avatarUrl: session.user.image || null, coverUrl: group.coverUrl || group.avatarUrl || null } });
     return NextResponse.json({ ok: true, decision, group: { ...updated, members: nextMembers, joinRequests: remaining } });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });

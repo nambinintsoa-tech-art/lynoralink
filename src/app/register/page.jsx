@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, Sparkles, Shield, Rocket } from "lucide-react";
 import LogoBadge from "@/components/LogoBadge";
 import BrandName from "@/components/BrandName";
@@ -67,7 +68,17 @@ export default function RegisterPage() {
           setError(data.error || "Code de confirmation invalide.");
           return;
         }
-        window.location.href = "/login?callbackUrl=%2Fwelcome";
+        const loginResult = await signIn("credentials", {
+          email: verificationEmail,
+          password: form.password,
+          redirect: false,
+          callbackUrl: "/welcome",
+        });
+        if (loginResult?.error) {
+          setError("Votre adresse email est confirmée, mais la connexion automatique a échoué. Connectez-vous pour continuer.");
+          return;
+        }
+        window.location.replace("/welcome");
       } catch {
         setError(AUTH_CONNECTION_MESSAGE);
       } finally {

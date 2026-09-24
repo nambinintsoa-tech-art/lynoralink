@@ -166,7 +166,7 @@ export async function registerGroupRoutes(app) {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, image: true, title: true } }); const name = user?.name || "Utilisateur";
     const item = { id: `join_${Date.now()}_${userId}`, userId, name, initials: initials(name), title: user?.title || "Membre LynoraLink", image: user?.image || null, avatarUrl: user?.image || null, answers: Object.fromEntries(questions.map((question) => [question.id, answers[question.id]])), requestedAt: new Date().toISOString(), status: "pending" };
     const updated = await prisma.group.update({ where: { id: group.id }, data: { joinRequests: json([item, ...requests.filter((entry) => entry?.userId !== userId)]) } });
-    await Promise.all(adminIds(group).filter((id) => id !== userId).map((id) => notify(id, userId, "group_join_request", name, `${name} souhaite rejoindre le groupe ${group.name}.`, { groupId: group.id, kind: "group_join_request", groupName: group.name })));
+    await Promise.all(adminIds(group).filter((id) => id !== userId).map((id) => notify(id, userId, "group_join_request", name, `${name} souhaite rejoindre le groupe ${group.name}.`, { groupId: group.id, kind: "group_join_request", groupName: group.name, coverUrl: group.coverUrl || group.avatarUrl || null })));
     return reply.code(201).send({ ok: true, request: item, joinRequests: array(updated.joinRequests) });
   });
 
@@ -179,7 +179,8 @@ export async function registerGroupRoutes(app) {
     const nextMembers = array(group.members); if (decision === "approved" && !isMember(group, pending.userId)) nextMembers.push({ id: pending.userId, name: pending.name, initials: pending.initials, image: pending.image || pending.avatarUrl || null, avatarUrl: pending.avatarUrl || pending.image || null, online: false, role: "member", title: pending.title || "Membre", joinedAt: new Date().toISOString(), postsCount: 0 });
     const updated = await prisma.group.update({ where: { id: group.id }, data: { members: json(nextMembers), joinRequests: json(requests.filter((item) => item?.id !== requestId)) } });
     const decisionText = decision === "approved" ? `Votre demande pour rejoindre ${group.name} a été approuvée.` : `Votre demande pour rejoindre ${group.name} a été refusée.`;
-    await notify(pending.userId, userId, decision === "approved" ? "group_join_approved" : "group_join_rejected", group.name, decisionText, { groupId: group.id, kind: decision === "approved" ? "group_join_approved" : "group_join_rejected" });
+    const actorUser = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, image: true } });
+    await notify(pending.userId, userId, decision === "approved" ? "group_join_approved" : "group_join_rejected", actorUser?.name || "Administrateur", decisionText, { groupId: group.id, kind: decision === "approved" ? "group_join_approved" : "group_join_rejected", avatarUrl: actorUser?.image || null, coverUrl: group.coverUrl || group.avatarUrl || null });
     return reply.send({ ok: true, decision, group: parseGroup(updated, userId, true) });
   });
 

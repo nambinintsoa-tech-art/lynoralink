@@ -198,6 +198,11 @@ function NotificationItem({ notification, menuOpen, onToggleMenu, onCloseMenu, o
     >
       <div style={{ position: "relative", flexShrink: 0 }}>
         <Avatar initials={notification.initials} size={38} imageUrl={primaryImage} variant={avatarVariant} />
+        {isGroup && notification.coverUrl && (
+          <div style={{ position: "absolute", left: -4, bottom: -4, padding: 2, borderRadius: "50%", background: C.surface, boxShadow: "0 1px 4px rgba(15,51,82,0.2)" }}>
+            <Avatar initials={notification.initials} size={22} imageUrl={notification.avatarUrl} />
+          </div>
+        )}
         <span style={{ position: "absolute", bottom: -3, right: -3, width: 18, height: 18, borderRadius: "50%", background: C.surface, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 2px var(--app-surface)" }}>
           {reaction ? (
             <img src={reaction.src} alt={reaction.label} style={{ width: 12, height: 12, objectFit: "contain" }} />
