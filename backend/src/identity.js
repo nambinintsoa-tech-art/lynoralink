@@ -166,13 +166,18 @@ export async function registerIdentityRoutes(app) {
   app.post("/v1/forgot-password", async (request, reply) => {
     const email = String(request.body?.email || "").trim().toLowerCase();
     if (!validEmail(email)) return reply.send({ ok: true, message: genericResetMessage });
-    const user = await prisma.user.findUnique({ where: { email }, select: { password: true } });
-    if (!user?.password) return reply.send({ ok: true, message: genericResetMessage });
-    await prisma.verificationToken.deleteMany({ where: { identifier: `password-reset:${email}` } });
-    const token = crypto.randomBytes(32).toString("hex");
-    await prisma.verificationToken.create({ data: { identifier: `password-reset:${email}`, token, expires: new Date(Date.now() + 1800000) } });
-    try { await sendEmail({ to: email, subject: "Réinitialisez votre mot de passe LynoraLink", text: `Réinitialisez votre mot de passe : ${getAppUrl()}/reset-password?token=${encodeURIComponent(token)}\n\nCe lien expire dans 30 minutes.` }); } catch { return reply.code(503).send({ ok: false, error: "Le lien de réinitialisation n'a pas pu être envoyé." }); }
-    return reply.send({ ok: true, message: genericResetMessage });
+    try {
+      const user = await prisma.user.findUnique({ where: { email }, select: { password: true } });
+      if (!user?.password) return reply.send({ ok: true, message: genericResetMessage });
+      await prisma.verificationToken.deleteMany({ where: { identifier: `password-reset:${email}` } });
+      const token = crypto.randomBytes(32).toString("hex");
+      await prisma.verificationToken.create({ data: { identifier: `password-reset:${email}`, token, expires: new Date(Date.now() + 1800000) } });
+      await sendEmail({ to: email, subject: "Réinitialisez votre mot de passe LynoraLink", text: `Réinitialisez votre mot de passe : ${getAppUrl()}/reset-password?token=${encodeURIComponent(token)}\n\nCe lien expire dans 30 minutes.` });
+      return reply.send({ ok: true, message: genericResetMessage });
+    } catch (error) {
+      request.log.error({ err: error }, "Password reset request failed");
+      return reply.code(503).send({ ok: false, error: "Le lien de réinitialisation n'a pas pu être envoyé." });
+    }
   });
 
   app.post("/v1/reset-password", async (request, reply) => {
