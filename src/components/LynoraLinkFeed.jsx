@@ -570,11 +570,11 @@ function ConfirmModal({ title, message, confirmLabel, danger, onCancel, onConfir
 /* ------------------------------------------------------------------ */
 /*  BARRE DE NAVIGATION SUPÉRIEURE — logo seul + menu déroulant profil */
 /* ------------------------------------------------------------------ */
-export function TopNav({ profile, view, onNavigate, onRequestLogout, unreadMessages = 0, unreadNotifications = 0, isAdmin = false }) {
+export function TopNav({ profile, view, onNavigate, onRequestLogout, unreadMessages = 0, unreadNotifications = 0, networkBadge = 0, isAdmin = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navItems = [
     { id: "feed", icon: Home, label: "Accueil" },
-    { id: "network", icon: Users, label: "Réseau" },
+    { id: "network", icon: Users, label: "Réseau", badge: networkBadge },
     { id: "groups", icon: Users2, label: "Groupes" },
     { id: "company", icon: Building2, label: "Mon entreprise" },
     { id: "dashboard", icon: TrendingUp, label: "Dashboard" },

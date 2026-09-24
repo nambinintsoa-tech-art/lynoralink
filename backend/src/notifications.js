@@ -16,7 +16,7 @@ function normalizeNotification(item) {
   const text = item.text || item.message || "Nouvelle notification";
   let meta = {};
   try { meta = item.meta ? JSON.parse(item.meta) : {}; } catch {}
-  const avatarUrl = isPlatformNotification ? "/logo_lynora.svg" : (item.avatarUrl || meta.avatarUrl || meta.actorAvatar || meta.image || meta.imageUrl || item.sender?.image || item.user?.image || null);
+  const avatarUrl = isPlatformNotification ? "/logo_lynora.svg" : (item.avatarUrl || meta.avatarUrl || meta.actorAvatar || meta.image || meta.imageUrl || item.sender?.image || null);
   const coverUrl = item.coverUrl || meta.coverUrl || meta.groupCover || meta.groupImage || item.sender?.cover || null;
   return {
     id: item.id,

@@ -28,3 +28,15 @@ test("blocking is not time-limited", async () => {
   const source = await load("src/lib/blocking.js");
   assert.doesNotMatch(source, /BLOCK_DURATION_MS|createdAt:\s*\{\s*gte/);
 });
+
+test("notification avatar comes from the displayed actor, not the recipient", async () => {
+  const source = await load("backend/src/notifications.js");
+  assert.match(source, /item\.sender\?\.image/);
+  assert.doesNotMatch(source, /item\.user\?\.image/);
+});
+
+test("top navigation exposes a network badge", async () => {
+  const source = await load("src/components/LynoraLinkFeed.jsx");
+  assert.match(source, /networkBadge\s*=\s*0/);
+  assert.match(source, /id:\s*["']network["'][^\n]*badge:\s*networkBadge/);
+});
